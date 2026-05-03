@@ -1,0 +1,76 @@
+from datetime import datetime, timedelta
+from typing import Optional, Dict, Any
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from app.config import settings
+from app.schemas import TokenPayload
+from uuid import UUID
+
+# Use PBKDF2 - always available, no extra packages needed
+pwd_context = CryptContext(
+    schemes=["pbkdf2_sha256"],
+    deprecated="auto",
+    pbkdf2_sha256__default_rounds=29000,  # OWASP recommended rounds
+)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a password against its hash"""
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password: str) -> str:
+    """Hash a password using PBKDF2"""
+    return pwd_context.hash(password)
+
+
+def create_access_token(
+    data: Dict[str, Any], expires_delta: Optional[timedelta] = None
+) -> str:
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(
+            minutes=settings.access_token_expire_minutes
+        )
+
+    to_encode.update({"exp": expire, "type": "access"})
+    encoded_jwt = jwt.encode(
+        to_encode, settings.secret_key, algorithm=settings.algorithm
+    )
+    return encoded_jwt
+
+
+def create_refresh_token(data: Dict[str, Any]) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
+    to_encode.update({"exp": expire, "type": "refresh"})
+    encoded_jwt = jwt.encode(
+        to_encode, settings.secret_key, algorithm=settings.algorithm
+    )
+    return encoded_jwt
+
+
+def decode_token(token: str) -> Optional[TokenPayload]:
+    try:
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
+        )
+        return TokenPayload(
+            sub=payload.get("sub"),
+            exp=datetime.fromtimestamp(payload.get("exp")),
+            type=payload.get("type"),
+        )
+    except JWTError:
+        return None
+
+
+def get_user_id_from_token(token: str) -> Optional[UUID]:
+    payload = decode_token(token)
+    if payload and payload.type == "access":
+        try:
+            return UUID(payload.sub)
+        except:
+            return None
+    return None

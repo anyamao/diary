@@ -1,0 +1,79 @@
+version: "3.8"
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: diary-postgres
+    environment:
+      POSTGRES_USER: diary_user
+      POSTGRES_PASSWORD: diary_password
+      POSTGRES_DB: diary_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - diary-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U diary_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: diary-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - diary-network
+
+  backend:
+    build: ./backend
+    container_name: diary-backend
+    ports:
+      - "8011:8011"
+    environment:
+      - DATABASE_URL=postgresql://diary_user:diary_password@postgres:5432/diary_db
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=dev-secret-key-change-me
+      - CORS_ORIGINS=http://localhost:3011,http://localhost:3000
+      - ENVIRONMENT=development
+      - DEBUG=True
+      - FRONTEND_URL=http://localhost:3011
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - diary-network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8011 --reload
+
+  frontend:
+    build: ./frontend
+    container_name: diary-frontend
+    ports:
+      - "3011:3011"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8011
+      - NEXT_PUBLIC_APP_URL=http://localhost:3011
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+    networks:
+      - diary-network
+
+networks:
+  diary-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
