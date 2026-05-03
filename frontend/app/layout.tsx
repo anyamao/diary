@@ -6,7 +6,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CalmNote - Your Personal Diary",
+  title: "CalmNote - Your Personal Diy",
   description: "Secure and private digital diary",
 };
 
