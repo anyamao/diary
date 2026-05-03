@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
@@ -11,7 +11,7 @@ import { loginSchema, LoginInput } from '@/lib/auth';
 export default function LoginPage() {
   const [error, setError] = useState('');
   const router = useRouter();
-  const { login, isLoading } = useAuthStore();
+  const { login, isLoading, isAuthenticated, user } = useAuthStore();
   
   const {
     register,
@@ -20,6 +20,16 @@ export default function LoginPage() {
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
   });
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    console.log('Login page - isAuthenticated:', isAuthenticated);
+    console.log('Login page - user:', user);
+    if (isAuthenticated && user) {
+      console.log('Redirecting to diary...');
+      router.push('/diary');
+    }
+  }, [isAuthenticated, user, router]);
   
   const onSubmit = async (data: LoginInput) => {
     console.log('🔐 Attempting login with:', data.email);
@@ -27,10 +37,9 @@ export default function LoginPage() {
     try {
       await login(data.email, data.password);
       console.log('✅ Login successful, redirecting...');
-      router.push('/');
+      // The useEffect will handle redirect
     } catch (err: any) {
       console.error('❌ Login failed:', err);
-      console.log('Error details:', err.response?.data);
       setError(err.response?.data?.detail || 'Login failed. Please try again.');
     }
   };
