@@ -29,8 +29,8 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - ENVIRONMENT=production
       - SECRET_KEY=${SECRET_KEY}
-      - CORS_ORIGINS=https://calmnote.ru
-      - FRONTEND_URL=https://calmnote.ru
+      - CORS_ORIGINS=https://vibenote.ru
+      - FRONTEND_URL=https://vibenote.ru
     depends_on:
       - postgres
       - redis
@@ -41,8 +41,8 @@ services:
     build: ./frontend
     restart: always
     environment:
-      - NEXT_PUBLIC_API_URL=https://calmnote.ru/api
-      - NEXT_PUBLIC_APP_URL=https://calmnote.ru
+      - NEXT_PUBLIC_API_URL=https://vibenote.ru/api
+      - NEXT_PUBLIC_APP_URL=https://vibenote.ru
     depends_on:
       - backend
     networks:

@@ -3,25 +3,31 @@ from sqlalchemy.orm import declarative_base
 from app.config import settings
 import asyncpg
 
-# Use the async_database_url property
+# Create engine with proper connection parameters
 engine = create_async_engine(
     settings.async_database_url,
     pool_size=settings.database_pool_size,
     max_overflow=settings.database_max_overflow,
     echo=settings.debug,
     pool_pre_ping=True,
+    pool_recycle=3600,
 )
 
 AsyncSessionLocal = async_sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
+    engine,
+    class_=AsyncSession,
+    expire_on_commit=False
 )
 
 Base = declarative_base()
-
 
 async def get_db():
     async with AsyncSessionLocal() as session:
         try:
             yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
         finally:
             await session.close()
