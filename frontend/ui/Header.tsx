@@ -81,7 +81,7 @@ function Header() {
                 className="focus:outline-none"
               >
                 <img
-                  src="/avatar.png"
+                  src="/diaryicon.png"
                   className="w-[30px] border-[1px] duration-300 cursor-pointer border-pink-300 p-[1px] rounded-full hover:scale-105 transition"
                   alt="Avatar"
                 />
@@ -163,7 +163,11 @@ function Header() {
               </Link>
               <Link
                 href="/personal/mood-tracker"
-                className="px-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer"
+                className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
+                  pathname === "/personal/mood-tracker"
+                    ? "text-pink-600 underline"
+                    : ""
+                }`}
               >
                 Трекер настроения
               </Link>

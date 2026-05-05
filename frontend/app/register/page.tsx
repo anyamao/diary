@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { API_URL } from '@/lib/api-url';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -15,7 +16,7 @@ export default function RegisterPage() {
     setMessage('');
 
     try {
-      const res = await fetch('https://api.vibenote.ru/auth/register', {
+      const res = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, username, password, full_name: username })

@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: diary-postgres
+    container_name: diary-postgres-local
     environment:
       POSTGRES_USER: diary_user
       POSTGRES_PASSWORD: diary_password
@@ -9,9 +9,9 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_local:/var/lib/postgresql/data
     networks:
-      - diary-network
+      - diary-network-local
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U diary_user"]
       interval: 10s
@@ -20,24 +20,24 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: diary-redis
+    container_name: diary-redis-local
     ports:
       - "6380:6379"
     volumes:
-      - redis_data:/data
+      - redis_data_local:/data
     networks:
-      - diary-network
+      - diary-network-local
 
   backend:
     build: ./backend
-    container_name: diary-backend
+    container_name: diary-backend-local
     ports:
       - "8011:8011"
     environment:
       - DATABASE_URL=postgresql://diary_user:diary_password@postgres:5432/diary_db
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=dev-secret-key-change-me
-      - CORS_ORIGINS=http://localhost:3011,http://localhost:3000
+      - SECRET_KEY=dev-secret-key-local-12345
+      - CORS_ORIGINS=http://localhost:3011
       - ENVIRONMENT=development
       - DEBUG=True
     volumes:
@@ -46,14 +46,14 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - diary-network
+      - diary-network-local
     command: uvicorn app.main:app --host 0.0.0.0 --port 8011 --reload
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: diary-frontend
+    container_name: diary-frontend-local
     ports:
       - "3011:3011"
     environment:
@@ -66,12 +66,13 @@ services:
     depends_on:
       - backend
     networks:
-      - diary-network
+      - diary-network-local
+    command: sh -c "pnpm install && pnpm run dev -p 3011 -H 0.0.0.0"
 
 networks:
-  diary-network:
+  diary-network-local:
     driver: bridge
 
 volumes:
-  postgres_data:
-  redis_data:
+  postgres_data_local:
+  redis_data_local:

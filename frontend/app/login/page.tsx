@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { API_URL } from '@/lib/api-url';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -14,7 +15,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const res = await fetch('https://api.vibenote.ru/auth/login', {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -23,11 +24,8 @@ export default function LoginPage() {
       const data = await res.json();
       
       if (res.ok) {
-        // Сохраняем токены
         localStorage.setItem('access_token', data.access_token);
         localStorage.setItem('refresh_token', data.refresh_token);
-        
-        // Просто переходим на страницу дневника
         window.location.href = '/personal/diary';
       } else {
         setError(data.detail || 'Неверный email или пароль');
@@ -42,7 +40,7 @@ export default function LoginPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fce7f3' }}>
       <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', width: '350px' }}>
-        <h1 style={{ textAlign: 'center', color: '#831843' }}>Входlllll</h1>
+        <h1 style={{ textAlign: 'center', color: '#831843' }}>Вход</h1>
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '1rem' }}>
             <input
@@ -74,7 +72,7 @@ export default function LoginPage() {
           </button>
         </form>
         <p style={{ textAlign: 'center', marginTop: '1rem' }}>
-          <a href="/register" style={{ color: '#db2777' }}>Регистрацияgggggggg</a>
+          <a href="/register" style={{ color: '#db2777' }}>Регистрация</a>
         </p>
       </div>
     </div>

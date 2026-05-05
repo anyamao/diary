@@ -1,102 +1,191 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
+import api from "@/lib/axios";
+import Link from "next/link";
+import { ArrowLeft, Bookmark, EllipsisVertical } from "lucide-react";
+import MarkdownEditor from "@/components/MarkdownEditor";
+import EmotionPicker from "@/components/EmotionPicker";
 
 export default function NewEntryPage() {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [formData, setFormData] = useState({
+    title: "",
+    content: "",
+    mood: "noemotions",
+    tags: "",
+    is_favorite: false,
+  });
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [showEmotionPicker, setShowEmotionPicker] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useAuthStore();
+
+  if (!isAuthenticated && !isLoading) {
+    router.push("/login");
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    setError('');
-    
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      window.location.href = '/login';
-      return;
-    }
-
-    // Отправляем все обязательные поля
-    const entryData = {
-      title: title,
-      content: content,
-      mood: "noemotions",  // обязательное поле
-      tags: "",            // обязательное поле
-      is_favorite: false   // обязательное поле
-    };
-
-    console.log('Sending data:', entryData);
+    setError("");
 
     try {
-      const res = await fetch('https://api.vibenote.ru/diary/entries', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(entryData)
-      });
-      
-      const data = await res.json();
-      console.log('Response:', data);
-      
-      if (res.ok) {
-        window.location.href = '/personal/diary';
-      } else {
-        setError(data.detail?.[0]?.msg || 'Ошибка сохранения');
-        setSaving(false);
-      }
-    } catch (err) {
-      console.error('Error:', err);
-      setError('Ошибка соединения с сервером');
+      // Отправляем все обязательные поля
+      const entryData = {
+        title: formData.title,
+        content: formData.content,
+        mood: formData.mood,
+        tags: formData.tags || "",
+        is_favorite: formData.is_favorite,
+      };
+
+      console.log("Sending entry:", entryData);
+      await api.post("/diary/entries", entryData);
+      router.push("/personal/diary");
+    } catch (error: any) {
+      console.error("Failed to save entry:", error);
+      const errorMsg =
+        error.response?.data?.detail?.[0]?.msg ||
+        error.response?.data?.detail ||
+        "Не удалось сохранить запись";
+      setError(errorMsg);
+      alert(errorMsg);
+    } finally {
       setSaving(false);
     }
   };
 
+  const handleSave = () => {
+    const form = document.querySelector("form");
+    if (form) {
+      form.dispatchEvent(
+        new Event("submit", { cancelable: true, bubbles: true }),
+      );
+    }
+  };
+
+  const toggleFavorite = () => {
+    setFormData({ ...formData, is_favorite: !formData.is_favorite });
+  };
+
+  const getEmotionImage = () => {
+    const emotion = formData.mood || "noemotions";
+    return `/${emotion}.png`;
+  };
+
+  const getDate = () => {
+    const now = new Date();
+    const day = now.getDate();
+    const month = now.toLocaleString("ru-RU", { month: "long" });
+    const year = now.getFullYear();
+    return { day, month, year };
+  };
+
+  const { day, month, year } = getDate();
+
   return (
-    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-      <h1>Новая запись</h1>
-      <a href="/personal/diary" style={{ color: '#db2777', textDecoration: 'none' }}>← Назад</a>
-      
-      {error && (
-        <div style={{ background: '#fee2e2', color: '#991b1b', padding: '0.5rem', borderRadius: '4px', marginTop: '1rem' }}>
-          {error}
+    <div className="h-full w-full min-h-screen bg-pink-50 py-8">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <div className="flex flex-row justify-between items-center text-pink-900">
+          <Link href="/personal/diary" className="text-pink-900">
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <div className="flex flex-row items-center">
+            <button
+              type="button"
+              onClick={toggleFavorite}
+              className="mr-[20px] cursor-pointer transition hover:scale-110"
+              title={
+                formData.is_favorite ? "Убрать из избранного" : "В избранное"
+              }
+            >
+              <Bookmark
+                className={`w-5 h-5 ${formData.is_favorite ? "fill-yellow-500 text-yellow-500" : "text-pink-900"}`}
+              />
+            </button>
+            <p className="mr-[10px] text-sm border-pink-900 hover:bg-pink-200 duration-300 cursor-pointer border-[1px] px-[10px] py-[5px] rounded-lg">
+              Вопросы
+            </p>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-pink-500 duration-300 mr-[5px] text-white text-sm hover:bg-pink-600 cursor-pointer font-semibold py-[5px] px-[10px] rounded-lg disabled:opacity-50"
+            >
+              {saving ? "Сохранение..." : "Сохранить"}
+            </button>
+            <EllipsisVertical className="w-5 h-5 cursor-pointer hover:text-pink-700" />
+          </div>
         </div>
+
+        {error && (
+          <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+            Ошибка: {error}
+          </div>
+        )}
+
+        <div className="rounded-lg p-8 text-pink-950">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="flex flex-row items-center justify-between">
+              <div className="flex flex-row items-center">
+                <p className="text-[20px] font-medium">{day}</p>
+                <p className="text-sm ml-[5px] text-gray-600">
+                  {month} {year}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowEmotionPicker(true)}
+                className="cursor-pointer hover:scale-110 transition-transform"
+              >
+                <img
+                  src={getEmotionImage()}
+                  alt="emotion"
+                  className="w-[50px] h-[50px] "
+                />
+              </button>
+            </div>
+
+            <div>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) =>
+                  setFormData({ ...formData, title: e.target.value })
+                }
+                className="w-full px-4 py-2 bg-pink-50 border-b-2 border-pink-200 focus:outline-none focus:border-pink-500 text-lg"
+                placeholder="Название..."
+              />
+            </div>
+
+            <div>
+              <MarkdownEditor
+                value={formData.content}
+                onChange={(value) =>
+                  setFormData({ ...formData, content: value })
+                }
+                placeholder="Пиши свои мысли здесь... (Поддерживается Markdown)"
+                rows={12}
+              />
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {showEmotionPicker && (
+        <EmotionPicker
+          currentEmotion={formData.mood}
+          onSelectEmotion={(emotion) =>
+            setFormData({ ...formData, mood: emotion })
+          }
+          onClose={() => setShowEmotionPicker(false)}
+        />
       )}
-      
-      <form onSubmit={handleSubmit} style={{ marginTop: '2rem' }}>
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}>Заголовок *</label>
-          <input
-            type="text"
-            placeholder="Заголовок"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            style={{ width: '100%', padding: '8px', border: '1px solid #f9a8d4', borderRadius: '4px' }}
-          />
-        </div>
-        <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}>Содержание</label>
-          <textarea
-            placeholder="Содержание"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            rows={10}
-            style={{ width: '100%', padding: '8px', border: '1px solid #f9a8d4', borderRadius: '4px' }}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={saving}
-          style={{ padding: '10px 20px', background: '#db2777', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-        >
-          {saving ? 'Сохранение...' : 'Сохранить'}
-        </button>
-      </form>
     </div>
   );
 }

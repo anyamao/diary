@@ -16,5 +16,5 @@ COPY . .
 
 EXPOSE 3011
 
-# Start dev server with Next.js 16
-CMD ["pnpm", "dev"]
+# Start dev server with hot reload
+CMD ["sh", "-c", "pnpm run dev -- -H 0.0.0.0 -p 3011"]

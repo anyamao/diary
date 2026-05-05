@@ -1,17 +1,29 @@
-from sqlalchemy import Column, String, DateTime, Boolean, Enum, Integer, Text, Index
+from sqlalchemy import (
+    Column,
+    String,
+    DateTime,
+    Boolean,
+    Enum,
+    Integer,
+    Text,
+    Index,
+    Float,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 from app.database import Base
 import uuid
 import enum
 
+
 class UserRole(str, enum.Enum):
     USER = "user"
     ADMIN = "admin"
 
+
 class User(Base):
     __tablename__ = "users"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(255), unique=True, index=True, nullable=False)
     username = Column(String(50), unique=True, index=True, nullable=False)
@@ -23,15 +35,16 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     last_login = Column(DateTime(timezone=True), nullable=True)
-    
+
     __table_args__ = (
-        Index('idx_user_email', 'email'),
-        Index('idx_user_username', 'username'),
+        Index("idx_user_email", "email"),
+        Index("idx_user_username", "username"),
     )
+
 
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     token = Column(String(500), unique=True, nullable=False)
@@ -39,9 +52,25 @@ class RefreshToken(Base):
     revoked = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+
+class SleepRecord(Base):
+    __tablename__ = "sleep_records"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    date = Column(DateTime, nullable=False, index=True)
+    sleep_start = Column(DateTime, nullable=False)
+    sleep_end = Column(DateTime, nullable=False)
+    duration_hours = Column(Float, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (Index("idx_sleep_user_date", "user_id", "date"),)
+
+
 class DiaryEntry(Base):
     __tablename__ = "diary_entries"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     title = Column(String(200), nullable=False)
@@ -51,15 +80,16 @@ class DiaryEntry(Base):
     is_favorite = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-    
+
     __table_args__ = (
-        Index('idx_diary_user_id', 'user_id'),
-        Index('idx_diary_created', 'created_at'),
+        Index("idx_diary_user_id", "user_id"),
+        Index("idx_diary_created", "created_at"),
     )
+
 
 class ShoppingItem(Base):
     __tablename__ = "shopping_items"
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     name = Column(String(200), nullable=False)
@@ -68,8 +98,8 @@ class ShoppingItem(Base):
     is_completed = Column(Boolean, default=False)
     category = Column(String(100), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    
+
     __table_args__ = (
-        Index('idx_shopping_user_id', 'user_id'),
-        Index('idx_shopping_completed', 'is_completed'),
+        Index("idx_shopping_user_id", "user_id"),
+        Index("idx_shopping_completed", "is_completed"),
     )

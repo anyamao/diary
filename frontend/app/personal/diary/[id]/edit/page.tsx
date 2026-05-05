@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
@@ -95,7 +95,10 @@ export default function EditEntryPage({ params }: PageProps) {
   };
 
   const handleQuestionSelect = (question: string) => {
-    setFormData({ ...formData, content: formData.content + "\n\n> **Вопрос дня:** " + question + "\n" });
+    setFormData({
+      ...formData,
+      content: formData.content + "\n\n> **Вопрос дня:** " + question + "\n",
+    });
     setShowQuestions(false);
   };
 
@@ -139,7 +142,9 @@ export default function EditEntryPage({ params }: PageProps) {
               type="button"
               onClick={toggleFavorite}
               className="mr-[20px] cursor-pointer transition hover:scale-110"
-              title={formData.is_favorite ? "Убрать из избранного" : "В избранное"}
+              title={
+                formData.is_favorite ? "Убрать из избранного" : "В избранное"
+              }
             >
               <Bookmark
                 className={`w-5 h-5 ${formData.is_favorite ? "fill-yellow-500 text-yellow-500" : "text-pink-900"}`}
@@ -193,7 +198,7 @@ export default function EditEntryPage({ params }: PageProps) {
                 <img
                   src={getEmotionImage()}
                   alt="emotion"
-                  className="w-[50px] h-[50px] object-contain rounded-full"
+                  className="w-[50px] h-[50px] "
                 />
               </button>
             </div>
