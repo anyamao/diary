@@ -17,25 +17,19 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      isLoading: false,
+      isLoading: true, // Начинаем с true, чтобы показать загрузку
       isAuthenticated: false,
       
       login: async (email: string, password: string) => {
         set({ isLoading: true });
         try {
           const response = await authService.login({ email, password });
-          console.log('Login response:', response);
-          
-          // Fetch user data after successful login
           const user = await authService.getCurrentUser();
-          console.log('User data:', user);
-          
           set({ 
             user, 
             isAuthenticated: true, 
             isLoading: false 
           });
-          
           return;
         } catch (error) {
           console.error('Login error:', error);
@@ -70,17 +64,14 @@ export const useAuthStore = create<AuthState>()(
       
       checkAuth: async () => {
         const token = localStorage.getItem('access_token');
-        console.log('Checking auth, token exists:', !!token);
         
         if (!token) {
           set({ user: null, isAuthenticated: false, isLoading: false });
           return;
         }
         
-        set({ isLoading: true });
         try {
           const user = await authService.getCurrentUser();
-          console.log('checkAuth user:', user);
           set({ user, isAuthenticated: true, isLoading: false });
         } catch (error) {
           console.error('checkAuth error:', error);

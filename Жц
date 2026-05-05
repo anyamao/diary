@@ -3,10 +3,10 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/ui/Header";
-import Sidepanel from "@/components/Sidepanel";
+import Sidepanel from "@/ui/Sidepanel";
 import { useAuthStore } from "@/store/authStore";
-import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -15,15 +15,22 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { checkAuth, isAuthenticated, isLoading } = useAuthStore();
+  const { checkAuth, isAuthenticated } = useAuthStore();
   const pathname = usePathname();
-  const router = useRouter();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
-  // Не показываем хедер на страницах авторизации
+  // Логируем для отладки
+  console.log("Pathname:", pathname);
+  console.log("Is Authenticated:", isAuthenticated);
+  console.log(
+    "Show sidepanel:",
+    isAuthenticated && pathname?.startsWith("/personal/diary"),
+  );
+
+  // Не показываем хедер и сайдпанель на страницах авторизации
   const isAuthPage = pathname === "/login" || pathname === "/register";
 
   // Показываем сайдпанель только на /personal/diary и его дочерних страницах
@@ -36,7 +43,7 @@ export default function RootLayout({
         {!isAuthPage && <Header />}
         <div className={!isAuthPage ? "mt-[100px]" : ""}>
           {showSidepanel ? (
-            <div className="flex">
+            <div className="flex  flex-row">
               <Sidepanel />
               <div className="flex-1 ">{children}</div>
             </div>
