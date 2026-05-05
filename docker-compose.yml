@@ -36,32 +36,31 @@ services:
     environment:
       - DATABASE_URL=postgresql://diary_user:diary_password@postgres:5432/diary_db
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=dev-secret-key-change-me
-      - CORS_ORIGINS=http://localhost:3011
-      - ENVIRONMENT=development
-      - DEBUG=True
+      - SECRET_KEY=production-secret-key-$(openssl rand -base64 32)
+      - CORS_ORIGINS=https://vibenote.ru,https://www.vibenote.ru
+      - ENVIRONMENT=production
+      - DEBUG=False
+      - FRONTEND_URL=https://vibenote.ru
     volumes:
       - ./backend:/app
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_started
     networks:
       - diary-network
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8011 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8011
 
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     container_name: diary-frontend
     ports:
       - "3011:3011"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8011
-      - NEXT_PUBLIC_APP_URL=http://localhost:3011
-      - WATCHPACK_POLLING=true
+      - NEXT_PUBLIC_API_URL=https://api.vibenote.ru
+      - NEXT_PUBLIC_APP_URL=https://vibenote.ru
+      - NODE_ENV=production
     volumes:
       - ./frontend:/app
       - /app/node_modules
@@ -70,8 +69,6 @@ services:
       - backend
     networks:
       - diary-network
-    stdin_open: true
-    tty: true
 
 networks:
   diary-network:

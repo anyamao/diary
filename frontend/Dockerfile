@@ -1,23 +1,15 @@
 FROM node:20-alpine
 
-# Install pnpm
-RUN npm install -g pnpm@8.10.5
+RUN npm install -g pnpm
 
 WORKDIR /app
 
-# Copy package files
 COPY package.json pnpm-lock.yaml ./
+RUN pnpm install
 
-# Install dependencies with frozen lockfile for reproducibility
-RUN pnpm install --frozen-lockfile
-
-# Copy application
 COPY . .
-
-# Build the application for production
 RUN pnpm run build
 
 EXPOSE 3011
 
-# Start in production mode with Next.js 16
-CMD ["pnpm", "start"]
+CMD ["pnpm", "start", "-p", "3011", "-H", "0.0.0.0"]

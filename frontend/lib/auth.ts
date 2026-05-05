@@ -1,31 +1,24 @@
-import api from "./axios";
-import { z } from "zod";
+import api from './axios';
+import { z } from 'zod';
 
 export const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
-export const registerSchema = z
-  .object({
-    email: z.string().email("Invalid email address"),
-    username: z
-      .string()
-      .min(3, "Username must be at least 3 characters")
-      .max(50),
-    full_name: z.string().optional(),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-      .regex(/\d/, "Password must contain at least one number"),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
+export const registerSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  username: z.string().min(3, 'Username must be at least 3 characters').max(50),
+  full_name: z.string().optional(),
+  password: z.string().min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
+    .regex(/\d/, 'Password must contain at least one number'),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
 
 export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
@@ -44,42 +37,49 @@ export interface User {
 
 export const authService = {
   async login(data: LoginInput) {
-    const response = await api.post("/auth/login", data);
+    console.log("🔐 authService.login called");
+    const response = await api.post('/auth/login', data);
+    console.log("🔐 authService.login response:", response.data);
     const { access_token, refresh_token } = response.data;
-    localStorage.setItem("access_token", access_token);
-    localStorage.setItem("refresh_token", refresh_token);
+    localStorage.setItem('access_token', access_token);
+    localStorage.setItem('refresh_token', refresh_token);
     return response.data;
   },
-
+  
   async register(data: RegisterInput) {
+    console.log("🔐 authService.register called");
     const { confirmPassword, ...registerData } = data;
-    const response = await api.post("/auth/register", registerData);
+    const response = await api.post('/auth/register', registerData);
+    console.log("🔐 authService.register response:", response.data);
     return response.data;
   },
-
+  
   async getCurrentUser(): Promise<User> {
-    const response = await api.get("/auth/me");
+    console.log("🔐 authService.getCurrentUser called");
+    const response = await api.get('/auth/me');
+    console.log("🔐 authService.getCurrentUser response:", response.data);
     return response.data;
   },
-
+  
   async logout() {
-    const refreshToken = localStorage.getItem("refresh_token");
+    console.log("🔐 authService.logout called");
+    const refreshToken = localStorage.getItem('refresh_token');
     if (refreshToken) {
-      await api.post("/auth/logout", { refresh_token: refreshToken });
+      await api.post('/auth/logout', { refresh_token: refreshToken });
     }
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
   },
-
+  
   isAuthenticated(): boolean {
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem('access_token');
     if (!token) return false;
-
+    
     try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
+      const payload = JSON.parse(atob(token.split('.')[1]));
       return payload.exp * 1000 > Date.now();
     } catch {
       return false;
     }
-  },
+  }
 };

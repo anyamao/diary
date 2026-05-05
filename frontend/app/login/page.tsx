@@ -1,166 +1,82 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { useAuthStore } from "@/store/authStore";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-
-const loginSchema = z.object({
-  email: z.string().email("Введите корректный email"),
-  password: z.string().min(6, "Пароль должен содержать минимум 6 символов"),
-});
-
-type LoginInput = z.infer<typeof loginSchema>;
+import { useState } from 'react';
 
 export default function LoginPage() {
-  const [error, setError] = useState("");
-  const router = useRouter();
-  const { login, isLoading, isAuthenticated, user } = useAuthStore();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const form = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      router.push("/personal/diary");
-    }
-  }, [isAuthenticated, user, router]);
-
-  const onSubmit = async (data: LoginInput) => {
-    setError("");
     try {
-      await login(data.email, data.password);
-    } catch (err: any) {
-      setError(
-        err.response?.data?.detail || "Не удалось войти. Попробуйте снова.",
-      );
+      const res = await fetch('https://api.vibenote.ru/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        // Сохраняем токены
+        localStorage.setItem('access_token', data.access_token);
+        localStorage.setItem('refresh_token', data.refresh_token);
+        
+        // Просто переходим на страницу дневника
+        window.location.href = '/personal/diary';
+      } else {
+        setError(data.detail || 'Неверный email или пароль');
+        setLoading(false);
+      }
+    } catch (err) {
+      setError('Ошибка соединения с сервером');
+      setLoading(false);
     }
   };
 
   return (
-    <div className="h-full w-full min-h-[950px] flex items-center justify-center bg-pink-200">
-      <div className=" w-full max-w-[450px] fixed mr-[300px] flex items-center justify-between ">
-        {/* Форма входа */}
-        <Card className="w-full shadow-md border-pink-200">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center text-pink-900">
-              Привет! Я по тебе скучала
-            </CardTitle>
-            <CardDescription className="text-center mt-1 text-pink-700">
-              Войдите в свой аккаунт
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-pink-900">Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="you@example.com"
-                          {...field}
-                          className="border-pink-200 focus:border-pink-500 focus:ring-pink-500"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-pink-900">Пароль</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="••••••••"
-                          {...field}
-                          className="border-pink-200 focus:border-pink-500 focus:ring-pink-500"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {error && (
-                  <Alert
-                    variant="destructive"
-                    className="bg-red-50 border-red-200"
-                  >
-                    <AlertDescription className="text-red-700">
-                      {error}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-pink-600 hover:bg-pink-700 text-white transition-all duration-200"
-                >
-                  {isLoading ? "Вход..." : "Войти"}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <p className="text-sm text-gray-600">
-              Впервые здесь?{" "}
-              <Link
-                href="/register"
-                className="text-pink-600 hover:text-pink-700 font-semibold"
-              >
-                Создать аккаунт
-              </Link>
-            </p>
-          </CardFooter>
-        </Card>
-
-        {/* Иллюстрация */}
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fce7f3' }}>
+      <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', width: '350px' }}>
+        <h1 style={{ textAlign: 'center', color: '#831843' }}>Входlllll</h1>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '1rem' }}>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              style={{ width: '100%', padding: '8px', border: '1px solid #f9a8d4', borderRadius: '4px' }}
+            />
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <input
+              type="password"
+              placeholder="Пароль"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              style={{ width: '100%', padding: '8px', border: '1px solid #f9a8d4', borderRadius: '4px' }}
+            />
+          </div>
+          {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
+          <button
+            type="submit"
+            disabled={loading}
+            style={{ width: '100%', padding: '10px', background: '#db2777', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+          >
+            {loading ? 'Вход...' : 'Войти'}
+          </button>
+        </form>
+        <p style={{ textAlign: 'center', marginTop: '1rem' }}>
+          <a href="/register" style={{ color: '#db2777' }}>Регистрацияgggggggg</a>
+        </p>
       </div>
-      <img
-        src="/diary_idle.png "
-        className=" hidden md:block w-[500px] ml-[520px] "
-      />
     </div>
   );
 }

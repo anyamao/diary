@@ -1,67 +1,38 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, authService } from '@/lib/auth';
+
+interface User {
+  id: string;
+  email: string;
+  username: string;
+  full_name: string | null;
+  role: string;
+  is_active: boolean;
+  created_at: string;
+}
 
 interface AuthState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (data: any) => Promise<void>;
-  logout: () => Promise<void>;
-  checkAuth: () => Promise<void>;
   setUser: (user: User | null) => void;
+  setLoading: (loading: boolean) => void;
+  setAuthenticated: (value: boolean) => void;
+  checkAuth: () => Promise<void>;
+  logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       user: null,
-      isLoading: true, // Начинаем с true, чтобы показать загрузку
+      isLoading: true,
       isAuthenticated: false,
-      
-      login: async (email: string, password: string) => {
-        set({ isLoading: true });
-        try {
-          const response = await authService.login({ email, password });
-          const user = await authService.getCurrentUser();
-          set({ 
-            user, 
-            isAuthenticated: true, 
-            isLoading: false 
-          });
-          return;
-        } catch (error) {
-          console.error('Login error:', error);
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-      
-      register: async (data: any) => {
-        set({ isLoading: true });
-        try {
-          await authService.register(data);
-          set({ isLoading: false });
-        } catch (error) {
-          console.error('Register error:', error);
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-      
-      logout: async () => {
-        set({ isLoading: true });
-        try {
-          await authService.logout();
-          set({ user: null, isAuthenticated: false, isLoading: false });
-        } catch (error) {
-          console.error('Logout error:', error);
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-      
+
+      setUser: (user) => set({ user, isAuthenticated: !!user }),
+      setLoading: (isLoading) => set({ isLoading }),
+      setAuthenticated: (isAuthenticated) => set({ isAuthenticated }),
+
       checkAuth: async () => {
         const token = localStorage.getItem('access_token');
         
@@ -69,20 +40,32 @@ export const useAuthStore = create<AuthState>()(
           set({ user: null, isAuthenticated: false, isLoading: false });
           return;
         }
+
+        set({ isLoading: true });
         
         try {
-          const user = await authService.getCurrentUser();
-          set({ user, isAuthenticated: true, isLoading: false });
+          const response = await fetch('https://api.vibenote.ru/auth/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.ok) {
+            const user = await response.json();
+            set({ user, isAuthenticated: true, isLoading: false });
+          } else {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            set({ user: null, isAuthenticated: false, isLoading: false });
+          }
         } catch (error) {
-          console.error('checkAuth error:', error);
-          localStorage.removeItem('access_token');
-          localStorage.removeItem('refresh_token');
+          console.error('Check auth error:', error);
           set({ user: null, isAuthenticated: false, isLoading: false });
         }
       },
-      
-      setUser: (user: User | null) => {
-        set({ user, isAuthenticated: !!user });
+
+      logout: () => {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        set({ user: null, isAuthenticated: false, isLoading: false });
       },
     }),
     {

@@ -2,25 +2,29 @@ module.exports = {
   apps: [
     {
       name: 'diary-backend',
-      script: 'gunicorn',
-      args: 'app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:8011',
-      cwd: '/home/vika/diary/backend',
-      interpreter: '/home/vika/diary/backend/venv/bin/python',
+      script: 'backend/venv/bin/gunicorn',
+      args: 'app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8011',
+      cwd: '/home/your-user/diary',
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      max_memory_restart: '1G',
       env: {
-        NODE_ENV: 'production'
+        NODE_ENV: 'production',
+        PYTHONPATH: '/home/your-user/diary/backend'
       }
     },
     {
       name: 'diary-frontend',
-      script: 'pnpm',
-      args: 'start',
-      cwd: '/home/vika/diary/frontend',
+      script: 'node_modules/next/dist/bin/next',
+      args: 'start -p 3011',
+      cwd: '/home/your-user/diary/frontend',
+      instances: 1,
+      autorestart: true,
+      watch: false,
       env: {
         NODE_ENV: 'production',
-        PORT: 3011,
-        HOSTNAME: '0.0.0.0',
-        NEXT_PUBLIC_API_URL: 'https://api.vibenote.ru',
-        NEXT_PUBLIC_APP_URL: 'https://vibenote.ru'
+        PORT: 3011
       }
     }
   ]
