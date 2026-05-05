@@ -1,6 +1,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
-from app.models import User, RefreshToken, DiaryEntry, ShoppingItem, SleepRecord
+from app.models import (
+    User,
+    RefreshToken,
+    DiaryEntry,
+    ShoppingItem,
+    SleepRecord,
+    SleepNote,
+)
 from app.schemas import (
     UserCreate,
     DiaryEntryCreate,
@@ -8,11 +15,89 @@ from app.schemas import (
     ShoppingItemCreate,
     SleepRecordCreate,
     SleepRecordUpdate,
+    SleepNoteCreate,
+    SleepNoteBase,
+    SleepNoteUpdate,
 )
 from app.auth import get_password_hash
 from datetime import datetime, timedelta
 from uuid import UUID
 from typing import Optional, List
+
+
+async def get_all_sleep_notes(db: AsyncSession, user_id: UUID) -> List[SleepNote]:
+    result = await db.execute(
+        select(SleepNote)
+        .where(SleepNote.user_id == user_id)
+        .order_by(SleepNote.created_at.desc())
+    )
+    return result.scalars().all()
+
+
+# Sleep Note CRUD
+async def create_sleep_note(
+    db: AsyncSession, user_id: UUID, note: SleepNoteCreate
+) -> SleepNote:
+    db_note = SleepNote(
+        sleep_record_id=note.sleep_record_id,
+        user_id=user_id,
+        title=note.title,
+        content=note.content,
+        dream_type=note.dream_type,
+        wake_mood=note.wake_mood,
+        tags=note.tags,
+    )
+    db.add(db_note)
+    await db.commit()
+    await db.refresh(db_note)
+    return db_note
+
+
+async def get_sleep_notes_by_record(
+    db: AsyncSession, sleep_record_id: UUID, user_id: UUID
+) -> List[SleepNote]:
+    result = await db.execute(
+        select(SleepNote)
+        .where(
+            SleepNote.sleep_record_id == sleep_record_id, SleepNote.user_id == user_id
+        )
+        .order_by(SleepNote.created_at.desc())
+    )
+    return result.scalars().all()
+
+
+async def get_sleep_note(
+    db: AsyncSession, note_id: UUID, user_id: UUID
+) -> Optional[SleepNote]:
+    result = await db.execute(
+        select(SleepNote).where(SleepNote.id == note_id, SleepNote.user_id == user_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_sleep_note(
+    db: AsyncSession, note_id: UUID, user_id: UUID, note_update: SleepNoteUpdate
+) -> Optional[SleepNote]:
+    db_note = await get_sleep_note(db, note_id, user_id)
+    if not db_note:
+        return None
+
+    update_data = note_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_note, key, value)
+
+    await db.commit()
+    await db.refresh(db_note)
+    return db_note
+
+
+async def delete_sleep_note(db: AsyncSession, note_id: UUID, user_id: UUID) -> bool:
+    db_note = await get_sleep_note(db, note_id, user_id)
+    if not db_note:
+        return False
+    await db.delete(db_note)
+    await db.commit()
+    return True
 
 
 # User CRUD

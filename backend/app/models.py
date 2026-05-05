@@ -8,8 +8,9 @@ from sqlalchemy import (
     Text,
     Index,
     Float,
+    Date,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 from app.database import Base
 import uuid
@@ -19,6 +20,28 @@ import enum
 class UserRole(str, enum.Enum):
     USER = "user"
     ADMIN = "admin"
+
+
+class SleepNote(Base):
+    __tablename__ = "sleep_notes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sleep_record_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    title = Column(String(200), nullable=False)
+    content = Column(Text, nullable=True)
+    dream_type = Column(
+        String(50), nullable=True
+    )  # nightmare, normal, love, sad, happy
+    wake_mood = Column(String(50), nullable=True)  # sad, happy, scared, neutral
+    tags = Column(JSONB, default=list)  # массив тегов
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (
+        Index("idx_sleep_note_record", "sleep_record_id"),
+        Index("idx_sleep_note_user", "user_id"),
+    )
 
 
 class User(Base):

@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from datetime import datetime
 from uuid import UUID
-from typing import Optional
+from typing import Optional, List
 from app.models import UserRole
 
 
@@ -105,6 +105,32 @@ class SleepRecordBase(BaseModel):
 
 class SleepRecordCreate(SleepRecordBase):
     pass
+
+
+class SleepNoteBase(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    content: Optional[str] = None
+    dream_type: Optional[str] = Field(None, max_length=50)
+    wake_mood: Optional[str] = Field(None, max_length=50)
+    tags: List[str] = Field(default_factory=list)
+
+
+class SleepNoteCreate(SleepNoteBase):
+    sleep_record_id: UUID
+
+
+class SleepNoteUpdate(SleepNoteBase):
+    title: Optional[str] = None
+
+
+class SleepNoteResponse(SleepNoteBase):
+    id: UUID
+    sleep_record_id: UUID
+    user_id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SleepRecordUpdate(BaseModel):
