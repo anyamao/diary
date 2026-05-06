@@ -12,6 +12,32 @@ import json
 router = APIRouter(prefix="/sleep", tags=["sleep"])
 
 
+@router.get("/check/{day_date}")
+async def check_sleep_record_exists(
+    day_date: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Проверить существует ли запись о сне за указанный день"""
+    try:
+        record_date = date.fromisoformat(day_date)
+        query = text("""
+            SELECT id FROM sleep_records
+            WHERE user_id = :user_id AND date = :date
+        """)
+        result = await db.execute(
+            query, {"user_id": current_user.id, "date": record_date}
+        )
+        row = result.fetchone()
+
+        if row:
+            return {"exists": True, "record_id": str(row[0])}
+        return {"exists": False}
+    except Exception as e:
+        print(f"Error checking sleep record: {e}")
+        return {"exists": False}
+
+
 @router.get("/records/{day_date}")
 async def get_sleep_record(
     day_date: str,

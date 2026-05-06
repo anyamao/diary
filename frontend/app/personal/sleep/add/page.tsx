@@ -29,6 +29,7 @@ export default function AddSleepPage() {
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const [sleepRecordId, setSleepRecordId] = useState<string | null>(null);
 
   // Состояния для заметок
@@ -48,7 +49,6 @@ export default function AddSleepPage() {
   const router = useRouter();
 
   if (!isAuthenticated) {
-    router.push("/login");
     return null;
   }
 
@@ -137,9 +137,34 @@ export default function AddSleepPage() {
     return bars;
   };
 
+  // Проверка существования записи за этот день
+  const checkRecordExists = async () => {
+    try {
+      const response = await api.get(`/sleep/check/${date}`);
+      return response.data.exists;
+    } catch (error) {
+      console.error("Failed to check record:", error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setError("");
+
+    // Проверяем, существует ли уже запись за этот день
+    const exists = await checkRecordExists();
+    if (exists) {
+      setError(
+        "❌ На этот день уже есть запись о сне! " +
+          "Нельзя создать две записи за один день. " +
+          "Если хотите изменить данные, вернитесь в календарь и отредактируйте существующую запись.",
+      );
+      setSaving(false);
+      return;
+    }
+
     try {
       const response = await api.post(`/sleep/records/${date}`, {
         segments,
@@ -161,7 +186,6 @@ export default function AddSleepPage() {
         }
       }
 
-      // Перенаправляем на главную страницу снов
       router.push("/personal/sleep");
     } catch (error) {
       console.error("Failed to save:", error);
@@ -303,6 +327,13 @@ export default function AddSleepPage() {
                 Добавить запись о сне
               </h1>
 
+              {/* Сообщение об ошибке */}
+              {error && (
+                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                  {error}
+                </div>
+              )}
+
               {/* Предпросмотр визуализации */}
               <div className="mb-6">
                 <div className="relative h-12 bg-gray-100 rounded-lg overflow-hidden">
@@ -427,7 +458,7 @@ export default function AddSleepPage() {
             </div>
           </div>
 
-          {/* Правая колонка - заметки о снах */}
+          {/* Правая колонка - заметки о снах (без изменений) */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
               <div className="flex justify-between items-center mb-4">
@@ -519,7 +550,7 @@ export default function AddSleepPage() {
         </div>
       </div>
 
-      {/* Модальное окно для заметки */}
+      {/* Модальное окно для заметки (без изменений) */}
       {showNoteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">

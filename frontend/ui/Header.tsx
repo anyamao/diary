@@ -183,12 +183,6 @@ function Header() {
               >
                 Моя личность
               </Link>
-              <Link
-                href="/personal/resources"
-                className="pl-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer"
-              >
-                Полезное
-              </Link>
             </div>
             <Star className="text-yellow-600 h-4 w-4 rotate-90" />
           </div>

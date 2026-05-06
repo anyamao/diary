@@ -17,6 +17,59 @@ import uuid
 import enum
 
 
+class PersonalityTestResult(Base):
+    __tablename__ = "personality_test_results"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    result = Column(Text, nullable=False)
+    scores = Column(JSONB, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (Index("idx_personality_test_user", "user_id"),)
+
+
+class DepressionTestResult(Base):
+    __tablename__ = "depression_test_results"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    total_score = Column(Integer, nullable=False)
+    severity = Column(String(100), nullable=False)
+    result = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (Index("idx_depression_test_user", "user_id"),)
+
+
+class SelfNote(Base):
+    __tablename__ = "self_notes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    title = Column(String(200), nullable=False)
+    content = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (Index("idx_self_notes_user", "user_id"),)
+
+
+class MoodItem(Base):
+    __tablename__ = "mood_items"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    text = Column(String(500), nullable=False)
+    type = Column(String(50), nullable=False)  # 'booster' or 'drainer'
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (Index("idx_mood_user_type", "user_id", "type"),)
+
+
 class UserRole(str, enum.Enum):
     USER = "user"
     ADMIN = "admin"
