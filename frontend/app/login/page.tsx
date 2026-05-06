@@ -1,80 +1,113 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { API_URL } from '@/lib/api-url';
+import { useState } from "react";
+import { API_URL } from "@/lib/api-url";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
       const res = await fetch(`${API_URL}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
       });
-      
+
       const data = await res.json();
-      
+
       if (res.ok) {
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('refresh_token', data.refresh_token);
-        window.location.href = '/personal/diary';
+        localStorage.setItem("access_token", data.access_token);
+        localStorage.setItem("refresh_token", data.refresh_token);
+        window.location.href = "/personal/diary";
       } else {
-        setError(data.detail || 'Неверный email или пароль');
+        setError(data.detail || "Неверный email или пароль");
         setLoading(false);
       }
     } catch (err) {
-      setError('Ошибка соединения с сервером');
+      setError("Ошибка соединения с сервером");
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fce7f3' }}>
-      <div style={{ background: 'white', padding: '2rem', borderRadius: '8px', width: '350px' }}>
-        <h1 style={{ textAlign: 'center', color: '#831843' }}>Вход</h1>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#fce7f3",
+      }}
+    >
+      <div className="bg-white shadow-md rounded-lg  w-[400px] py-[40px] px-[40px]">
+        <p className="font-semibold text-xl  text-center text-pink-800 mb-[5px] ">
+          Привет! Я по тебе скучал
+        </p>
+        <p className="font-normal text-sm  text-center text-gray-500 mb-[20px]">
+          Войди в свой аккаунт
+        </p>
+
         <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '1rem' }}>
+          <div style={{ marginBottom: "1rem" }}>
             <input
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{ width: '100%', padding: '8px', border: '1px solid #f9a8d4', borderRadius: '4px' }}
+              style={{
+                width: "100%",
+                padding: "8px",
+                border: "1px solid #f9a8d4",
+                borderRadius: "4px",
+              }}
             />
           </div>
-          <div style={{ marginBottom: '1rem' }}>
+          <div style={{ marginBottom: "1rem" }}>
             <input
               type="password"
               placeholder="Пароль"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={{ width: '100%', padding: '8px', border: '1px solid #f9a8d4', borderRadius: '4px' }}
+              style={{
+                width: "100%",
+                padding: "8px",
+                border: "1px solid #f9a8d4",
+                borderRadius: "4px",
+              }}
             />
           </div>
-          {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
+          {error && (
+            <div style={{ color: "red", marginBottom: "1rem" }}>{error}</div>
+          )}
           <button
             type="submit"
             disabled={loading}
-            style={{ width: '100%', padding: '10px', background: '#db2777', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            className="bg-pink-600 w-full rounded-md py-[15px] mt-[10px] text-white"
           >
-            {loading ? 'Вход...' : 'Войти'}
+            {loading ? "Вход..." : "Войти"}
           </button>
         </form>
-        <p style={{ textAlign: 'center', marginTop: '1rem' }}>
-          <a href="/register" style={{ color: '#db2777' }}>Регистрация</a>
+        <p className="text-gray-600 text-sm text-center mt-[15px] mr-[5px]">
+          Впервые здесь?
+          <a href="/register" style={{ color: "#db2777" }}>
+            Создать аккаунт
+          </a>
         </p>
       </div>
+      <img
+        src="/diary_idle.png"
+        className=" hidden md:block w-[400px] ml-[-30px]"
+      />
     </div>
   );
 }

@@ -31,6 +31,42 @@ class PersonalityTestResult(Base):
     __table_args__ = (Index("idx_personality_test_user", "user_id"),)
 
 
+class StudyTimerSession(Base):
+    __tablename__ = "study_timer_sessions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    tag = Column(String(100), nullable=False)
+    description = Column(Text, nullable=True)
+    start_time = Column(DateTime(timezone=True), nullable=False)
+    end_time = Column(DateTime(timezone=True), nullable=True)
+    duration_seconds = Column(Integer, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (
+        Index("idx_timer_user_active", "user_id", "is_active"),
+        Index("idx_timer_user_tag", "user_id", "tag"),
+        Index("idx_timer_user_date", "user_id", "start_time"),
+    )
+
+
+class TimerTag(Base):
+    __tablename__ = "timer_tags"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+    color = Column(String(20), default="blue")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_timer_tag_user", "user_id"),
+        UniqueConstraint("user_id", "name", name="unique_timer_tag"),
+    )
+
+
 class BusinessNote(Base):
     __tablename__ = "business_notes"
 

@@ -88,6 +88,48 @@ class BusinessNoteBase(BaseModel):
     is_pinned: bool = False
 
 
+class StudyTimerSessionBase(BaseModel):
+    tag: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = None
+
+
+class StudyTimerSessionCreate(StudyTimerSessionBase):
+    pass
+
+
+class StudyTimerSessionStart(StudyTimerSessionBase):
+    start_time: datetime
+
+
+class StudyTimerSessionStop(BaseModel):
+    end_time: datetime
+
+
+class StudyTimerSessionResponse(StudyTimerSessionBase):
+    id: UUID
+    user_id: UUID
+    start_time: datetime
+    end_time: Optional[datetime]
+    duration_seconds: Optional[int]
+    is_active: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class TimerTagCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    color: str = "blue"
+
+
+class TimerTagResponse(BaseModel):
+    id: UUID
+    name: str
+    color: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class BusinessNoteCreate(BusinessNoteBase):
     pass
 

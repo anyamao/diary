@@ -26,22 +26,22 @@ export default function MarkdownEditor({
           onClick={() => setActiveTab("write")}
           className={`px-4 py-2 text-sm font-medium transition ${
             activeTab === "write"
-              ? "bg-white text-purple-600 border-b-2 border-purple-600"
+              ? "bg-pink-200 rounded-l-lg"
               : "text-gray-600 hover:text-gray-800"
           }`}
         >
-          ✏️ Написать
+          Написать
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("preview")}
-          className={`px-4 py-2 text-sm font-medium transition ${
+          className={`px-4 py-2 text-xs font-medium transition ${
             activeTab === "preview"
-              ? "bg-white text-purple-600 border-b-2 border-purple-600"
+              ? "bg-pink-200 rounded-r-lg "
               : "text-gray-600 hover:text-gray-800"
           }`}
         >
-          👁️ Предпросмотр
+          Предпросмотр
         </button>
       </div>
 
@@ -51,15 +51,15 @@ export default function MarkdownEditor({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           rows={rows}
-          className="w-full px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
+          className="w-full px-4 py-3 bg-pink-50 outline-none  font-mono text-sm"
         />
       ) : (
-        <div className="p-4 min-h-[300px] bg-white overflow-y-auto">
+        <div className="p-4 min-h-[300px]  overflow-y-auto">
           <MarkdownPreview content={value || "*Пусто*"} />
         </div>
       )}
 
-      <div className="border-t border-gray-300 bg-gray-50 px-4 py-2 text-xs text-gray-500">
+      <div className="bg-pink-50 px-4 py-2 text-xs text-gray-500">
         <details>
           <summary className="cursor-pointer">
             Поддерживается Markdown (нажми, чтобы узнать)

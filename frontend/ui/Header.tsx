@@ -147,7 +147,7 @@ function Header() {
 
       {/* Only show the second navigation bar on /personal routes */}
       {pathname.startsWith("/personal") && (
-        <div className="w-full border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-9">
+        <div className="w-full bg-white border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-9">
           <div className="flex flex-row font-semibold text-pink-950 text-xs items-center justify-between">
             <Star className="text-yellow-600 h-4 w-4 -rotate-90" />
             <div className="flex items-center flex-row mx-[10px] justify-center">
@@ -190,7 +190,7 @@ function Header() {
       )}
 
       {pathname.startsWith("/business") && (
-        <div className="w-full border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-9">
+        <div className="w-full bg-white border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-9">
           <div className="flex flex-row font-semibold text-pink-950 text-xs items-center justify-between">
             <Star className="text-yellow-600 h-4 w-4 -rotate-90" />
             <div className="flex items-center flex-row mx-[10px] justify-center">
@@ -215,14 +215,14 @@ function Header() {
                 Заметки
               </Link>
               <Link
-                href="/business/my-goals"
+                href="/business/study-timer"
                 className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
                   pathname === "/personal/mood-tracker"
                     ? "text-pink-600 underline"
                     : ""
                 }`}
               >
-                Мои цели
+                Таймер
               </Link>
             </div>
             <Star className="text-yellow-600 h-4 w-4 rotate-90" />

@@ -14,6 +14,8 @@ from app.models import (
     PlannerDay,
     PlannerTask,
     BusinessNote,
+    StudyTimerSession,
+    TimerTag,
 )
 from app.schemas import (
     UserCreate,
@@ -31,9 +33,14 @@ from app.schemas import (
     BusinessNoteCreate,
     BusinessNoteUpdate,
     BusinessNoteResponse,
+    StudyTimerSessionBase,
+    StudyTimerSessionCreate,
+    StudyTimerSessionResponse,
+    StudyTimerSessionStart,
+    StudyTimerSessionStop,
 )
 from app.auth import get_password_hash
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 from uuid import UUID
 from typing import Optional, List
 
@@ -56,6 +63,20 @@ async def create_user(db: AsyncSession, user: UserCreate) -> User:
 async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
     result = await db.execute(select(User).where(User.email == email))
     return result.scalar_one_or_none()
+
+
+async def update_session_description(
+    db: AsyncSession, session_id: UUID, description: str
+) -> Optional[StudyTimerSession]:
+    result = await db.execute(
+        select(StudyTimerSession).where(StudyTimerSession.id == session_id)
+    )
+    db_session = result.scalar_one_or_none()
+    if db_session:
+        db_session.description = description
+        await db.commit()
+        await db.refresh(db_session)
+    return db_session
 
 
 async def get_user_by_username(db: AsyncSession, username: str) -> Optional[User]:
@@ -84,6 +105,117 @@ async def create_refresh_token(
     await db.commit()
     await db.refresh(db_token)
     return db_token
+
+
+async def start_timer_session(
+    db: AsyncSession,
+    user_id: UUID,
+    tag: str,
+    description: Optional[str],
+    start_time: datetime,
+) -> StudyTimerSession:
+    # Закрываем все активные сессии
+    await db.execute(
+        update(StudyTimerSession)
+        .where(
+            StudyTimerSession.user_id == user_id, StudyTimerSession.is_active == True
+        )
+        .values(is_active=False, end_time=datetime.now(timezone.utc))
+    )
+
+    db_session = StudyTimerSession(
+        user_id=user_id,
+        tag=tag,
+        description=description,
+        start_time=start_time,
+        is_active=True,
+    )
+    db.add(db_session)
+    await db.commit()
+    await db.refresh(db_session)
+    return db_session
+
+
+async def stop_current_session(
+    db: AsyncSession, user_id: UUID, end_time: datetime
+) -> Optional[StudyTimerSession]:
+    result = await db.execute(
+        select(StudyTimerSession)
+        .where(
+            StudyTimerSession.user_id == user_id, StudyTimerSession.is_active == True
+        )
+        .order_by(StudyTimerSession.start_time.desc())
+    )
+    db_session = result.scalar_one_or_none()
+    if db_session:
+        duration = int((end_time - db_session.start_time).total_seconds())
+        await db.execute(
+            update(StudyTimerSession)
+            .where(StudyTimerSession.id == db_session.id)
+            .values(is_active=False, end_time=end_time, duration_seconds=duration)
+        )
+        await db.commit()
+        await db.refresh(db_session)
+    return db_session
+
+
+async def get_current_session(
+    db: AsyncSession, user_id: UUID
+) -> Optional[StudyTimerSession]:
+    result = await db.execute(
+        select(StudyTimerSession)
+        .where(
+            StudyTimerSession.user_id == user_id, StudyTimerSession.is_active == True
+        )
+        .order_by(StudyTimerSession.start_time.desc())
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_timer_stats(
+    db: AsyncSession,
+    user_id: UUID,
+    start_date: Optional[datetime],
+    end_date: Optional[datetime],
+) -> List[StudyTimerSession]:
+    query = select(StudyTimerSession).where(
+        StudyTimerSession.user_id == user_id,
+        StudyTimerSession.is_active == False,
+        StudyTimerSession.duration_seconds.isnot(None),
+    )
+    if start_date:
+        query = query.where(StudyTimerSession.start_time >= start_date)
+    if end_date:
+        query = query.where(StudyTimerSession.end_time <= end_date)
+
+    result = await db.execute(query.order_by(StudyTimerSession.start_time.desc()))
+    return result.scalars().all()
+
+
+# Timer Tags CRUD
+async def get_timer_tags(db: AsyncSession, user_id: UUID) -> List[TimerTag]:
+    result = await db.execute(
+        select(TimerTag).where(TimerTag.user_id == user_id).order_by(TimerTag.name)
+    )
+    return result.scalars().all()
+
+
+async def create_timer_tag(
+    db: AsyncSession, user_id: UUID, name: str, color: str
+) -> TimerTag:
+    db_tag = TimerTag(user_id=user_id, name=name, color=color)
+    db.add(db_tag)
+    await db.commit()
+    await db.refresh(db_tag)
+    return db_tag
+
+
+async def delete_timer_tag(db: AsyncSession, user_id: UUID, tag_id: UUID) -> bool:
+    result = await db.execute(
+        delete(TimerTag).where(TimerTag.id == tag_id, TimerTag.user_id == user_id)
+    )
+    await db.commit()
+    return result.rowcount > 0
 
 
 async def create_business_note(

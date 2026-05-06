@@ -7,7 +7,7 @@ import Sidepanel from "@/components/Sidepanel";
 import { useAuthStore } from "@/store/authStore";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-
+import MiniTimer from "@/components/MiniTimer";
 const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
@@ -34,6 +34,7 @@ export default function RootLayout({
     <html lang="ru">
       <body className={inter.className}>
         {!isAuthPage && <Header />}
+        {!isAuthPage && <MiniTimer />}
         <div className={!isAuthPage ? "mt-[100px]" : ""}>
           {showSidepanel ? (
             <div className="flex">

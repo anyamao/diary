@@ -1,6 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, diary, sleep, sleep_notes, personality, planner, notes
+from app.routers import (
+    auth,
+    diary,
+    sleep,
+    sleep_notes,
+    personality,
+    planner,
+    notes,
+    study_timer,
+)
 
 app = FastAPI(title="Diary API", version="1.0.0")
 
@@ -20,6 +29,7 @@ app.include_router(sleep_notes.router)
 app.include_router(personality.router)
 app.include_router(planner.router)
 app.include_router(notes.router)
+app.include_router(study_timer.router)
 
 
 @app.get("/")

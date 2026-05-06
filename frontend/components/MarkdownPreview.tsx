@@ -19,7 +19,7 @@ export default function MarkdownPreview({
 
   return (
     <div
-      className={`markdown-preview text-pink-950 prose prose-purple prose-sm max-w-none ${className}`}
+      className={`markdown-preview text-pink-950 prose bg-pink-50 prose-purple prose-sm max-w-none ${className}`}
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
@@ -30,7 +30,7 @@ export default function MarkdownPreview({
             if (isInline) {
               return (
                 <code
-                  className=" text-pink-950 rounded px-1 py-0.5 text-sm font-mono"
+                  className=" text-pink-950 bg-pink-50 rounded px-1 py-0.5 text-sm font-mono"
                   {...props}
                 >
                   {children}
