@@ -329,6 +329,8 @@ async def create_diary_entry(
         mood=entry.mood,
         tags=entry.tags,
         is_favorite=entry.is_favorite,
+        created_at=entry.created_at
+        or datetime.utcnow(),  # Используем переданную дату или текущую
     )
     db.add(db_entry)
     await db.commit()
@@ -370,6 +372,10 @@ async def update_diary_entry(
     update_data = entry_update.dict(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_entry, key, value)
+
+    # Если дата была передана, обновляем её
+    if "created_at" in update_data and update_data["created_at"]:
+        db_entry.created_at = update_data["created_at"]
 
     await db.commit()
     await db.refresh(db_entry)

@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
 import Link from "next/link";
-import { ArrowLeft, Bookmark, EllipsisVertical } from "lucide-react";
+import { ArrowLeft, Bookmark, EllipsisVertical, Calendar } from "lucide-react";
 import MarkdownEditor from "@/components/MarkdownEditor";
 import EmotionPicker from "@/components/EmotionPicker";
-
+import DatePicker from "@/components/DatePicker";
+import SleepInDiary from "@/components/SleepInDiary";
+import { eventBus } from "@/lib/eventBus";
 export default function NewEntryPage() {
   const [formData, setFormData] = useState({
     title: "",
@@ -16,9 +18,11 @@ export default function NewEntryPage() {
     mood: "noemotions",
     tags: "",
     is_favorite: false,
+    created_at: new Date().toISOString(),
   });
   const [saving, setSaving] = useState(false);
   const [showEmotionPicker, setShowEmotionPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -34,13 +38,13 @@ export default function NewEntryPage() {
     setError("");
 
     try {
-      // Отправляем все обязательные поля
       const entryData = {
         title: formData.title,
         content: formData.content,
         mood: formData.mood,
         tags: formData.tags || "",
         is_favorite: formData.is_favorite,
+        created_at: formData.created_at,
       };
 
       console.log("Sending entry:", entryData);
@@ -65,7 +69,13 @@ export default function NewEntryPage() {
       form.dispatchEvent(
         new Event("submit", { cancelable: true, bubbles: true }),
       );
+      eventBus.emit("diary-entry-created");
     }
+  };
+
+  const handleDateChange = (newDate: Date) => {
+    setFormData({ ...formData, created_at: newDate.toISOString() });
+    setShowDatePicker(false);
   };
 
   const toggleFavorite = () => {
@@ -77,15 +87,17 @@ export default function NewEntryPage() {
     return `/${emotion}.png`;
   };
 
-  const getDate = () => {
-    const now = new Date();
-    const day = now.getDate();
-    const month = now.toLocaleString("ru-RU", { month: "long" });
-    const year = now.getFullYear();
-    return { day, month, year };
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return {
+      day: date.getDate(),
+      month: date.toLocaleString("ru-RU", { month: "long" }),
+      year: date.getFullYear(),
+    };
   };
 
-  const { day, month, year } = getDate();
+  const date = formatDate(formData.created_at);
+  const selectedDate = formData.created_at.split("T")[0];
 
   return (
     <div className="h-full w-full min-h-screen bg-pink-50 py-8">
@@ -130,11 +142,18 @@ export default function NewEntryPage() {
         <div className="rounded-lg p-8 text-pink-950">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex flex-row items-center justify-between">
-              <div className="flex flex-row items-center">
-                <p className="text-[20px] font-medium">{day}</p>
-                <p className="text-sm ml-[5px] text-gray-600">
-                  {month} {year}
-                </p>
+              <div className="flex flex-row items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDatePicker(true)}
+                  className="flex flex-row items-center gap-2 cursor-pointer hover:opacity-70 transition bg-white px-3 py-1 rounded-full"
+                >
+                  <Calendar className="w-4 h-4 text-pink-500" />
+                  <p className="text-[20px] font-medium">{date.day}</p>
+                  <p className="text-sm text-gray-600">
+                    {date.month} {date.year}
+                  </p>
+                </button>
               </div>
 
               <button
@@ -145,10 +164,13 @@ export default function NewEntryPage() {
                 <img
                   src={getEmotionImage()}
                   alt="emotion"
-                  className="w-[50px] h-[50px] "
+                  className="w-[50px] h-[50px]"
                 />
               </button>
             </div>
+
+            {/* Компонент сна */}
+            <SleepInDiary date={selectedDate} onSleepSaved={() => {}} />
 
             <div>
               <input
@@ -184,6 +206,14 @@ export default function NewEntryPage() {
             setFormData({ ...formData, mood: emotion })
           }
           onClose={() => setShowEmotionPicker(false)}
+        />
+      )}
+
+      {showDatePicker && (
+        <DatePicker
+          currentDate={new Date(formData.created_at)}
+          onDateChange={handleDateChange}
+          onClose={() => setShowDatePicker(false)}
         />
       )}
     </div>

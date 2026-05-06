@@ -18,6 +18,25 @@ import uuid
 import enum
 
 
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    title = Column(String(200), nullable=False)
+    message = Column(Text, nullable=False)
+    type = Column(
+        String(50), nullable=False
+    )  # 'info', 'warning', 'success', 'celebrate'
+    is_read = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        Index("idx_notification_user", "user_id"),
+        Index("idx_notification_read", "is_read"),
+    )
+
+
 class PersonalityTestResult(Base):
     __tablename__ = "personality_test_results"
 

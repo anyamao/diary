@@ -260,11 +260,11 @@ export default function MoodTrackerPage() {
                 <span className="text-sm font-medium text-gray-700">
                   {day.date.getDate()}
                 </span>
-                {day.mood && day.mood !== "noemotions" && (
+                {day.mood && (
                   <img
                     src={moodImages[day.mood]}
                     alt={day.mood}
-                    className="w-6 h-6 mt-1"
+                    className="w-10 h-10 mt-1"
                   />
                 )}
               </button>

@@ -18,16 +18,15 @@ export default function LoginPage() {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include", // Важно для cookie
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await res.json();
-
       if (res.ok) {
-        localStorage.setItem("access_token", data.access_token);
-        localStorage.setItem("refresh_token", data.refresh_token);
+        // Токены автоматически сохраняются в cookie
         window.location.href = "/personal/diary";
       } else {
+        const data = await res.json();
         setError(data.detail || "Неверный email или пароль");
         setLoading(false);
       }
@@ -92,14 +91,17 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-pink-600 w-full rounded-md py-[15px] mt-[10px] text-white"
+            className="bg-pink-600 w-full rounded-md py-[15px] transition-all hover:bg-pink-700 duration-300  mt-[10px] text-white"
           >
             {loading ? "Вход..." : "Войти"}
           </button>
         </form>
         <p className="text-gray-600 text-sm text-center mt-[15px] mr-[5px]">
           Впервые здесь?
-          <a href="/register" style={{ color: "#db2777" }}>
+          <a
+            href="/register"
+            className="text-pink-700 ml-[5px] hover:underline"
+          >
             Создать аккаунт
           </a>
         </p>

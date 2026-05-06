@@ -12,6 +12,65 @@ import json
 router = APIRouter(prefix="/sleep", tags=["sleep"])
 
 
+@router.put("/records/{day_date}")
+async def update_sleep_record(
+    day_date: str,
+    data: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Обновить запись о сне за конкретный день"""
+    try:
+        record_date = date.fromisoformat(day_date)
+        segments = data.get("segments", [])
+
+        # Проверяем существует ли запись
+        check_query = text("""
+            SELECT id FROM sleep_records
+            WHERE user_id = :user_id AND date = :date
+        """)
+        result = await db.execute(
+            check_query, {"user_id": current_user.id, "date": record_date}
+        )
+        row = result.fetchone()
+
+        if row:
+            # Обновляем существующую
+            update_query = text("""
+                UPDATE sleep_records
+                SET segments = :segments, updated_at = NOW()
+                WHERE user_id = :user_id AND date = :date
+            """)
+            await db.execute(
+                update_query,
+                {
+                    "user_id": current_user.id,
+                    "date": record_date,
+                    "segments": json.dumps(segments),
+                },
+            )
+        else:
+            # Создаем новую
+            insert_query = text("""
+                INSERT INTO sleep_records (id, user_id, date, segments)
+                VALUES (gen_random_uuid(), :user_id, :date, :segments)
+            """)
+            await db.execute(
+                insert_query,
+                {
+                    "user_id": current_user.id,
+                    "date": record_date,
+                    "segments": json.dumps(segments),
+                },
+            )
+
+        await db.commit()
+        return {"message": "Sleep record saved successfully"}
+    except Exception as e:
+        print(f"Error saving sleep record: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/check/{day_date}")
 async def check_sleep_record_exists(
     day_date: str,

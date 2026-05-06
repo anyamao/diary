@@ -10,6 +10,7 @@ import {
   User,
   UserPenIcon,
   Settings,
+  Bell,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useState } from "react";
@@ -74,6 +75,8 @@ function Header() {
         </div>
 
         <div className="flex items-center gap-3 relative">
+          <Bell className="text-yellow-600 w-5 h-5"></Bell>
+
           {isAuthenticated ? (
             <>
               <button

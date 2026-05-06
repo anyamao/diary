@@ -15,20 +15,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { checkAuth, isAuthenticated, isLoading } = useAuthStore();
   const pathname = usePathname();
   const router = useRouter();
-
-  useEffect(() => {
-    checkAuth();
-  }, [checkAuth]);
 
   // Не показываем хедер на страницах авторизации
   const isAuthPage = pathname === "/login" || pathname === "/register";
 
   // Показываем сайдпанель только на /personal/diary и его дочерних страницах
-  const showSidepanel =
-    isAuthenticated && pathname?.startsWith("/personal/diary");
+  const showSidepanel = pathname?.startsWith("/personal/diary");
 
   return (
     <html lang="ru">

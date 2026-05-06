@@ -6,6 +6,7 @@ import { API_URL } from "@/lib/api-url";
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+  const [fullName, setFullName] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,11 +20,12 @@ export default function RegisterPage() {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           email,
           username,
           password,
-          full_name: username,
+          full_name: fullName,
         }),
       });
 
@@ -36,10 +38,10 @@ export default function RegisterPage() {
         }, 2000);
       } else {
         setMessage("❌ Ошибка: " + (data.detail || "Что-то пошло не так"));
+        setLoading(false);
       }
     } catch (err) {
       setMessage("❌ Ошибка соединения с сервером");
-    } finally {
       setLoading(false);
     }
   };
@@ -57,11 +59,10 @@ export default function RegisterPage() {
     >
       <div className="bg-white shadow-md rounded-lg  w-[400px] py-[40px] px-[40px]">
         <p className="font-semibold text-xl  text-center text-pink-800 mb-[5px] ">
-          Здравствуй! Рады вас видеть
+          Здравствуй! Рад встрече
         </p>
-
         <p className="font-normal text-sm  text-center text-gray-500 mb-[20px]">
-          Создайте аккаунт
+          Создай свой аккаунт
         </p>
 
         <form
@@ -86,6 +87,17 @@ export default function RegisterPage() {
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
+            style={{
+              padding: "8px",
+              border: "1px solid #f9a8d4",
+              borderRadius: "4px",
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Полное имя (опционально)"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
             style={{
               padding: "8px",
               border: "1px solid #f9a8d4",
@@ -123,15 +135,14 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-pink-600 w-full rounded-md py-[15px] mt-[10px] font-semibold text-white"
+            className="bg-pink-600 w-full rounded-md py-[15px] hover:bg-pink-700 transition-all duration-300 mt-[10px] text-white"
           >
-            {loading ? "Регистрация..." : "Зарегистрироваться"}
+            {loading ? "Регистрируем..." : "Зарегистрироваться"}
           </button>
         </form>
-
         <p className="text-gray-600 text-sm text-center mt-[15px] mr-[5px]">
-          Уже есть аккаунт?{" "}
-          <a href="/login" style={{ color: "#db2777" }}>
+          Есть аккаунт?
+          <a href="/login" className="text-pink-700 ml-[5px] hover:underline">
             Войти
           </a>
         </p>

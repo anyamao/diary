@@ -6,21 +6,19 @@ from app.config import settings
 from app.schemas import TokenPayload
 from uuid import UUID
 
-# Use PBKDF2 - always available, no extra packages needed
+# Используем pbkdf2_sha256 (работает без дополнительных пакетов)
 pwd_context = CryptContext(
     schemes=["pbkdf2_sha256"],
     deprecated="auto",
-    pbkdf2_sha256__default_rounds=29000,  # OWASP recommended rounds
+    pbkdf2_sha256__default_rounds=29000,
 )
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a password against its hash"""
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password using PBKDF2"""
     return pwd_context.hash(password)
 
 

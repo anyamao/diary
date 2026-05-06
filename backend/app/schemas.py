@@ -28,6 +28,15 @@ class PlannerTaskBase(BaseModel):
     position: int = 0
 
 
+class DiaryEntryBase(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    content: Optional[str] = None
+    mood: Optional[str] = Field(None, max_length=50)
+    tags: Optional[str] = Field(None, max_length=500)
+    is_favorite: bool = False
+    created_at: Optional[datetime] = None
+
+
 class PlannerTaskCreate(PlannerTaskBase):
     planner_day_id: UUID
 
@@ -174,20 +183,15 @@ class MessageResponse(BaseModel):
 
 
 # Diary Entry Schemas
-class DiaryEntryBase(BaseModel):
-    title: str = Field(..., min_length=1, max_length=200)
-    content: Optional[str] = None
-    mood: Optional[str] = Field(None, max_length=50)
-    tags: Optional[str] = Field(None, max_length=500)
-    is_favorite: bool = False
 
 
 class DiaryEntryUpdate(DiaryEntryBase):
     title: Optional[str] = None
+    created_at: Optional[datetime] = None
 
 
 class DiaryEntryCreate(DiaryEntryBase):
-    pass
+    created_at: Optional[datetime] = None
 
 
 class DiaryEntryResponse(DiaryEntryBase):

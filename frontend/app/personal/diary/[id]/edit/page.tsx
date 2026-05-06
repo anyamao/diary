@@ -1,5 +1,5 @@
 "use client";
-
+import { eventBus } from "@/lib/eventBus";
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
@@ -12,12 +12,14 @@ import {
   ArrowLeft,
   Bookmark,
   EllipsisVertical,
+  Calendar,
 } from "lucide-react";
 import MarkdownEditor from "@/components/MarkdownEditor";
 import EmotionPicker from "@/components/EmotionPicker";
 import QuestionsModal from "@/components/QuestionsModal";
 import EntryInfoModal from "@/components/EntryInfoModal";
 import DatePicker from "@/components/DatePicker";
+import SleepInDiary from "@/components/SleepInDiary";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -43,6 +45,11 @@ export default function EditEntryPage({ params }: PageProps) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
+
+  // Получаем дату для компонента сна
+  const selectedDate = formData.created_at
+    ? formData.created_at.split("T")[0]
+    : new Date().toISOString().split("T")[0];
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -87,6 +94,7 @@ export default function EditEntryPage({ params }: PageProps) {
       form.dispatchEvent(
         new Event("submit", { cancelable: true, bubbles: true }),
       );
+      eventBus.emit("diary-entry-updated");
     }
   };
 
@@ -129,7 +137,7 @@ export default function EditEntryPage({ params }: PageProps) {
       </div>
     );
   }
-
+  console.log("Edit page rendered, selectedDate:", selectedDate);
   return (
     <div className="h-full w-full min-h-[1200px] bg-pink-50 py-8">
       <div className="container mx-auto px-4 max-w-4xl">
@@ -178,12 +186,13 @@ export default function EditEntryPage({ params }: PageProps) {
               <button
                 type="button"
                 onClick={() => setShowDatePicker(true)}
-                className="flex flex-row items-center cursor-pointer hover:opacity-70 transition"
+                className="flex flex-row items-center gap-2 cursor-pointer hover:opacity-70 transition"
               >
+                <Calendar className="w-4 h-4 text-pink-500" />
                 {date && (
                   <>
                     <p className="text-[20px] font-medium">{date.day}</p>
-                    <p className="text-sm ml-[5px] text-gray-600">
+                    <p className="text-sm text-gray-600">
                       {date.month} {date.year}
                     </p>
                   </>
@@ -198,10 +207,13 @@ export default function EditEntryPage({ params }: PageProps) {
                 <img
                   src={getEmotionImage()}
                   alt="emotion"
-                  className="w-[50px] h-[50px] "
+                  className="w-[50px] h-[50px]"
                 />
               </button>
             </div>
+
+            {/* Компонент сна */}
+            <SleepInDiary date={selectedDate} />
 
             <div>
               <input

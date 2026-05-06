@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
@@ -15,6 +15,7 @@ import {
   Trash2,
   Filter,
 } from "lucide-react";
+import { eventBus } from "@/lib/eventBus";
 
 interface DiaryEntry {
   id: string;
@@ -45,6 +46,24 @@ export default function PersonalDiaryPage() {
 
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  // Подписываемся на события обновления
+  useEffect(() => {
+    const handleUpdate = () => {
+      console.log("🔄 Diary page: получил событие обновления");
+      fetchEntries();
+    };
+
+    eventBus.on("diary-entry-created", handleUpdate);
+    eventBus.on("diary-entry-updated", handleUpdate);
+    eventBus.on("diary-entry-deleted", handleUpdate);
+
+    return () => {
+      eventBus.off("diary-entry-created", handleUpdate);
+      eventBus.off("diary-entry-updated", handleUpdate);
+      eventBus.off("diary-entry-deleted", handleUpdate);
+    };
   }, []);
 
   useEffect(() => {
@@ -83,7 +102,6 @@ export default function PersonalDiaryPage() {
   const filterAndSortEntries = () => {
     let filtered = [...entries];
 
-    // Поиск по заголовку и содержанию
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -93,7 +111,6 @@ export default function PersonalDiaryPage() {
       );
     }
 
-    // Фильтр по дате
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -140,7 +157,6 @@ export default function PersonalDiaryPage() {
         break;
     }
 
-    // Сортировка
     filtered.sort((a, b) => {
       const dateA = new Date(a.created_at).getTime();
       const dateB = new Date(b.created_at).getTime();
@@ -156,7 +172,7 @@ export default function PersonalDiaryPage() {
     if (confirm("Вы уверены, что хотите удалить эту запись?")) {
       try {
         await api.delete(`/diary/entries/${id}`);
-        setEntries(entries.filter((entry) => entry.id !== id));
+        eventBus.emit("diary-entry-deleted");
       } catch (error) {
         console.error("Failed to delete entry:", error);
         alert("Не удалось удалить запись");
@@ -173,11 +189,7 @@ export default function PersonalDiaryPage() {
     e.stopPropagation();
     try {
       await api.put(`/diary/entries/${id}`, { is_favorite: !currentStatus });
-      setEntries(
-        entries.map((entry) =>
-          entry.id === id ? { ...entry, is_favorite: !currentStatus } : entry,
-        ),
-      );
+      eventBus.emit("diary-entry-updated");
     } catch (error) {
       console.error("Failed to toggle favorite:", error);
     }
@@ -269,7 +281,6 @@ export default function PersonalDiaryPage() {
           <div className="bg-white rounded-lg p-4 border border-pink-200 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 flex-wrap">
-                {/* Сортировка */}
                 <div className="flex items-center gap-2">
                   <ArrowUpDown className="w-4 h-4 text-gray-500" />
                   <select
@@ -282,7 +293,6 @@ export default function PersonalDiaryPage() {
                   </select>
                 </div>
 
-                {/* Фильтр по дате */}
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-gray-500" />
                   <select
@@ -376,9 +386,9 @@ export default function PersonalDiaryPage() {
             <Link
               href={`/personal/diary/${entry.id}/edit`}
               key={entry.id}
-              className="bg-white rounded-lg shadow-md hover:shadow-md hover:border-b-[2px] duration-300 border-pink-200  transition p-6 py-4 border-l-4 border-pink-400 flex flex-col h-full"
+              className="bg-white rounded-lg shadow-md hover:shadow-md hover:border-b-[2px] duration-300 border-pink-200 transition p-6 py-4 border-l-4 border-pink-400 flex flex-col h-full"
             >
-              <div className="flex justify-between items-center  mb-3">
+              <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-2 flex-1">
                   <img
                     src={getMoodImage(entry.mood)}
@@ -412,8 +422,8 @@ export default function PersonalDiaryPage() {
                     }
                   >
                     <Bookmark
-                      className={`w-6 h-6 ml-[5px]   ${entry.is_favorite ? "fill-yellow-500" : ""}           `}
-                    ></Bookmark>
+                      className={`w-6 h-6 ml-[5px] ${entry.is_favorite ? "fill-yellow-500" : ""}`}
+                    />
                   </button>
                 </div>
               </div>

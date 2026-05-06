@@ -4,13 +4,9 @@ import {
   PanelRight,
   Plus,
   FileText,
-  Pencil,
-  Delete,
   Bookmark,
-  BookmarkOff,
   Trash2,
   X,
-  Star,
   MoreHorizontal,
   Heart,
 } from "lucide-react";
@@ -19,6 +15,7 @@ import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { useAuthStore } from "@/store/authStore";
 import { useRouter, usePathname } from "next/navigation";
+import { eventBus } from "@/lib/eventBus";
 
 interface DiaryEntry {
   id: string;
@@ -47,6 +44,24 @@ export default function Sidepanel() {
     }
   }, [isAuthenticated, pathname]);
 
+  // Подписываемся на события обновления
+  useEffect(() => {
+    const handleUpdate = () => {
+      console.log("🔄 Sidepanel: получил событие обновления");
+      fetchEntries();
+    };
+
+    eventBus.on("diary-entry-created", handleUpdate);
+    eventBus.on("diary-entry-updated", handleUpdate);
+    eventBus.on("diary-entry-deleted", handleUpdate);
+
+    return () => {
+      eventBus.off("diary-entry-created", handleUpdate);
+      eventBus.off("diary-entry-updated", handleUpdate);
+      eventBus.off("diary-entry-deleted", handleUpdate);
+    };
+  }, [isAuthenticated]);
+
   const fetchEntries = async () => {
     setLoading(true);
     try {
@@ -64,6 +79,7 @@ export default function Sidepanel() {
       try {
         await api.delete(`/diary/entries/${id}`);
         setEntries(entries.filter((entry) => entry.id !== id));
+        eventBus.emit("diary-entry-deleted");
         if (pathname === `/personal/diary/${id}/edit`) {
           router.push("/personal/diary");
         }
@@ -83,6 +99,7 @@ export default function Sidepanel() {
           entry.id === id ? { ...entry, is_favorite: !isFavorite } : entry,
         ),
       );
+      eventBus.emit("diary-entry-updated");
       setOpenMenuId(null);
     } catch (error) {
       console.error("Failed to toggle favorite:", error);
@@ -113,7 +130,6 @@ export default function Sidepanel() {
     return moodMap[mood] || "/noemotions.png";
   };
 
-  // Разделяем записи на избранные и обычные
   const favoriteEntries = entries.filter((entry) => entry.is_favorite);
   const normalEntries = entries.filter((entry) => !entry.is_favorite);
 
@@ -174,7 +190,6 @@ export default function Sidepanel() {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Избранные записи */}
             {favoriteEntries.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-2 pb-1 border-b border-pink-100">
@@ -201,7 +216,6 @@ export default function Sidepanel() {
               </div>
             )}
 
-            {/* Обычные записи */}
             {normalEntries.length > 0 && (
               <div>
                 {favoriteEntries.length > 0 && (
@@ -236,7 +250,6 @@ export default function Sidepanel() {
   );
 }
 
-// Компонент для отдельной записи
 function EntryItem({
   entry,
   pathname,
@@ -299,18 +312,17 @@ function EntryItem({
           <MoreHorizontal className="w-4 h-4 text-gray-500" />
         </button>
 
-        {/* Выпадающее меню */}
         {isMenuOpen && (
           <>
             <div
-              className="fixed  z-10"
+              className="fixed inset-0 z-10"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 setOpenMenuId(null);
               }}
             />
-            <div className="absolute right-0  mt-1  bg-white rounded-lg shadow-lg py-[7px] border border-gray-200 z-20 w-[180px] ">
+            <div className="absolute right-0 mt-1 bg-white rounded-lg shadow-lg py-[7px] border border-gray-200 z-20 w-[180px]">
               <button
                 onClick={(e) => {
                   e.preventDefault();
@@ -321,15 +333,12 @@ function EntryItem({
               >
                 {entry.is_favorite ? (
                   <>
-                    {" "}
-                    <Bookmark className="text-yellow-500 w-4 h-4 fill-yellow-500"></Bookmark>
+                    <Bookmark className="text-yellow-500 w-4 h-4 fill-yellow-500" />
                     Убрать из избранного
                   </>
                 ) : (
                   <>
-                    {" "}
-                    <Bookmark className="text-yellow-500 w-4 h-4"></Bookmark>В
-                    избранное
+                    <Bookmark className="text-yellow-500 w-4 h-4" />В избранное
                   </>
                 )}
               </button>
@@ -341,7 +350,7 @@ function EntryItem({
                 }}
                 className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition flex items-center gap-2"
               >
-                <Trash2 className="text-red-500 w-4 h-4"></Trash2> Удалить
+                <Trash2 className="text-red-500 w-4 h-4" /> Удалить
               </button>
             </div>
           </>
