@@ -9,6 +9,7 @@ from sqlalchemy import (
     Index,
     Float,
     Date,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
@@ -42,6 +43,47 @@ class DepressionTestResult(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     __table_args__ = (Index("idx_depression_test_user", "user_id"),)
+
+
+class PlannerDay(Base):
+    __tablename__ = "planner_days"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    is_important = Column(Boolean, default=False)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (
+        Index("idx_planner_user_date", "user_id", "date"),
+        UniqueConstraint("user_id", "date", name="unique_planner_date"),
+    )
+
+
+class PlannerTask(Base):
+    __tablename__ = "planner_tasks"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    planner_day_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    title = Column(String(500), nullable=False)
+    description = Column(Text, nullable=True)
+    start_time = Column(String(10), nullable=True)  # HH:MM формат
+    end_time = Column(String(10), nullable=True)  # HH:MM формат
+    color = Column(
+        String(20), default="yellow"
+    )  # yellow, blue, green, purple, pink, orange
+    is_completed = Column(Boolean, default=False)
+    position = Column(Integer, default=0)  # порядок отображения
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    __table_args__ = (
+        Index("idx_planner_task_day", "planner_day_id"),
+        Index("idx_planner_task_user", "user_id"),
+    )
 
 
 class SelfNote(Base):

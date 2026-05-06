@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from datetime import datetime
+from datetime import datetime, date
 from uuid import UUID
 from typing import Optional, List
 from app.models import UserRole
@@ -13,6 +13,61 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8, max_length=100)
+
+
+# Planner Schemas
+class PlannerTaskBase(BaseModel):
+    title: str = Field(..., min_length=1, max_length=500)
+    description: Optional[str] = None
+    start_time: Optional[str] = Field(
+        None, pattern=r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+    )
+    end_time: Optional[str] = Field(None, pattern=r"^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$")
+    color: str = Field(default="yellow")
+    is_completed: bool = False
+    position: int = 0
+
+
+class PlannerTaskCreate(PlannerTaskBase):
+    planner_day_id: UUID
+
+
+class PlannerTaskUpdate(PlannerTaskBase):
+    title: Optional[str] = None
+
+
+class PlannerTaskResponse(PlannerTaskBase):
+    id: UUID
+    planner_day_id: UUID
+    user_id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PlannerDayBase(BaseModel):
+    date: date
+    is_important: bool = False
+    notes: Optional[str] = None
+
+
+class PlannerDayCreate(PlannerDayBase):
+    pass
+
+
+class PlannerDayUpdate(PlannerDayBase):
+    date: Optional[date] = None
+
+
+class PlannerDayResponse(PlannerDayBase):
+    id: UUID
+    user_id: UUID
+    tasks: List[PlannerTaskResponse] = []
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserResponse(UserBase):

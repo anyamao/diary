@@ -1,0 +1,1006 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/store/authStore";
+import api from "@/lib/axios";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Star,
+  Calendar,
+  ChevronUp,
+  ChevronDown,
+  Plus,
+  Check,
+  X,
+  Trash2,
+  Edit,
+  Target,
+  FileText,
+  Tag,
+} from "lucide-react";
+
+const weekDays = [
+  "Понедельник",
+  "Вторник",
+  "Среда",
+  "Четверг",
+  "Пятница",
+  "Суббота",
+  "Воскресенье",
+];
+const weekDaysShort = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const monthNames = [
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
+];
+
+const colors = [
+  {
+    name: "yellow",
+    label: "Желтый",
+    bg: "bg-yellow-100",
+    border: "border-yellow-400",
+    text: "text-yellow-800",
+    tagBg: "bg-yellow-200",
+    base: "bg-yellow-500",
+  },
+  {
+    name: "blue",
+    label: "Синий",
+    bg: "bg-blue-100",
+    border: "border-blue-400",
+    text: "text-blue-800",
+    tagBg: "bg-blue-200",
+    base: "bg-blue-500",
+  },
+  {
+    name: "green",
+    label: "Зеленый",
+    bg: "bg-green-100",
+    border: "border-green-400",
+    text: "text-green-800",
+    tagBg: "bg-green-200",
+    base: "bg-green-500",
+  },
+  {
+    name: "purple",
+    label: "Фиолетовый",
+    bg: "bg-purple-100",
+    border: "border-purple-400",
+    text: "text-purple-800",
+    tagBg: "bg-purple-200",
+    base: "bg-purple-500",
+  },
+  {
+    name: "pink",
+    label: "Розовый",
+    bg: "bg-pink-100",
+    border: "border-pink-400",
+    text: "text-pink-800",
+    tagBg: "bg-pink-200",
+    base: "bg-pink-500",
+  },
+  {
+    name: "orange",
+    label: "Оранжевый",
+    bg: "bg-orange-100",
+    border: "border-orange-400",
+    text: "text-orange-800",
+    tagBg: "bg-orange-200",
+    base: "bg-orange-500",
+  },
+];
+
+export default function PlannerPage() {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [months, setMonths] = useState<any[]>([]);
+  const [weekPlan, setWeekPlan] = useState<any[]>([]);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [loading, setLoading] = useState(true);
+  const [isWeekVisible, setIsWeekVisible] = useState(true);
+  const [hiddenWeeks, setHiddenWeeks] = useState<number[]>([]);
+  const [addingTaskForDay, setAddingTaskForDay] = useState<string | null>(null);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const [newTaskColor, setNewTaskColor] = useState("yellow");
+  const [newTaskDay, setNewTaskDay] = useState<string>("");
+  const [tagNames, setTagNames] = useState<{ [key: string]: string }>({});
+  const [editingTag, setEditingTag] = useState<string | null>(null);
+  const [newTagName, setNewTagName] = useState("");
+
+  // Цели
+  const [weeklyGoals, setWeeklyGoals] = useState<{ [key: number]: string }>({});
+  const [monthlyGoal, setMonthlyGoal] = useState("");
+  const [editingWeeklyGoal, setEditingWeeklyGoal] = useState<number | null>(
+    null,
+  );
+  const [editingMonthlyGoal, setEditingMonthlyGoal] = useState(false);
+  const [weeklyNotes, setWeeklyNotes] = useState<{ [key: number]: string }>({});
+  const [editingWeeklyNote, setEditingWeeklyNote] = useState<number | null>(
+    null,
+  );
+
+  const { isAuthenticated, isLoading } = useAuthStore();
+  const router = useRouter();
+
+  function formatDate(date: Date): string {
+    return date.toISOString().split("T")[0];
+  }
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+    if (isAuthenticated) {
+      loadMonths();
+      loadWeekPlan();
+      loadGoalsAndNotes();
+      loadTagNames();
+    }
+  }, [isAuthenticated, isLoading, currentDate, selectedMonth, selectedYear]);
+
+  const loadMonths = async () => {
+    setLoading(true);
+    const monthsData = [];
+    const startMonth = new Date(currentDate);
+    startMonth.setMonth(currentDate.getMonth() - 1);
+
+    for (let i = 0; i < 3; i++) {
+      const month = new Date(startMonth);
+      month.setMonth(startMonth.getMonth() + i);
+      const year = month.getFullYear();
+      const monthNum = month.getMonth() + 1;
+
+      try {
+        const response = await api.get(`/planner/months/${year}/${monthNum}`);
+        monthsData.push({
+          year,
+          month: monthNum,
+          name: monthNames[monthNum - 1],
+          days: response.data,
+        });
+      } catch (error) {
+        console.error("Failed to load month:", error);
+      }
+    }
+    setMonths(monthsData);
+    setLoading(false);
+  };
+
+  const loadWeekPlan = async () => {
+    try {
+      const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
+      const startOfWeek = getWeekStart(firstDayOfMonth);
+
+      const weeksData = [];
+      for (let week = 0; week < 4; week++) {
+        const weekStart = new Date(startOfWeek);
+        weekStart.setDate(startOfWeek.getDate() + week * 7);
+
+        const weekDaysPromises = [];
+        for (let i = 0; i < 7; i++) {
+          const day = new Date(weekStart);
+          day.setDate(weekStart.getDate() + i);
+          const dateStr = formatDate(day);
+          weekDaysPromises.push(
+            api.get(`/planner/days/${dateStr}`).catch(() => ({ data: null })),
+          );
+        }
+
+        const responses = await Promise.all(weekDaysPromises);
+        const weekDaysData = responses.map((res, index) => {
+          const day = new Date(weekStart);
+          day.setDate(weekStart.getDate() + index);
+          const data = res?.data;
+          return {
+            date: formatDate(day),
+            dayOfWeek: weekDays[index],
+            dayNumber: day.getDate(),
+            isImportant: data?.is_important || false,
+            notes: data?.notes || "",
+            tasks: data?.tasks || [],
+          };
+        });
+
+        weeksData.push({
+          weekNumber: week + 1,
+          days: weekDaysData,
+          startDate: formatDate(weekStart),
+        });
+      }
+      setWeekPlan(weeksData);
+    } catch (error) {
+      console.error("Failed to load week plan:", error);
+    }
+  };
+
+  const loadTagNames = async () => {
+    try {
+      const response = await api.get("/planner/tags");
+      if (response.data) {
+        const tags: { [key: string]: string } = {};
+        response.data.forEach((tag: any) => {
+          tags[tag.color] = tag.tag_name;
+        });
+        setTagNames(tags);
+      }
+    } catch (error) {
+      console.error("Failed to load tags:", error);
+    }
+  };
+
+  const saveTagName = async (color: string) => {
+    if (!newTagName.trim()) return;
+    try {
+      await api.post("/planner/tags", {
+        color: color,
+        tag_name: newTagName.trim(),
+      });
+      setTagNames({ ...tagNames, [color]: newTagName.trim() });
+      setEditingTag(null);
+      setNewTagName("");
+    } catch (error) {
+      console.error("Failed to save tag:", error);
+    }
+  };
+
+  const loadGoalsAndNotes = async () => {
+    try {
+      const response = await api.get(
+        `/planner/monthly/${selectedYear}/${selectedMonth + 1}`,
+      );
+      if (response.data) {
+        setMonthlyGoal(response.data.monthly_goal || "");
+        setWeeklyGoals(response.data.weekly_goals || {});
+        setWeeklyNotes(response.data.weekly_notes || {});
+      }
+    } catch (error) {
+      console.error("Failed to load goals:", error);
+    }
+  };
+
+  const saveMonthlyGoal = async () => {
+    try {
+      await api.post(`/planner/monthly/${selectedYear}/${selectedMonth + 1}`, {
+        monthly_goal: monthlyGoal,
+        weekly_goals: weeklyGoals,
+        weekly_notes: weeklyNotes,
+      });
+      setEditingMonthlyGoal(false);
+    } catch (error) {
+      console.error("Failed to save monthly goal:", error);
+    }
+  };
+
+  const saveWeeklyGoal = async (weekNumber: number) => {
+    try {
+      await api.post(`/planner/monthly/${selectedYear}/${selectedMonth + 1}`, {
+        monthly_goal: monthlyGoal,
+        weekly_goals: weeklyGoals,
+        weekly_notes: weeklyNotes,
+      });
+      setEditingWeeklyGoal(null);
+    } catch (error) {
+      console.error("Failed to save weekly goal:", error);
+    }
+  };
+
+  const saveWeeklyNote = async (weekNumber: number) => {
+    try {
+      await api.post(`/planner/monthly/${selectedYear}/${selectedMonth + 1}`, {
+        monthly_goal: monthlyGoal,
+        weekly_goals: weeklyGoals,
+        weekly_notes: weeklyNotes,
+      });
+      setEditingWeeklyNote(null);
+    } catch (error) {
+      console.error("Failed to save weekly note:", error);
+    }
+  };
+
+  const toggleTaskCompletion = async (taskId: string) => {
+    try {
+      await api.patch(`/planner/tasks/${taskId}/toggle`);
+      await loadWeekPlan();
+    } catch (error) {
+      console.error("Failed to toggle task:", error);
+    }
+  };
+
+  const addQuickTask = async () => {
+    if (!newTaskTitle.trim() || !newTaskDay) return;
+
+    try {
+      const dayResponse = await api.get(`/planner/days/${newTaskDay}`);
+      let plannerDayId = dayResponse.data?.id;
+
+      if (!plannerDayId) {
+        const createResponse = await api.post(
+          `/planner/days/${newTaskDay}`,
+          {},
+        );
+        plannerDayId = createResponse.data?.id;
+      }
+
+      await api.post("/planner/tasks", {
+        title: newTaskTitle,
+        description: "",
+        start_time: "09:00",
+        end_time: "10:00",
+        color: newTaskColor,
+        planner_day_id: plannerDayId,
+        position: 0,
+      });
+
+      setNewTaskTitle("");
+      setNewTaskColor("yellow");
+      setAddingTaskForDay(null);
+      setNewTaskDay("");
+      await loadWeekPlan();
+    } catch (error) {
+      console.error("Failed to add task:", error);
+    }
+  };
+
+  const deleteTask = async (taskId: string) => {
+    if (confirm("Удалить эту задачу?")) {
+      try {
+        await api.delete(`/planner/tasks/${taskId}`);
+        await loadWeekPlan();
+      } catch (error) {
+        console.error("Failed to delete task:", error);
+      }
+    }
+  };
+
+  const toggleWeekVisibility = (weekNumber: number) => {
+    if (hiddenWeeks.includes(weekNumber)) {
+      setHiddenWeeks(hiddenWeeks.filter((w) => w !== weekNumber));
+    } else {
+      setHiddenWeeks([...hiddenWeeks, weekNumber]);
+    }
+  };
+
+  function getWeekStart(date: Date): Date {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    d.setDate(d.getDate() - diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  const prevMonthPeriod = () => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(currentDate.getMonth() - 3);
+    setCurrentDate(newDate);
+  };
+
+  const nextMonthPeriod = () => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(currentDate.getMonth() + 3);
+    setCurrentDate(newDate);
+  };
+
+  const prevMonthForWeek = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear(selectedYear - 1);
+    } else {
+      setSelectedMonth(selectedMonth - 1);
+    }
+  };
+
+  const nextMonthForWeek = () => {
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear(selectedYear + 1);
+    } else {
+      setSelectedMonth(selectedMonth + 1);
+    }
+  };
+
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    return new Date(year, month - 1, 1).getDay();
+  };
+
+  const getTaskDisplayName = (colorName: string) => {
+    return (
+      tagNames[colorName] ||
+      colors.find((c) => c.name === colorName)?.label ||
+      colorName
+    );
+  };
+
+  if (isLoading || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-xl">Загрузка...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              Планировщик
+            </h1>
+            <p className="text-gray-600">Планируй свои дни и задачи</p>
+          </div>
+          <button
+            onClick={() => {
+              const today = new Date();
+              setCurrentDate(today);
+              setSelectedMonth(today.getMonth());
+              setSelectedYear(today.getFullYear());
+            }}
+            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+          >
+            Сегодня
+          </button>
+        </div>
+
+        {/* Календарь месяцев */}
+        <div className="mb-12">
+          <div className="flex justify-end mb-6 gap-3">
+            <button
+              onClick={prevMonthPeriod}
+              className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={nextMonthPeriod}
+              className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {months.map((month, idx) => (
+              <div key={idx} className="bg-white rounded-xl shadow-lg p-4">
+                <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">
+                  {month.name} {month.year}
+                </h2>
+                <div className="grid grid-cols-7 gap-1 mb-2">
+                  {weekDaysShort.map((day) => (
+                    <div
+                      key={day}
+                      className="text-center text-sm font-medium text-gray-500 py-2"
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({
+                    length:
+                      getFirstDayOfMonth(month.year, month.month) === 0
+                        ? 6
+                        : getFirstDayOfMonth(month.year, month.month) - 1,
+                  }).map((_, i) => (
+                    <div key={`empty-${i}`} className="h-12" />
+                  ))}
+                  {month.days.map((day: any) => {
+                    const date = new Date(day.date);
+                    const isImportant = day.is_important;
+                    const hasTasks = day.has_tasks;
+                    const isToday =
+                      date.toDateString() === new Date().toDateString();
+
+                    return (
+                      <Link
+                        key={day.date}
+                        href={`/business/planner/${day.date}`}
+                        className={`
+                          h-12 rounded-lg flex flex-col items-center justify-center p-1 transition hover:scale-105
+                          ${isImportant ? "bg-yellow-100 hover:bg-yellow-200" : "bg-gray-50 hover:bg-gray-100"}
+                          ${isToday ? "ring-2 ring-blue-500" : ""}
+                        `}
+                      >
+                        <span
+                          className={`text-sm font-medium ${isImportant ? "text-yellow-800" : "text-gray-700"}`}
+                        >
+                          {date.getDate()}
+                        </span>
+                        {hasTasks && (
+                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-0.5" />
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Недельный план */}
+        <div className="mt-12 pt-8 border-t-2 border-gray-200">
+          <button
+            onClick={() => setIsWeekVisible(!isWeekVisible)}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 transition"
+          >
+            {isWeekVisible ? (
+              <ChevronUp className="w-5 h-5" />
+            ) : (
+              <ChevronDown className="w-5 h-5" />
+            )}
+            <span className="font-medium">
+              {isWeekVisible
+                ? "Скрыть недельный план"
+                : "Показать недельный план"}
+            </span>
+          </button>
+
+          {isWeekVisible && (
+            <>
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-4">
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    {monthNames[selectedMonth]} {selectedYear}
+                  </h2>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={prevMonthForWeek}
+                      className="p-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={nextMonthForWeek}
+                      className="p-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Панель настройки тегов */}
+              <div className="bg-gray-100 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <Tag className="w-5 h-5 text-gray-600" />
+                  <h3 className="font-semibold text-gray-800">
+                    Настройка тегов для цветов
+                  </h3>
+                </div>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                  {colors.map((color) => (
+                    <div key={color.name} className="flex flex-col gap-1">
+                      <div
+                        className={`flex items-center gap-2 p-2 rounded-lg ${color.bg}`}
+                      >
+                        <div className={`w-4 h-4 rounded-full ${color.base}`} />
+                        <span className="text-sm">{color.label}</span>
+                      </div>
+                      {editingTag === color.name ? (
+                        <div className="flex gap-1">
+                          <input
+                            type="text"
+                            value={newTagName}
+                            onChange={(e) => setNewTagName(e.target.value)}
+                            className="flex-1 text-xs p-1 border rounded"
+                            placeholder="Название тега"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => saveTagName(color.name)}
+                            className="px-2 py-1 bg-green-500 text-white rounded text-xs"
+                          >
+                            <Check className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => setEditingTag(null)}
+                            className="px-2 py-1 bg-gray-400 text-white rounded text-xs"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setEditingTag(color.name);
+                            setNewTagName(tagNames[color.name] || "");
+                          }}
+                          className="text-xs text-gray-500 hover:text-gray-700 text-left"
+                        >
+                          {tagNames[color.name] || "Добавить тег"}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Цель на месяц */}
+              <div className="bg-purple-50 rounded-xl p-4 mb-6 border border-purple-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="w-5 h-5 text-purple-600" />
+                  <h3 className="font-semibold text-gray-800">Цель на месяц</h3>
+                </div>
+                {editingMonthlyGoal ? (
+                  <div className="flex gap-2">
+                    <textarea
+                      value={monthlyGoal}
+                      onChange={(e) => setMonthlyGoal(e.target.value)}
+                      className="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      rows={2}
+                      placeholder="Какая у тебя цель на этот месяц?"
+                      autoFocus
+                    />
+                    <button
+                      onClick={saveMonthlyGoal}
+                      className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
+                    >
+                      Сохранить
+                    </button>
+                    <button
+                      onClick={() => setEditingMonthlyGoal(false)}
+                      className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-start">
+                    <p className="text-gray-700 whitespace-pre-wrap flex-1">
+                      {monthlyGoal ||
+                        'Нет цели. Нажмите "Редактировать", чтобы добавить цель на месяц.'}
+                    </p>
+                    <button
+                      onClick={() => setEditingMonthlyGoal(true)}
+                      className="text-purple-600 hover:text-purple-700 ml-2"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-8">
+                {weekPlan.map((week) => {
+                  const isHidden = hiddenWeeks.includes(week.weekNumber);
+                  return (
+                    <div
+                      key={week.weekNumber}
+                      className="border rounded-xl bg-white shadow-sm overflow-hidden"
+                    >
+                      <button
+                        onClick={() => toggleWeekVisibility(week.weekNumber)}
+                        className="w-full flex justify-between items-center p-4 hover:bg-gray-50 transition"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Calendar className="w-5 h-5 text-blue-500" />
+                          <h3 className="text-lg font-semibold text-gray-800">
+                            Неделя {week.weekNumber}
+                          </h3>
+                          {isHidden ? (
+                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                          ) : (
+                            <ChevronUp className="w-4 h-4 text-gray-500" />
+                          )}
+                        </div>
+                      </button>
+
+                      {!isHidden && (
+                        <div className="p-4 pt-0 border-t">
+                          {/* Цель на неделю */}
+                          <div className="bg-blue-50 rounded-lg p-3 mb-4">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Target className="w-4 h-4 text-blue-600" />
+                              <span className="text-sm font-medium text-gray-700">
+                                Цель на неделю
+                              </span>
+                            </div>
+                            {editingWeeklyGoal === week.weekNumber ? (
+                              <div className="flex gap-2 mt-2">
+                                <input
+                                  type="text"
+                                  value={weeklyGoals[week.weekNumber] || ""}
+                                  onChange={(e) =>
+                                    setWeeklyGoals({
+                                      ...weeklyGoals,
+                                      [week.weekNumber]: e.target.value,
+                                    })
+                                  }
+                                  className="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  placeholder="Цель на эту неделю..."
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() =>
+                                    saveWeeklyGoal(week.weekNumber)
+                                  }
+                                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                >
+                                  Сохранить
+                                </button>
+                                <button
+                                  onClick={() => setEditingWeeklyGoal(null)}
+                                  className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                                >
+                                  Отмена
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex justify-between items-start">
+                                <p className="text-sm text-gray-600 flex-1">
+                                  {weeklyGoals[week.weekNumber] || "Нет цели"}
+                                </p>
+                                <button
+                                  onClick={() =>
+                                    setEditingWeeklyGoal(week.weekNumber)
+                                  }
+                                  className="text-blue-600 hover:text-blue-700"
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Заметка на неделю */}
+                          <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                            <div className="flex items-center gap-2 mb-1">
+                              <FileText className="w-4 h-4 text-gray-600" />
+                              <span className="text-sm font-medium text-gray-700">
+                                Заметка на неделю
+                              </span>
+                            </div>
+                            {editingWeeklyNote === week.weekNumber ? (
+                              <div className="flex gap-2 mt-2">
+                                <textarea
+                                  value={weeklyNotes[week.weekNumber] || ""}
+                                  onChange={(e) =>
+                                    setWeeklyNotes({
+                                      ...weeklyNotes,
+                                      [week.weekNumber]: e.target.value,
+                                    })
+                                  }
+                                  className="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  rows={2}
+                                  placeholder="Что важно помнить на этой неделе?"
+                                  autoFocus
+                                />
+                                <div className="flex flex-col gap-2">
+                                  <button
+                                    onClick={() =>
+                                      saveWeeklyNote(week.weekNumber)
+                                    }
+                                    className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                  >
+                                    Сохранить
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingWeeklyNote(null)}
+                                    className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                                  >
+                                    Отмена
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex justify-between items-start">
+                                <p className="text-sm text-gray-600 whitespace-pre-wrap flex-1">
+                                  {weeklyNotes[week.weekNumber] ||
+                                    "Нет заметок"}
+                                </p>
+                                <button
+                                  onClick={() =>
+                                    setEditingWeeklyNote(week.weekNumber)
+                                  }
+                                  className="text-gray-600 hover:text-gray-800"
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Дни недели */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {week.days.map((day: any) => (
+                              <div
+                                key={day.date}
+                                className={`
+                                  bg-white rounded-xl shadow-md p-4 transition hover:shadow-xl flex flex-col min-w-[280px] sm:min-w-[300px] border
+                                  ${day.isImportant ? "border-yellow-400" : "border-gray-200"}
+                                `}
+                              >
+                                <Link
+                                  href={`/business/planner/${day.date}`}
+                                  className="cursor-pointer"
+                                >
+                                  <div className="flex flex-row items-center justify-between w-full mb-3">
+                                    <div className="flex items-baseline gap-2">
+                                      <p
+                                        className={`text-xl font-bold ${day.isImportant ? "text-yellow-600" : "text-gray-800"}`}
+                                      >
+                                        {day.dayNumber}
+                                      </p>
+                                      <p className="text-sm font-medium text-gray-500">
+                                        {weekDays[week.days.indexOf(day)]}
+                                      </p>
+                                    </div>
+                                    {day.isImportant && (
+                                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                                    )}
+                                  </div>
+                                </Link>
+
+                                <div className="space-y-2 flex-1">
+                                  {day.tasks.slice(0, 3).map((task: any) => {
+                                    const colorInfo = colors.find(
+                                      (c) => c.name === task.color,
+                                    );
+                                    const displayName = getTaskDisplayName(
+                                      task.color,
+                                    );
+                                    return (
+                                      <div
+                                        key={task.id}
+                                        className={`text-md p-2 rounded-lg transition group ${colorInfo?.bg || "bg-gray-50"}`}
+                                      >
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-2 flex-1">
+                                            <button
+                                              onClick={() =>
+                                                toggleTaskCompletion(task.id)
+                                              }
+                                              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition ${
+                                                task.is_completed
+                                                  ? "bg-green-500 border-green-500"
+                                                  : "border-gray-300 hover:border-green-400"
+                                              }`}
+                                            >
+                                              {task.is_completed && (
+                                                <Check className="w-3 h-3 text-white" />
+                                              )}
+                                            </button>
+                                            <Link
+                                              href={`/business/planner/${day.date}`}
+                                              className="flex-1"
+                                            >
+                                              <div>
+                                                <p
+                                                  className={`font-medium text-sm ${task.is_completed && "line-through text-gray-400"}`}
+                                                >
+                                                  {task.title}
+                                                </p>
+                                                {displayName !==
+                                                  colorInfo?.label && (
+                                                  <p className="text-xs text-gray-500 mt-0.5">
+                                                    <span
+                                                      className={`inline-block w-2 h-2 rounded-full ${colorInfo?.base} mr-1`}
+                                                    />
+                                                    {displayName}
+                                                  </p>
+                                                )}
+                                              </div>
+                                            </Link>
+                                          </div>
+                                          <button
+                                            onClick={() => deleteTask(task.id)}
+                                            className="opacity-0 group-hover:opacity-100 transition text-red-500 hover:text-red-700 ml-2"
+                                          >
+                                            <Trash2 className="w-3 h-3" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+
+                                  {day.tasks.length === 0 && (
+                                    <p className="text-xs text-gray-400 text-center py-3">
+                                      Нет задач
+                                    </p>
+                                  )}
+
+                                  {addingTaskForDay === day.date ? (
+                                    <div className="mt-2 space-y-2">
+                                      <input
+                                        type="text"
+                                        value={newTaskTitle}
+                                        onChange={(e) =>
+                                          setNewTaskTitle(e.target.value)
+                                        }
+                                        onKeyPress={(e) =>
+                                          e.key === "Enter" && addQuickTask()
+                                        }
+                                        placeholder="Название задачи..."
+                                        className="w-full text-sm p-1.5 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        autoFocus
+                                      />
+                                      <div className="flex gap-2">
+                                        <div className="flex-1 flex gap-1">
+                                          {colors.slice(0, 6).map((color) => (
+                                            <button
+                                              key={color.name}
+                                              onClick={() =>
+                                                setNewTaskColor(color.name)
+                                              }
+                                              className={`w-6 h-6 rounded-full transition ${color.base} ${
+                                                newTaskColor === color.name
+                                                  ? "ring-2 ring-offset-1 ring-gray-600"
+                                                  : ""
+                                              }`}
+                                              title={color.label}
+                                            />
+                                          ))}
+                                        </div>
+                                        <button
+                                          onClick={addQuickTask}
+                                          className="p-1.5 bg-green-500 text-white rounded hover:bg-green-600"
+                                        >
+                                          <Check className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            setAddingTaskForDay(null);
+                                            setNewTaskTitle("");
+                                            setNewTaskColor("yellow");
+                                          }}
+                                          className="p-1.5 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                                        >
+                                          <X className="w-3 h-3" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => {
+                                        setAddingTaskForDay(day.date);
+                                        setNewTaskDay(day.date);
+                                        setNewTaskTitle("");
+                                        setNewTaskColor("yellow");
+                                      }}
+                                      className="w-full mt-2 text-xs text-gray-400 hover:text-blue-500 transition flex items-center justify-center gap-1 py-1"
+                                    >
+                                      <Plus className="w-3 h-3" /> Добавить
+                                      задачу
+                                    </button>
+                                  )}
+                                </div>
+
+                                {day.notes && (
+                                  <div className="mt-3 pt-2 border-t border-gray-100">
+                                    <p className="text-xs text-gray-400 line-clamp-2">
+                                      {day.notes}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

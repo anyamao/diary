@@ -7,6 +7,12 @@ from app.models import (
     ShoppingItem,
     SleepRecord,
     SleepNote,
+    MoodItem,
+    PersonalityTestResult,
+    DepressionTestResult,
+    SelfNote,
+    PlannerDay,
+    PlannerTask,
 )
 from app.schemas import (
     UserCreate,
@@ -16,88 +22,15 @@ from app.schemas import (
     SleepRecordCreate,
     SleepRecordUpdate,
     SleepNoteCreate,
-    SleepNoteBase,
     SleepNoteUpdate,
+    PlannerTaskCreate,
+    PlannerTaskUpdate,
+    PlannerDayUpdate,
 )
 from app.auth import get_password_hash
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from uuid import UUID
 from typing import Optional, List
-
-
-async def get_all_sleep_notes(db: AsyncSession, user_id: UUID) -> List[SleepNote]:
-    result = await db.execute(
-        select(SleepNote)
-        .where(SleepNote.user_id == user_id)
-        .order_by(SleepNote.created_at.desc())
-    )
-    return result.scalars().all()
-
-
-# Sleep Note CRUD
-async def create_sleep_note(
-    db: AsyncSession, user_id: UUID, note: SleepNoteCreate
-) -> SleepNote:
-    db_note = SleepNote(
-        sleep_record_id=note.sleep_record_id,
-        user_id=user_id,
-        title=note.title,
-        content=note.content,
-        dream_type=note.dream_type,
-        wake_mood=note.wake_mood,
-        tags=note.tags,
-    )
-    db.add(db_note)
-    await db.commit()
-    await db.refresh(db_note)
-    return db_note
-
-
-async def get_sleep_notes_by_record(
-    db: AsyncSession, sleep_record_id: UUID, user_id: UUID
-) -> List[SleepNote]:
-    result = await db.execute(
-        select(SleepNote)
-        .where(
-            SleepNote.sleep_record_id == sleep_record_id, SleepNote.user_id == user_id
-        )
-        .order_by(SleepNote.created_at.desc())
-    )
-    return result.scalars().all()
-
-
-async def get_sleep_note(
-    db: AsyncSession, note_id: UUID, user_id: UUID
-) -> Optional[SleepNote]:
-    result = await db.execute(
-        select(SleepNote).where(SleepNote.id == note_id, SleepNote.user_id == user_id)
-    )
-    return result.scalar_one_or_none()
-
-
-async def update_sleep_note(
-    db: AsyncSession, note_id: UUID, user_id: UUID, note_update: SleepNoteUpdate
-) -> Optional[SleepNote]:
-    db_note = await get_sleep_note(db, note_id, user_id)
-    if not db_note:
-        return None
-
-    update_data = note_update.dict(exclude_unset=True)
-    for key, value in update_data.items():
-        setattr(db_note, key, value)
-
-    await db.commit()
-    await db.refresh(db_note)
-    return db_note
-
-
-async def delete_sleep_note(db: AsyncSession, note_id: UUID, user_id: UUID) -> bool:
-    db_note = await get_sleep_note(db, note_id, user_id)
-    if not db_note:
-        return False
-    await db.delete(db_note)
-    await db.commit()
-    return True
 
 
 # User CRUD
@@ -309,11 +242,22 @@ async def create_sleep_record(
     return db_record
 
 
+async def get_sleep_record_by_date(
+    db: AsyncSession, user_id: UUID, record_date: date
+) -> Optional[SleepRecord]:
+    result = await db.execute(
+        select(SleepRecord).where(
+            SleepRecord.user_id == user_id, SleepRecord.date == record_date
+        )
+    )
+    return result.scalar_one_or_none()
+
+
 async def get_user_sleep_records(
     db: AsyncSession,
     user_id: UUID,
-    start_date: Optional[datetime] = None,
-    end_date: Optional[datetime] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
 ) -> List[SleepRecord]:
     query = select(SleepRecord).where(SleepRecord.user_id == user_id)
     if start_date:
@@ -360,3 +304,230 @@ async def delete_sleep_record(db: AsyncSession, record_id: UUID, user_id: UUID) 
     await db.delete(db_record)
     await db.commit()
     return True
+
+
+# Sleep Note CRUD
+async def create_sleep_note(
+    db: AsyncSession, user_id: UUID, note: SleepNoteCreate
+) -> SleepNote:
+    db_note = SleepNote(
+        sleep_record_id=note.sleep_record_id,
+        user_id=user_id,
+        title=note.title,
+        content=note.content,
+        dream_type=note.dream_type,
+        wake_mood=note.wake_mood,
+        tags=note.tags,
+    )
+    db.add(db_note)
+    await db.commit()
+    await db.refresh(db_note)
+    return db_note
+
+
+async def get_sleep_notes_by_record(
+    db: AsyncSession, sleep_record_id: UUID, user_id: UUID
+) -> List[SleepNote]:
+    result = await db.execute(
+        select(SleepNote)
+        .where(
+            SleepNote.sleep_record_id == sleep_record_id, SleepNote.user_id == user_id
+        )
+        .order_by(SleepNote.created_at.desc())
+    )
+    return result.scalars().all()
+
+
+async def get_all_sleep_notes(db: AsyncSession, user_id: UUID) -> List[SleepNote]:
+    result = await db.execute(
+        select(SleepNote)
+        .where(SleepNote.user_id == user_id)
+        .order_by(SleepNote.created_at.desc())
+    )
+    return result.scalars().all()
+
+
+async def get_sleep_note(
+    db: AsyncSession, note_id: UUID, user_id: UUID
+) -> Optional[SleepNote]:
+    result = await db.execute(
+        select(SleepNote).where(SleepNote.id == note_id, SleepNote.user_id == user_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_sleep_note(
+    db: AsyncSession, note_id: UUID, user_id: UUID, note_update: SleepNoteUpdate
+) -> Optional[SleepNote]:
+    db_note = await get_sleep_note(db, note_id, user_id)
+    if not db_note:
+        return None
+
+    update_data = note_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_note, key, value)
+
+    await db.commit()
+    await db.refresh(db_note)
+    return db_note
+
+
+async def delete_sleep_note(db: AsyncSession, note_id: UUID, user_id: UUID) -> bool:
+    db_note = await get_sleep_note(db, note_id, user_id)
+    if not db_note:
+        return False
+    await db.delete(db_note)
+    await db.commit()
+    return True
+
+
+# Planner Day CRUD
+async def get_or_create_planner_day(
+    db: AsyncSession, user_id: UUID, day_date: date
+) -> PlannerDay:
+    result = await db.execute(
+        select(PlannerDay).where(
+            PlannerDay.user_id == user_id, PlannerDay.date == day_date
+        )
+    )
+    planner_day = result.scalar_one_or_none()
+
+    if not planner_day:
+        planner_day = PlannerDay(user_id=user_id, date=day_date)
+        db.add(planner_day)
+        await db.commit()
+        await db.refresh(planner_day)
+
+    return planner_day
+
+
+async def get_planner_day(
+    db: AsyncSession, user_id: UUID, day_date: date
+) -> Optional[PlannerDay]:
+    result = await db.execute(
+        select(PlannerDay).where(
+            PlannerDay.user_id == user_id, PlannerDay.date == day_date
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_planner_day(
+    db: AsyncSession, planner_day_id: UUID, user_id: UUID, day_update: PlannerDayUpdate
+) -> Optional[PlannerDay]:
+    result = await db.execute(
+        select(PlannerDay).where(
+            PlannerDay.id == planner_day_id, PlannerDay.user_id == user_id
+        )
+    )
+    planner_day = result.scalar_one_or_none()
+    if not planner_day:
+        return None
+
+    update_data = day_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(planner_day, key, value)
+
+    await db.commit()
+    await db.refresh(planner_day)
+    return planner_day
+
+
+async def get_user_planner_days(
+    db: AsyncSession, user_id: UUID, start_date: date, end_date: date
+) -> List[PlannerDay]:
+    result = await db.execute(
+        select(PlannerDay)
+        .where(
+            PlannerDay.user_id == user_id,
+            PlannerDay.date >= start_date,
+            PlannerDay.date <= end_date,
+        )
+        .order_by(PlannerDay.date)
+    )
+    return result.scalars().all()
+
+
+# Planner Task CRUD
+async def create_planner_task(
+    db: AsyncSession, user_id: UUID, task: PlannerTaskCreate
+) -> PlannerTask:
+    db_task = PlannerTask(
+        planner_day_id=task.planner_day_id,
+        user_id=user_id,
+        title=task.title,
+        description=task.description,
+        start_time=task.start_time,
+        end_time=task.end_time,
+        color=task.color,
+        is_completed=task.is_completed,
+        position=task.position,
+    )
+    db.add(db_task)
+    await db.commit()
+    await db.refresh(db_task)
+    return db_task
+
+
+async def get_planner_tasks(
+    db: AsyncSession, planner_day_id: UUID, user_id: UUID
+) -> List[PlannerTask]:
+    result = await db.execute(
+        select(PlannerTask)
+        .where(
+            PlannerTask.planner_day_id == planner_day_id, PlannerTask.user_id == user_id
+        )
+        .order_by(PlannerTask.position)
+    )
+    return result.scalars().all()
+
+
+async def update_planner_task(
+    db: AsyncSession, task_id: UUID, user_id: UUID, task_update: PlannerTaskUpdate
+) -> Optional[PlannerTask]:
+    result = await db.execute(
+        select(PlannerTask).where(
+            PlannerTask.id == task_id, PlannerTask.user_id == user_id
+        )
+    )
+    db_task = result.scalar_one_or_none()
+    if not db_task:
+        return None
+
+    update_data = task_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_task, key, value)
+
+    await db.commit()
+    await db.refresh(db_task)
+    return db_task
+
+
+async def delete_planner_task(db: AsyncSession, task_id: UUID, user_id: UUID) -> bool:
+    result = await db.execute(
+        select(PlannerTask).where(
+            PlannerTask.id == task_id, PlannerTask.user_id == user_id
+        )
+    )
+    db_task = result.scalar_one_or_none()
+    if not db_task:
+        return False
+    await db.delete(db_task)
+    await db.commit()
+    return True
+
+
+async def toggle_planner_task(
+    db: AsyncSession, task_id: UUID, user_id: UUID
+) -> Optional[PlannerTask]:
+    result = await db.execute(
+        select(PlannerTask).where(
+            PlannerTask.id == task_id, PlannerTask.user_id == user_id
+        )
+    )
+    db_task = result.scalar_one_or_none()
+    if db_task:
+        db_task.is_completed = not db_task.is_completed
+        await db.commit()
+        await db.refresh(db_task)
+    return db_task
