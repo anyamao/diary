@@ -81,6 +81,30 @@ class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+class BusinessNoteBase(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    content: Optional[str] = None
+    tags: Optional[str] = Field(None, max_length=500)
+    is_pinned: bool = False
+
+
+class BusinessNoteCreate(BusinessNoteBase):
+    pass
+
+
+class BusinessNoteUpdate(BusinessNoteBase):
+    title: Optional[str] = None
+
+
+class BusinessNoteResponse(BusinessNoteBase):
+    id: UUID
+    user_id: UUID
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class Token(BaseModel):
     access_token: str
     refresh_token: str

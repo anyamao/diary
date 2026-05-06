@@ -205,6 +205,16 @@ function Header() {
                 Планер
               </Link>
               <Link
+                href="/business/notes"
+                className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
+                  pathname === "/personal/mood-tracker"
+                    ? "text-pink-600 underline"
+                    : ""
+                }`}
+              >
+                Заметки
+              </Link>
+              <Link
                 href="/business/my-goals"
                 className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
                   pathname === "/personal/mood-tracker"

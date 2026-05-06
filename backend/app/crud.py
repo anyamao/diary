@@ -13,6 +13,7 @@ from app.models import (
     SelfNote,
     PlannerDay,
     PlannerTask,
+    BusinessNote,
 )
 from app.schemas import (
     UserCreate,
@@ -26,6 +27,10 @@ from app.schemas import (
     PlannerTaskCreate,
     PlannerTaskUpdate,
     PlannerDayUpdate,
+    BusinessNoteBase,
+    BusinessNoteCreate,
+    BusinessNoteUpdate,
+    BusinessNoteResponse,
 )
 from app.auth import get_password_hash
 from datetime import datetime, timedelta, date
@@ -79,6 +84,87 @@ async def create_refresh_token(
     await db.commit()
     await db.refresh(db_token)
     return db_token
+
+
+async def create_business_note(
+    db: AsyncSession, user_id: UUID, note: BusinessNoteCreate
+) -> BusinessNote:
+    db_note = BusinessNote(
+        user_id=user_id,
+        title=note.title,
+        content=note.content,
+        tags=note.tags,
+        is_pinned=note.is_pinned,
+    )
+    db.add(db_note)
+    await db.commit()
+    await db.refresh(db_note)
+    return db_note
+
+
+async def get_user_business_notes(
+    db: AsyncSession,
+    user_id: UUID,
+    skip: int = 0,
+    limit: int = 100,
+    tag: Optional[str] = None,
+) -> List[BusinessNote]:
+    query = select(BusinessNote).where(BusinessNote.user_id == user_id)
+    if tag:
+        query = query.where(BusinessNote.tags.contains(tag))
+    result = await db.execute(
+        query.order_by(BusinessNote.is_pinned.desc(), BusinessNote.updated_at.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    return result.scalars().all()
+
+
+async def get_business_note(
+    db: AsyncSession, note_id: UUID, user_id: UUID
+) -> Optional[BusinessNote]:
+    result = await db.execute(
+        select(BusinessNote).where(
+            BusinessNote.id == note_id, BusinessNote.user_id == user_id
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_business_note(
+    db: AsyncSession, note_id: UUID, user_id: UUID, note_update: BusinessNoteUpdate
+) -> Optional[BusinessNote]:
+    db_note = await get_business_note(db, note_id, user_id)
+    if not db_note:
+        return None
+
+    update_data = note_update.dict(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_note, key, value)
+
+    await db.commit()
+    await db.refresh(db_note)
+    return db_note
+
+
+async def delete_business_note(db: AsyncSession, note_id: UUID, user_id: UUID) -> bool:
+    db_note = await get_business_note(db, note_id, user_id)
+    if not db_note:
+        return False
+    await db.delete(db_note)
+    await db.commit()
+    return True
+
+
+async def toggle_pin_business_note(
+    db: AsyncSession, note_id: UUID, user_id: UUID
+) -> Optional[BusinessNote]:
+    db_note = await get_business_note(db, note_id, user_id)
+    if db_note:
+        db_note.is_pinned = not db_note.is_pinned
+        await db.commit()
+        await db.refresh(db_note)
+    return db_note
 
 
 async def get_refresh_token(db: AsyncSession, token: str) -> Optional[RefreshToken]:
