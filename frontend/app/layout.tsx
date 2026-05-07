@@ -1,5 +1,5 @@
 "use client";
-
+import { useSidepanelStore } from "@/store/sidepanelStore";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/ui/Header";
@@ -19,6 +19,7 @@ export default function RootLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { toggle, isOpen } = useSidepanelStore();
 
   // Не показываем хедер на страницах авторизации
   const isAuthPage = pathname === "/login" || pathname === "/register";
@@ -37,7 +38,7 @@ export default function RootLayout({
           {showSidepanel ? (
             <div className="flex  flex-row  ">
               <div
-                className={`flex ${showSidepanel ? "  w-[280px]" : " bg-red-500 w-[30px]"} bg-pink-50 min-h-full`}
+                className={`flex ${isOpen ? "  w-[280px]" : "  w-[10px]"} bg-pink-50 min-h-full`}
               >
                 <Sidepanel />
               </div>

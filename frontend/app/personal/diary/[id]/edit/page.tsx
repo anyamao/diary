@@ -143,10 +143,10 @@ export default function EditEntryPage({ params }: PageProps) {
   }
 
   return (
-    <div className="h-full w-full min-h-[1200px] bg-pink-50 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <div className="flex flex-row justify-between items-center text-pink-900">
-          <Link href="/personal/diary" className="text-pink-900">
+    <div className="h-full w-full flex flex-col items-center min-h-[1200px] bg-pink-50 py-8">
+      <div className="flex flex-col w-full max-w-[1100px] ">
+        <div className="flex flex-row justify-between w-full items-center text-pink-900 ">
+          <Link href="/personal/diary" className="text-pink-900 ml-[30px]">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex flex-row items-center">
@@ -164,20 +164,20 @@ export default function EditEntryPage({ params }: PageProps) {
             </button>
             <button
               onClick={() => setShowQuestions(true)}
-              className="mr-[10px] text-sm border-pink-900 hover:bg-pink-200 duration-300 cursor-pointer border-[1px] px-[10px] py-[5px] rounded-lg"
+              className="mr-[15px] text-sm border-pink-900 hover:bg-pink-200 duration-300 cursor-pointer border-[1px] px-[10px] py-[5px] rounded-lg"
             >
               Вопросы
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="bg-pink-500 duration-300 mr-[5px] text-white text-sm hover:bg-pink-600 cursor-pointer font-semibold py-[5px] px-[10px] rounded-lg disabled:opacity-50"
+              className="bg-pink-500 duration-300 mr-[10px] text-white text-sm hover:bg-pink-600 cursor-pointer font-semibold py-[5px] px-[10px] rounded-lg disabled:opacity-50"
             >
               {saving ? "Сохранение..." : "Сохранить"}
             </button>
             <button
               onClick={() => setShowInfo(true)}
-              className="cursor-pointer hover:text-pink-700"
+              className="cursor-pointer hover:text-pink-700 mr-[10px]"
             >
               <EllipsisVertical className="w-5 h-5" />
             </button>

@@ -5,8 +5,9 @@ import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Bookmark, EllipsisVertical } from "lucide-react";
 import MarkdownEditor from "@/components/MarkdownEditor";
+import { showToast } from "@/components/Toast";
 
 export default function NewBusinessNotePage() {
   const [formData, setFormData] = useState({
@@ -16,10 +17,11 @@ export default function NewBusinessNotePage() {
     is_pinned: false,
   });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isLoading } = useAuthStore();
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isLoading) {
     router.push("/login");
     return null;
   }
@@ -27,40 +29,85 @@ export default function NewBusinessNotePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setError("");
 
     try {
-      await api.post("/business-notes", formData);
+      const noteData = {
+        title: formData.title,
+        content: formData.content,
+        tags: formData.tags || "",
+        is_pinned: formData.is_pinned,
+      };
+
+      console.log("Sending note:", noteData);
+      await api.post("/business-notes", noteData);
+      showToast("Заметка успешно создана!", "success");
       router.push("/business/notes");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to save note:", error);
-      alert("Не удалось сохранить заметку");
+      const errorMsg =
+        error.response?.data?.detail?.[0]?.msg ||
+        error.response?.data?.detail ||
+        "Не удалось сохранить заметку";
+      setError(errorMsg);
+      showToast(errorMsg, "error");
     } finally {
       setSaving(false);
     }
   };
 
+  const handleSave = () => {
+    const form = document.querySelector("form");
+    if (form) {
+      form.dispatchEvent(
+        new Event("submit", { cancelable: true, bubbles: true }),
+      );
+    }
+  };
+
+  const togglePinned = () => {
+    setFormData({ ...formData, is_pinned: !formData.is_pinned });
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <div className="mb-6">
-          <Link
-            href="/business/notes"
-            className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
-          >
-            <ArrowLeft className="w-4 h-4" /> Назад к заметкам
+    <div className="h-full w-full min-h-screen bg-pink-50 py-8 flex justify-center">
+      <div className="w-full h-full max-w-[1100px] flex flex-col flex-1">
+        <div className="flex flex-row justify-between items-center text-pink-900">
+          <Link href="/business/notes" className="text-pink-900">
+            <ArrowLeft className="w-5 h-5 ml-[40px]" />
           </Link>
+          <div className="flex flex-row mr-[10px] items-center">
+            <button
+              type="button"
+              onClick={togglePinned}
+              className="mr-[20px] cursor-pointer transition hover:scale-110"
+              title={
+                formData.is_pinned ? "Убрать из закрепленных" : "Закрепить"
+              }
+            >
+              <Bookmark
+                className={`w-5 h-5 ${formData.is_pinned ? "fill-yellow-500 text-yellow-500" : "text-pink-900"}`}
+              />
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-pink-500 duration-300 mr-[5px] text-white text-sm hover:bg-pink-600 cursor-pointer font-semibold py-[5px] px-[10px] rounded-lg disabled:opacity-50"
+            >
+              {saving ? "Сохранение..." : "Сохранить"}
+            </button>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-2xl font-bold text-gray-800 mb-6">
-            Новая заметка
-          </h1>
+        {error && (
+          <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm mx-4">
+            Ошибка: {error}
+          </div>
+        )}
 
+        <div className="rounded-lg p-8 text-pink-950">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-gray-700 font-medium mb-2">
-                Заголовок *
-              </label>
               <input
                 type="text"
                 required
@@ -68,72 +115,35 @@ export default function NewBusinessNotePage() {
                 onChange={(e) =>
                   setFormData({ ...formData, title: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Название идеи или заметки"
+                className="w-full px-4 py-2 bg-pink-50 border-b-2 border-pink-200 focus:outline-none focus:border-pink-500 text-lg"
+                placeholder="Название заметки..."
               />
             </div>
 
             <div>
-              <label className="block text-gray-700 font-medium mb-2">
-                Содержание (поддерживается Markdown)
-              </label>
               <MarkdownEditor
                 value={formData.content}
                 onChange={(value) =>
                   setFormData({ ...formData, content: value })
                 }
-                placeholder="Опиши свою идею здесь..."
+                placeholder="Пиши свои идеи здесь... (Поддерживается Markdown)"
                 rows={12}
               />
             </div>
 
             <div>
-              <label className="block text-gray-700 font-medium mb-2">
-                Теги (через запятую)
-              </label>
               <input
                 type="text"
                 value={formData.tags}
                 onChange={(e) =>
                   setFormData({ ...formData, tags: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                placeholder="например, идея, проект, стартап, веб-приложение"
+                className="w-full px-4 py-2 bg-pink-50 border-b-2 border-pink-200 focus:outline-none focus:border-pink-500 text-lg"
+                placeholder="Теги (через запятую)"
               />
               <p className="text-xs text-gray-500 mt-1">
                 Теги помогут группировать похожие идеи. Разделяйте их запятыми.
               </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="pinned"
-                checked={formData.is_pinned}
-                onChange={(e) =>
-                  setFormData({ ...formData, is_pinned: e.target.checked })
-                }
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-              />
-              <label htmlFor="pinned" className="text-gray-700">
-                Закрепить заметку (будет показываться вверху списка)
-              </label>
-            </div>
-
-            <div className="flex gap-4 pt-4">
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-              >
-                {saving ? "Сохранение..." : "💾 Сохранить"}
-              </button>
-              <Link
-                href="/business/notes"
-                className="flex-1 text-center border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition"
-              >
-                Отмена
-              </Link>
             </div>
           </form>
         </div>

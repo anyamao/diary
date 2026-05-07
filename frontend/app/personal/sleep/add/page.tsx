@@ -5,7 +5,10 @@ import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, X } from "lucide-react";
+import DreamTypePicker from "@/components/DreamTypePicker";
+import { showToast } from "@/components/Toast";
+import { showConfirm } from "@/components/ConfirmDialog";
 
 interface SleepSegment {
   start: string;
@@ -39,7 +42,7 @@ export default function AddSleepPage() {
   const [noteForm, setNoteForm] = useState({
     title: "",
     content: "",
-    dream_type: "",
+    dream_type: "noemotions",
     wake_mood: "",
     tags: [] as string[],
     tagInput: "",
@@ -99,7 +102,7 @@ export default function AddSleepPage() {
         bars.push(
           <div
             key={`${startTotal}-24`}
-            className="absolute h-full bg-blue-500 rounded-l-full"
+            className="absolute h-full bg-purple-500 rounded-l-lg"
             style={{
               left: `${leftPercent1}%`,
               width: `${widthPercent1}%`,
@@ -112,7 +115,7 @@ export default function AddSleepPage() {
         bars.push(
           <div
             key={`0-${endTotal}`}
-            className="absolute h-full bg-blue-500 rounded-r-full"
+            className="absolute h-full bg-purple-500 rounded-r-lg"
             style={{
               left: `${leftPercent2}%`,
               width: `${widthPercent2}%`,
@@ -125,7 +128,7 @@ export default function AddSleepPage() {
         bars.push(
           <div
             key={`${startTotal}-${endTotal}`}
-            className="absolute h-full bg-blue-500 rounded-full"
+            className="absolute h-full bg-purple-500 rounded-lg"
             style={{
               left: `${leftPercent}%`,
               width: `${widthPercent}%`,
@@ -156,11 +159,10 @@ export default function AddSleepPage() {
     // Проверяем, существует ли уже запись за этот день
     const exists = await checkRecordExists();
     if (exists) {
-      setError(
-        "❌ На этот день уже есть запись о сне! " +
-          "Нельзя создать две записи за один день. " +
-          "Если хотите изменить данные, вернитесь в календарь и отредактируйте существующую запись.",
-      );
+      const errorMsg =
+        "❌ На этот день уже есть запись о сне! Нельзя создать две записи за один день. Если хотите изменить данные, вернитесь в календарь и отредактируйте существующую запись.";
+      setError(errorMsg);
+      showToast(errorMsg, "error");
       setSaving(false);
       return;
     }
@@ -186,19 +188,20 @@ export default function AddSleepPage() {
         }
       }
 
+      showToast("Запись о сне успешно сохранена!", "success");
       router.push("/personal/sleep");
     } catch (error) {
       console.error("Failed to save:", error);
-      alert("Ошибка сохранения");
+      showToast("Ошибка сохранения записи", "error");
     } finally {
       setSaving(false);
     }
   };
 
   // Функции для работы с заметками
-  const addNote = () => {
+  const addNote = async () => {
     if (!noteForm.title.trim()) {
-      alert("Введите название заметки");
+      showToast("Введите название заметки", "warning");
       return;
     }
 
@@ -218,8 +221,10 @@ export default function AddSleepPage() {
           n.id === editingNote.id ? { ...newNote, id: n.id } : n,
         ),
       );
+      showToast("Заметка обновлена", "success");
     } else {
       setSleepNotes([...sleepNotes, newNote]);
+      showToast("Заметка добавлена", "success");
     }
 
     setShowNoteModal(false);
@@ -227,16 +232,23 @@ export default function AddSleepPage() {
     setNoteForm({
       title: "",
       content: "",
-      dream_type: "",
+      dream_type: "noemotions",
       wake_mood: "",
       tags: [],
       tagInput: "",
     });
   };
 
-  const handleDeleteNote = (noteId: string) => {
-    if (confirm("Удалить эту заметку?")) {
+  const handleDeleteNote = async (noteId: string) => {
+    const confirmed = await showConfirm(
+      "Удалить заметку?",
+      "Вы уверены, что хотите удалить эту заметку о сне?",
+      "danger",
+    );
+
+    if (confirmed) {
       setSleepNotes(sleepNotes.filter((n) => n.id !== noteId));
+      showToast("Заметка удалена", "success");
     }
   };
 
@@ -245,7 +257,7 @@ export default function AddSleepPage() {
     setNoteForm({
       title: note.title,
       content: note.content || "",
-      dream_type: note.dream_type || "",
+      dream_type: note.dream_type || "noemotions",
       wake_mood: note.wake_mood || "",
       tags: note.tags || [],
       tagInput: "",
@@ -273,26 +285,34 @@ export default function AddSleepPage() {
     });
   };
 
-  const getDreamTypeEmoji = (type: string | null) => {
-    const types: Record<string, string> = {
-      nightmare: "😨",
-      normal: "😴",
-      love: "❤️",
-      sad: "😢",
-      happy: "😊",
-    };
-    return types[type || ""] || "💭";
+  const getDreamTypeImage = (type: string | null) => {
+    switch (type) {
+      case "good":
+        return "/gooddream.png";
+      case "sad":
+        return "/saddream.png";
+      case "love":
+        return "/romantic.png";
+      case "nightmare":
+        return "/nightmare.png";
+      default:
+        return "/noemotionsdream.png";
+    }
   };
 
   const getDreamTypeText = (type: string | null) => {
-    const types: Record<string, string> = {
-      nightmare: "Кошмар",
-      normal: "Обычный",
-      love: "Любовный",
-      sad: "Грустный",
-      happy: "Счастливый",
-    };
-    return types[type || ""] || "Без типа";
+    switch (type) {
+      case "good":
+        return "Хороший сон";
+      case "sad":
+        return "Грустный сон";
+      case "love":
+        return "Любовный сон";
+      case "nightmare":
+        return "Кошмар";
+      default:
+        return "Без эмоций";
+    }
   };
 
   const getWakeMoodEmoji = (mood: string | null) => {
@@ -308,20 +328,20 @@ export default function AddSleepPage() {
   const totalDuration = calculateTotalDuration();
 
   return (
-    <div className="min-h-screen bg-blue-50 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-pink-50 p-8 flex flex-col">
+      <div className="max-w-[1100px] flex flex-col w-full mx-auto">
         <div className="mb-6">
           <Link
             href="/personal/sleep"
-            className="text-blue-600 hover:text-blue-700"
+            className="text-pink-600 hover:text-pink-700"
           >
             ← Назад к трекеру
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid gap-6">
           {/* Левая колонка - форма добавления сна */}
-          <div className="lg:col-span-2">
+          <div className="">
             <div className="bg-white rounded-lg shadow-md p-6">
               <h1 className="text-2xl font-bold text-gray-800 mb-6">
                 Добавить запись о сне
@@ -336,7 +356,7 @@ export default function AddSleepPage() {
 
               {/* Предпросмотр визуализации */}
               <div className="mb-6">
-                <div className="relative h-12 bg-gray-100 rounded-lg overflow-hidden">
+                <div className="relative h-8 bg-gray-100 rounded-lg overflow-hidden">
                   {renderPreviewBar()}
                 </div>
                 <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -350,7 +370,7 @@ export default function AddSleepPage() {
 
               <p className="text-gray-600 mb-6">
                 Общая продолжительность:{" "}
-                <span className="text-blue-600 font-bold">
+                <span className="text-pink-600 font-bold">
                   {totalDuration} часов
                 </span>
               </p>
@@ -420,7 +440,7 @@ export default function AddSleepPage() {
                   <button
                     type="button"
                     onClick={addSegment}
-                    className="mt-3 text-sm text-blue-600 hover:text-blue-700"
+                    className="mt-3 text-sm text-pink-600 hover:text-pink-700"
                   >
                     + Добавить период сна (дневной сон, дремота)
                   </button>
@@ -443,13 +463,13 @@ export default function AddSleepPage() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                    className="flex-1 bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600 transition disabled:opacity-50"
                   >
                     {saving ? "Сохранение..." : "Сохранить"}
                   </button>
                   <Link
                     href="/personal/sleep"
-                    className="flex-1 text-center border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition"
+                    className="flex-1 text-center border border-pink-300 bg-pink-50 text-gray-700 py-2 rounded-lg hover:bg-pink-100 transition"
                   >
                     Отмена
                   </Link>
@@ -458,8 +478,8 @@ export default function AddSleepPage() {
             </div>
           </div>
 
-          {/* Правая колонка - заметки о снах (без изменений) */}
-          <div className="lg:col-span-1">
+          {/* Правая колонка - заметки о снах */}
+          <div className="w-full">
             <div className="bg-white rounded-lg shadow-md p-6 sticky top-8">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-800">
@@ -471,14 +491,14 @@ export default function AddSleepPage() {
                     setNoteForm({
                       title: "",
                       content: "",
-                      dream_type: "",
+                      dream_type: "noemotions",
                       wake_mood: "",
                       tags: [],
                       tagInput: "",
                     });
                     setShowNoteModal(true);
                   }}
-                  className="bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 transition"
+                  className="bg-pink-500 text-white p-2 rounded-lg hover:bg-pink-600 transition"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -493,27 +513,21 @@ export default function AddSleepPage() {
                   {sleepNotes.map((note) => (
                     <div
                       key={note.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:bg-blue-50 transition"
+                      onClick={() => handleEditNote(note)}
+                      className="border border-gray-200 rounded-lg p-4 hover:bg-pink-50 transition"
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-2">
-                          <span className="text-xl">
-                            {getDreamTypeEmoji(note.dream_type)}
-                          </span>
-                          <span className="text-xl">
-                            {getWakeMoodEmoji(note.wake_mood)}
-                          </span>
+                          <img
+                            src={getDreamTypeImage(note.dream_type)}
+                            alt="dream type"
+                            className="w-8 h-8 object-contain"
+                          />
                           <h3 className="font-semibold text-gray-800">
                             {note.title}
                           </h3>
                         </div>
                         <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEditNote(note)}
-                            className="text-blue-500 hover:text-blue-700"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
                           <button
                             onClick={() => handleDeleteNote(note.id)}
                             className="text-red-500 hover:text-red-700"
@@ -524,7 +538,7 @@ export default function AddSleepPage() {
                       </div>
 
                       {note.content && (
-                        <div className="text-sm text-gray-600 mb-2 line-clamp-2">
+                        <div className="text-sm text-gray-600 w-full overflow-x-auto">
                           {note.content}
                         </div>
                       )}
@@ -550,7 +564,7 @@ export default function AddSleepPage() {
         </div>
       </div>
 
-      {/* Модальное окно для заметки (без изменений) */}
+      {/* Модальное окно для заметки */}
       {showNoteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -579,36 +593,12 @@ export default function AddSleepPage() {
                   <label className="block text-sm font-medium mb-1">
                     Тип сна
                   </label>
-                  <select
-                    value={noteForm.dream_type}
-                    onChange={(e) =>
-                      setNoteForm({ ...noteForm, dream_type: e.target.value })
+                  <DreamTypePicker
+                    currentType={noteForm.dream_type}
+                    onSelectType={(type) =>
+                      setNoteForm({ ...noteForm, dream_type: type })
                     }
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Обычный</option>
-                    <option value="nightmare">😨 Кошмар</option>
-                    <option value="love">❤️ Любовный</option>
-                    <option value="sad">😢 Грустный</option>
-                    <option value="happy">😊 Счастливый</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Настроение после пробуждения
-                  </label>
-                  <select
-                    value={noteForm.wake_mood}
-                    onChange={(e) =>
-                      setNoteForm({ ...noteForm, wake_mood: e.target.value })
-                    }
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Обычное</option>
-                    <option value="sad">😔 Грустное</option>
-                    <option value="happy">😊 Веселое</option>
-                    <option value="scared">😱 В ужасе</option>
-                  </select>
+                  />
                 </div>
               </div>
 
@@ -671,13 +661,13 @@ export default function AddSleepPage() {
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={addNote}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                  className="flex-1 bg-pink-600 text-white py-2 rounded-lg hover:bg-pink-700 transition"
                 >
                   {editingNote ? "Обновить" : "Добавить"}
                 </button>
                 <button
                   onClick={() => setShowNoteModal(false)}
-                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition"
+                  className="flex-1 border border-pink-300 bg-pink-50 text-gray-700 py-2 rounded-lg hover:bg-pink-100 transition"
                 >
                   Отмена
                 </button>

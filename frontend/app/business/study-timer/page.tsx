@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
 import { useRouter } from "next/navigation";
-import { Play, Square, Plus, Trash2, Edit2, Check, X } from "lucide-react";
+import { Play, Square, Plus, Trash2, Edit2, Check, X, Tag } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -18,6 +18,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { colors, getColorHex } from "@/lib/colors";
 
 interface Tag {
   id: string;
@@ -41,17 +42,6 @@ interface Stats {
   sessions: any[];
 }
 
-const colors = [
-  "#3b82f6",
-  "#ef4444",
-  "#10b981",
-  "#f59e0b",
-  "#8b5cf6",
-  "#ec4899",
-  "#06b6d4",
-  "#84cc16",
-];
-
 export default function StudyTimerPage() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [currentSession, setCurrentSession] = useState<CurrentSession | null>(
@@ -72,6 +62,23 @@ export default function StudyTimerPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { isAuthenticated, isLoading } = useAuthStore();
   const router = useRouter();
+
+  // Получаем цвет тега
+  const getTagColor = (tagName: string) => {
+    const tag = tags.find((t) => t.name === tagName);
+    if (tag && tag.color) {
+      return getColorHex(tag.color);
+    }
+    return colors[0].hex;
+  };
+
+  const getTagStyle = (tagName: string) => {
+    const tag = tags.find((t) => t.name === tagName);
+    if (tag && tag.color) {
+      return colors.find((c) => c.name === tag.color) || colors[0];
+    }
+    return colors[0];
+  };
 
   useEffect(() => {
     if (editingDescription && textareaRef.current) {
@@ -102,7 +109,7 @@ export default function StudyTimerPage() {
     };
     window.addEventListener("timer-updated", handleTimerUpdate);
     return () => window.removeEventListener("timer-updated", handleTimerUpdate);
-  }, [isAuthenticated]);
+  }, []);
 
   useEffect(() => {
     if (period === "custom") {
@@ -205,9 +212,9 @@ export default function StudyTimerPage() {
     }
   };
 
-  const createTag = async (name: string) => {
+  const createTag = async (name: string, color: string = "yellow") => {
     try {
-      await api.post("/study-timer/tags", { name, color: "blue" });
+      await api.post("/study-timer/tags", { name, color });
       fetchTags();
     } catch (error) {
       alert("Ошибка создания тега");
@@ -236,6 +243,14 @@ export default function StudyTimerPage() {
     return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const statsData = stats?.by_tag
+    ? Object.entries(stats.by_tag).map(([name, value]) => ({
+        name,
+        hours: value,
+        color: getTagColor(name),
+      }))
+    : [];
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -243,14 +258,6 @@ export default function StudyTimerPage() {
       </div>
     );
   }
-
-  const statsData = stats?.by_tag
-    ? Object.entries(stats.by_tag).map(([name, value], index) => ({
-        name,
-        hours: value,
-        color: colors[index % colors.length],
-      }))
-    : [];
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
@@ -351,15 +358,18 @@ export default function StudyTimerPage() {
           </div>
         </div>
 
-        {/* Управление тегами */}
+        {/* Управление тегами с цветами из planner */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">Мои теги</h2>
+            <div className="flex items-center gap-2">
+              <Tag className="w-5 h-5 text-blue-600" />
+              <h2 className="text-xl font-semibold text-gray-800">Мои теги</h2>
+            </div>
             <button
               onClick={async () => {
                 const name = prompt("Введите название тега:");
                 if (name) {
-                  await createTag(name);
+                  await createTag(name, "yellow");
                 }
               }}
               className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
@@ -368,20 +378,25 @@ export default function StudyTimerPage() {
             </button>
           </div>
           <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <div
-                key={tag.id}
-                className="flex items-center gap-1 bg-gray-100 rounded-full px-3 py-1"
-              >
-                <span className="text-sm">{tag.name}</span>
-                <button
-                  onClick={() => deleteTag(tag.id)}
-                  className="text-gray-400 hover:text-red-500"
+            {tags.map((tag) => {
+              const colorStyle =
+                colors.find((c) => c.name === tag.color) || colors[0];
+              return (
+                <div
+                  key={tag.id}
+                  className={`flex items-center gap-1 rounded-full px-3 py-1 ${colorStyle.bg}`}
                 >
-                  <Trash2 className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
+                  <div className={`w-2 h-2 rounded-full ${colorStyle.base}`} />
+                  <span className="text-sm">{tag.name}</span>
+                  <button
+                    onClick={() => deleteTag(tag.id)}
+                    className="text-gray-400 hover:text-red-500"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              );
+            })}
             {tags.length === 0 && (
               <p className="text-gray-400 text-sm">
                 Нет тегов. Создайте первый!
@@ -519,37 +534,51 @@ export default function StudyTimerPage() {
               История сессий
             </h2>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {stats.sessions.map((session: any) => (
-                <div key={session.id} className="border-b border-gray-100 pb-3">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <span className="font-medium text-gray-800">
-                        {session.tag}
-                      </span>
-                      {session.description && (
-                        <p className="text-sm text-gray-500 whitespace-pre-wrap break-words">
-                          {session.description}
+              {stats.sessions.map((session: any) => {
+                const colorStyle =
+                  colors.find(
+                    (c) => c.name === getTagStyle(session.tag).name,
+                  ) || colors[0];
+                return (
+                  <div
+                    key={session.id}
+                    className={`border-l-4 rounded-lg p-3 mb-2 ${colorStyle.border} ${colorStyle.bg}`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={`w-2 h-2 rounded-full ${colorStyle.base}`}
+                          />
+                          <span className="font-medium text-gray-800">
+                            {session.tag}
+                          </span>
+                        </div>
+                        {session.description && (
+                          <p className="text-sm text-gray-500 whitespace-pre-wrap break-words mt-1">
+                            {session.description}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(session.start_time).toLocaleString()} -{" "}
+                          {session.end_time
+                            ? new Date(session.end_time).toLocaleTimeString()
+                            : "сейчас"}
                         </p>
-                      )}
-                      <p className="text-xs text-gray-400">
-                        {new Date(session.start_time).toLocaleString()} -{" "}
-                        {session.end_time
-                          ? new Date(session.end_time).toLocaleTimeString()
-                          : "сейчас"}
-                      </p>
+                      </div>
+                      <span className="text-blue-600 font-medium ml-4">
+                        {session.duration_hours} ч
+                      </span>
                     </div>
-                    <span className="text-blue-600 font-medium ml-4">
-                      {session.duration_hours} ч
-                    </span>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
       </div>
 
-      {/* Модальное окно выбора тега */}
+      {/* Модальное окно выбора тега с цветами из planner */}
       {showTagModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
@@ -565,23 +594,36 @@ export default function StudyTimerPage() {
                   className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Выберите тег</option>
-                  {tags.map((tag) => (
-                    <option key={tag.id} value={tag.name}>
-                      {tag.name}
-                    </option>
-                  ))}
+                  {tags.map((tag) => {
+                    const colorStyle =
+                      colors.find((c) => c.name === tag.color) || colors[0];
+                    return (
+                      <option key={tag.id} value={tag.name}>
+                        {tag.name}
+                      </option>
+                    );
+                  })}
                 </select>
-                <button
-                  onClick={async () => {
-                    const name = prompt("Введите название нового тега:");
-                    if (name) {
-                      await createTag(name);
-                    }
-                  }}
-                  className="text-xs text-blue-600 mt-1 hover:text-blue-700"
-                >
-                  + Создать новый тег
-                </button>
+                <div className="mt-3">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Или создайте новый с цветом:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {colors.slice(0, 6).map((color) => (
+                      <button
+                        key={color.name}
+                        onClick={async () => {
+                          const name = prompt("Введите название тега:");
+                          if (name) {
+                            await createTag(name, color.name);
+                          }
+                        }}
+                        className={`w-8 h-8 rounded-full transition ${color.base} hover:scale-110`}
+                        title={color.label}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">

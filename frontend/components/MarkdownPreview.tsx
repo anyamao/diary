@@ -3,7 +3,6 @@
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
-import DOMPurify from "dompurify";
 import { Components } from "react-markdown";
 
 interface MarkdownPreviewProps {
@@ -18,53 +17,6 @@ export default function MarkdownPreview({
   if (!content) {
     return <p className="text-gray-400 italic">Нет содержимого</p>;
   }
-
-  // Санитизация HTML перед рендерингом
-  const sanitizedContent = DOMPurify.sanitize(content, {
-    ALLOWED_TAGS: [
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-      "h5",
-      "h6",
-      "p",
-      "br",
-      "hr",
-      "strong",
-      "b",
-      "em",
-      "i",
-      "u",
-      "s",
-      "a",
-      "img",
-      "ul",
-      "ol",
-      "li",
-      "blockquote",
-      "code",
-      "pre",
-      "table",
-      "thead",
-      "tbody",
-      "tr",
-      "th",
-      "td",
-      "div",
-      "span",
-    ],
-    ALLOWED_ATTR: [
-      "href",
-      "src",
-      "alt",
-      "title",
-      "class",
-      "id",
-      "target",
-      "rel",
-    ],
-  });
 
   const components: Components = {
     h1: ({ node, ...props }) => (
@@ -94,6 +46,19 @@ export default function MarkdownPreview({
         {...props}
       />
     ),
+    img: ({ node, ...props }) => {
+      // Поддержка base64 изображений
+      const src = props.src || "";
+      return (
+        <img
+          {...props}
+          src={src}
+          className="max-w-[400px] h-auto rounded-lg shadow-md my-2"
+          style={{ maxWidth: "400px", height: "auto" }}
+          alt={props.alt || "Изображение"}
+        />
+      );
+    },
     code: ({ node, className, children, ...props }) => {
       const isInline = !className;
       if (isInline) {
@@ -142,7 +107,7 @@ export default function MarkdownPreview({
         rehypePlugins={[rehypeRaw]}
         components={components}
       >
-        {sanitizedContent}
+        {content}
       </ReactMarkdown>
     </div>
   );

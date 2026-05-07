@@ -33,15 +33,16 @@ function Header() {
 
   return (
     <div className="w-full flex flex-col">
+      {/* Main Header */}
       <div className="w-full bg-white shadow-xs border-b-[1px] border-pink-200 fixed p-[20px] top-0 left-0 min-h-[60px] max-h-[60px] flex items-center justify-between z-40">
         <Link
           href="/"
-          className="text-lg text-pink-950 font-bold cursor-pointer hover:text-pink-700"
+          className=" text-sm md:text-lg text-pink-950 font-bold cursor-pointer hover:text-pink-700"
         >
           VibeNote
         </Link>
 
-        <div className="flex flex-row justify-center w-full ml-[-30px] font-semibold bg-pink-200 h-[30px] rounded-lg max-w-[400px] text-xs text-pink-950 items-center">
+        <div className="flex flex-row justify-center w-full md:ml-[-30px] font-semibold bg-pink-200 h-[30px] rounded-lg  max-w-[270px]  md:max-w-[400px] text-xs text-pink-950 items-center">
           <Link
             href="/personal"
             className={`flex-1 cursor-pointer hover:text-pink-700 duration-300 flex items-center h-full rounded-l-lg justify-center ${
@@ -102,14 +103,16 @@ function Header() {
         </div>
       </div>
 
-      {/* Profile dropdown menu */}
+      {/* Profile dropdown menu - ABOVE everything */}
       {isProfileMenuOpen && isAuthenticated && (
         <>
+          {/* Overlay */}
           <div
-            className="fixed inset-0 z-20"
+            className="fixed inset-0 z-[100]"
             onClick={() => setIsProfileMenuOpen(false)}
           />
-          <div className="fixed top-[60px] right-0 z-30 w-[280px] bg-white border-[1px] border-pink-200 rounded-lg shadow-lg mx-4 mt-2 overflow-hidden">
+          {/* Menu */}
+          <div className="fixed top-[60px] right-4 z-[101] w-[280px] bg-white border-[1px] border-pink-200 rounded-lg shadow-lg overflow-hidden">
             <div className="px-4 py-3 border-b border-pink-100">
               <p className="text-sm font-semibold text-pink-900">
                 {user?.full_name || user?.username}
@@ -150,14 +153,14 @@ function Header() {
 
       {/* Only show the second navigation bar on /personal routes */}
       {pathname.startsWith("/personal") && (
-        <div className="w-full  border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-40">
+        <div className="w-full border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-30">
           <div className="flex flex-row font-semibold text-pink-950 text-xs items-center justify-between">
             <Star className="text-yellow-600 h-4 w-4 -rotate-90" />
             <div className="flex items-center flex-row mx-[10px] justify-center">
               <Link
                 href="/personal/diary"
                 className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
-                  pathname === "/personal/diary"
+                  pathname.startsWith("/personal/diary")
                     ? "text-pink-600 underline"
                     : ""
                 }`}
@@ -176,7 +179,11 @@ function Header() {
               </Link>
               <Link
                 href="/personal/sleep"
-                className="px-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer"
+                className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
+                  pathname.startsWith("/personal/sleep")
+                    ? "text-pink-600 underline"
+                    : ""
+                }`}
               >
                 Мой сон
               </Link>
@@ -193,7 +200,7 @@ function Header() {
       )}
 
       {pathname.startsWith("/business") && (
-        <div className="w-full bg-white border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-40">
+        <div className="w-full bg-white border-b-[1px] border-pink-300 shadow-sm mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-30">
           <div className="flex flex-row font-semibold text-pink-950 text-xs items-center justify-between">
             <Star className="text-yellow-600 h-4 w-4 -rotate-90" />
             <div className="flex items-center flex-row mx-[10px] justify-center">

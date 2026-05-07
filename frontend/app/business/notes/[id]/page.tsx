@@ -5,31 +5,49 @@ import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Trash2, Pin, PinOff } from "lucide-react";
+import { ArrowLeft, Bookmark, EllipsisVertical } from "lucide-react";
 import MarkdownEditor from "@/components/MarkdownEditor";
+import { showToast } from "@/components/Toast";
+import { showConfirm } from "@/components/ConfirmDialog";
+import EntryInfoModal from "@/components/EntryInfoModal";
+
+interface BusinessNote {
+  id: string;
+  title: string;
+  content: string;
+  tags: string;
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function EditBusinessNotePage() {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<BusinessNote>({
+    id: "",
     title: "",
     content: "",
     tags: "",
     is_pinned: false,
+    created_at: "",
+    updated_at: "",
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [showInfo, setShowInfo] = useState(false);
   const router = useRouter();
   const params = useParams();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isLoading } = useAuthStore();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !isLoading) {
       router.push("/login");
       return;
     }
     if (params.id) {
       fetchNote();
     }
-  }, [isAuthenticated, params.id]);
+  }, [isAuthenticated, isLoading, params.id]);
 
   const fetchNote = async () => {
     try {
@@ -37,6 +55,7 @@ export default function EditBusinessNotePage() {
       setFormData(response.data);
     } catch (error) {
       console.error("Failed to fetch note:", error);
+      showToast("Не удалось загрузить заметку", "error");
       router.push("/business/notes");
     } finally {
       setLoading(false);
@@ -46,66 +65,117 @@ export default function EditBusinessNotePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setError("");
 
     try {
-      await api.put(`/business-notes/${params.id}`, formData);
+      const noteData = {
+        title: formData.title,
+        content: formData.content,
+        tags: formData.tags || "",
+        is_pinned: formData.is_pinned,
+      };
+
+      await api.put(`/business-notes/${params.id}`, noteData);
+      showToast("Заметка успешно обновлена!", "success");
       router.push("/business/notes");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to update note:", error);
-      alert("Не удалось обновить заметку");
+      const errorMsg =
+        error.response?.data?.detail?.[0]?.msg ||
+        error.response?.data?.detail ||
+        "Не удалось обновить заметку";
+      setError(errorMsg);
+      showToast(errorMsg, "error");
     } finally {
       setSaving(false);
     }
   };
 
+  const handleSave = () => {
+    const form = document.querySelector("form");
+    if (form) {
+      form.dispatchEvent(
+        new Event("submit", { cancelable: true, bubbles: true }),
+      );
+    }
+  };
+
+  const togglePinned = () => {
+    setFormData({ ...formData, is_pinned: !formData.is_pinned });
+  };
+
   const deleteNote = async () => {
-    if (confirm("Удалить эту заметку?")) {
+    const confirmed = await showConfirm(
+      "Удалить заметку?",
+      "Вы уверены, что хотите удалить эту заметку? Это действие нельзя отменить.",
+      "danger",
+    );
+
+    if (confirmed) {
       try {
         await api.delete(`/business-notes/${params.id}`);
+        showToast("Заметка удалена", "success");
         router.push("/business/notes");
       } catch (error) {
         console.error("Failed to delete note:", error);
-        alert("Ошибка удаления");
+        showToast("Не удалось удалить заметку", "error");
       }
     }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-pink-50">
         <div className="text-xl">Загрузка...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <div className="mb-6 flex justify-between items-center">
-          <Link
-            href="/business/notes"
-            className="text-blue-600 hover:text-blue-700 flex items-center gap-1"
-          >
-            <ArrowLeft className="w-4 h-4" /> Назад к заметкам
+    <div className="h-full w-full min-h-screen bg-pink-50 py-8 flex justify-center">
+      <div className="w-full h-full max-w-[1100px] flex flex-col flex-1">
+        <div className="flex flex-row justify-between items-center text-pink-900">
+          <Link href="/business/notes" className="text-pink-900">
+            <ArrowLeft className="w-5 h-5 ml-[40px]" />
           </Link>
-          <button
-            onClick={deleteNote}
-            className="text-red-600 hover:text-red-700 flex items-center gap-1"
-          >
-            <Trash2 className="w-4 h-4" /> Удалить
-          </button>
+          <div className="flex flex-row mr-[10px] items-center">
+            <button
+              type="button"
+              onClick={togglePinned}
+              className="mr-[20px] cursor-pointer transition hover:scale-110"
+              title={
+                formData.is_pinned ? "Убрать из закрепленных" : "Закрепить"
+              }
+            >
+              <Bookmark
+                className={`w-5 h-5 ${formData.is_pinned ? "fill-yellow-500 text-yellow-500" : "text-pink-900"}`}
+              />
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-pink-500 duration-300 mr-[5px] text-white text-sm hover:bg-pink-600 cursor-pointer font-semibold py-[5px] px-[10px] rounded-lg disabled:opacity-50"
+            >
+              {saving ? "Сохранение..." : "Сохранить"}
+            </button>
+            <button
+              onClick={() => setShowInfo(true)}
+              className="text-gray-500 hover:text-gray-700 transition"
+            >
+              <EllipsisVertical className="w-5 h-5 mr-[10px] cursor-pointer hover:text-pink-700" />
+            </button>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-2xl font-bold text-gray-800 mb-6">
-            Редактировать заметку
-          </h1>
+        {error && (
+          <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm mx-4">
+            Ошибка: {error}
+          </div>
+        )}
 
+        <div className="rounded-lg p-8 text-pink-950">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-gray-700 font-medium mb-2">
-                Заголовок *
-              </label>
               <input
                 type="text"
                 required
@@ -113,72 +183,51 @@ export default function EditBusinessNotePage() {
                 onChange={(e) =>
                   setFormData({ ...formData, title: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-2 bg-pink-50 border-b-2 border-pink-200 focus:outline-none focus:border-pink-500 text-lg"
+                placeholder="Название заметки..."
               />
             </div>
 
             <div>
-              <label className="block text-gray-700 font-medium mb-2">
-                Содержание (поддерживается Markdown)
-              </label>
               <MarkdownEditor
                 value={formData.content}
                 onChange={(value) =>
                   setFormData({ ...formData, content: value })
                 }
-                placeholder="Опиши свою идею здесь..."
+                placeholder="Пиши свои идеи здесь... (Поддерживается Markdown)"
                 rows={12}
               />
             </div>
 
             <div>
-              <label className="block text-gray-700 font-medium mb-2">
-                Теги (через запятую)
-              </label>
               <input
                 type="text"
                 value={formData.tags}
                 onChange={(e) =>
                   setFormData({ ...formData, tags: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                placeholder="например, идея, проект, стартап, веб-приложение"
+                className="w-full px-4 py-2 bg-pink-50 border-b-2 border-pink-200 focus:outline-none focus:border-pink-500 text-lg"
+                placeholder="Теги (через запятую)"
               />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="pinned"
-                checked={formData.is_pinned}
-                onChange={(e) =>
-                  setFormData({ ...formData, is_pinned: e.target.checked })
-                }
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-              />
-              <label htmlFor="pinned" className="text-gray-700">
-                Закрепить заметку (будет показываться вверху списка)
-              </label>
-            </div>
-
-            <div className="flex gap-4 pt-4">
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-              >
-                {saving ? "Сохранение..." : "💾 Сохранить изменения"}
-              </button>
-              <Link
-                href="/business/notes"
-                className="flex-1 text-center border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition"
-              >
-                Отмена
-              </Link>
+              <p className="text-xs text-gray-500 mt-1">
+                Теги помогут группировать похожие идеи. Разделяйте их запятыми.
+              </p>
             </div>
           </form>
         </div>
       </div>
+
+      {/* Информационное модальное окно */}
+      {showInfo && (
+        <EntryInfoModal
+          createdAt={formData.created_at}
+          updatedAt={formData.updated_at}
+          contentLength={formData.content.length}
+          titleLength={formData.title.length}
+          isFavorite={formData.is_pinned}
+          onClose={() => setShowInfo(false)}
+        />
+      )}
     </div>
   );
 }

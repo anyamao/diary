@@ -1,5 +1,5 @@
 "use client";
-
+import { CalendarDays } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
@@ -20,7 +20,11 @@ import {
   Target,
   FileText,
   Tag,
+  Pen,
+  Clock,
 } from "lucide-react";
+import { showToast } from "@/components/Toast";
+import { showConfirm } from "@/components/ConfirmDialog";
 
 const weekDays = [
   "Понедельник",
@@ -102,6 +106,15 @@ const colors = [
     tagBg: "bg-orange-200",
     base: "bg-orange-500",
   },
+  {
+    name: "dark-purple",
+    label: "Темно-фиолетовый",
+    bg: "bg-purple-200",
+    border: "border-purple-500",
+    text: "text-purple-800",
+    tagBg: "bg-purple-300",
+    base: "bg-purple-700",
+  },
 ];
 
 export default function PlannerPage() {
@@ -120,6 +133,13 @@ export default function PlannerPage() {
   const [tagNames, setTagNames] = useState<{ [key: string]: string }>({});
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [newTagName, setNewTagName] = useState("");
+  const [showTagsModal, setShowTagsModal] = useState(false);
+  const [editingTask, setEditingTask] = useState<any>(null);
+  const [editTaskTitle, setEditTaskTitle] = useState("");
+  const [editTaskColor, setEditTaskColor] = useState("yellow");
+  const [editTaskStart, setEditTaskStart] = useState("09:00");
+  const [editTaskEnd, setEditTaskEnd] = useState("10:00");
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Цели
   const [weeklyGoals, setWeeklyGoals] = useState<{ [key: number]: string }>({});
@@ -180,7 +200,22 @@ export default function PlannerPage() {
     setMonths(monthsData);
     setLoading(false);
   };
+  const getWeekRange = (startDate: Date) => {
+    const start = new Date(startDate);
+    const end = new Date(startDate);
 
+    // Добавляем компенсацию (+1 день)
+    start.setDate(start.getDate() + 1);
+    end.setDate(end.getDate() + 7); // +1 день для компенсации +6 дней для недели = +7
+
+    const formatDate = (date: Date) => {
+      const day = date.getDate();
+      const month = date.toLocaleString("ru-RU", { month: "short" });
+      return `${day} ${month}`;
+    };
+
+    return `${formatDate(start)} - ${formatDate(end)}`;
+  };
   const loadWeekPlan = async () => {
     try {
       const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
@@ -251,10 +286,35 @@ export default function PlannerPage() {
         tag_name: newTagName.trim(),
       });
       setTagNames({ ...tagNames, [color]: newTagName.trim() });
+      showToast(`Тег "${newTagName}" добавлен`, "success");
       setEditingTag(null);
       setNewTagName("");
     } catch (error) {
       console.error("Failed to save tag:", error);
+      showToast("Ошибка сохранения тега", "error");
+    }
+  };
+  const toggleDayImportance = async (date: string, currentStatus: boolean) => {
+    try {
+      const dayResponse = await api.get(`/planner/days/${date}`);
+      let plannerDayId = dayResponse.data?.id;
+
+      if (!plannerDayId) {
+        const createResponse = await api.post(`/planner/days/${date}`, {});
+        plannerDayId = createResponse.data?.id;
+      }
+
+      await api.put(`/planner/days/${date}`, {
+        is_important: !currentStatus,
+      });
+      await loadWeekPlan();
+      showToast(
+        !currentStatus ? "День отмечен как важный" : "Важность дня снята",
+        "success",
+      );
+    } catch (error) {
+      console.error("Failed to toggle importance:", error);
+      showToast("Ошибка", "error");
     }
   };
 
@@ -281,8 +341,10 @@ export default function PlannerPage() {
         weekly_notes: weeklyNotes,
       });
       setEditingMonthlyGoal(false);
+      showToast("Цель на месяц сохранена", "success");
     } catch (error) {
       console.error("Failed to save monthly goal:", error);
+      showToast("Ошибка сохранения", "error");
     }
   };
 
@@ -294,8 +356,10 @@ export default function PlannerPage() {
         weekly_notes: weeklyNotes,
       });
       setEditingWeeklyGoal(null);
+      showToast("Цель на неделю сохранена", "success");
     } catch (error) {
       console.error("Failed to save weekly goal:", error);
+      showToast("Ошибка сохранения", "error");
     }
   };
 
@@ -307,8 +371,10 @@ export default function PlannerPage() {
         weekly_notes: weeklyNotes,
       });
       setEditingWeeklyNote(null);
+      showToast("Заметка сохранена", "success");
     } catch (error) {
       console.error("Failed to save weekly note:", error);
+      showToast("Ошибка сохранения", "error");
     }
   };
 
@@ -316,8 +382,10 @@ export default function PlannerPage() {
     try {
       await api.patch(`/planner/tasks/${taskId}/toggle`);
       await loadWeekPlan();
+      showToast("Задача обновлена", "success");
     } catch (error) {
       console.error("Failed to toggle task:", error);
+      showToast("Ошибка", "error");
     }
   };
 
@@ -351,20 +419,59 @@ export default function PlannerPage() {
       setAddingTaskForDay(null);
       setNewTaskDay("");
       await loadWeekPlan();
+      showToast("Задача добавлена", "success");
     } catch (error) {
       console.error("Failed to add task:", error);
+      showToast("Ошибка добавления", "error");
+    }
+  };
+
+  const updateTask = async () => {
+    if (!editTaskTitle.trim() || !editingTask) return;
+
+    try {
+      await api.put(`/planner/tasks/${editingTask.id}`, {
+        title: editTaskTitle,
+        description: "",
+        start_time: editTaskStart,
+        end_time: editTaskEnd,
+        color: editTaskColor,
+      });
+      setShowEditModal(false);
+      setEditingTask(null);
+      await loadWeekPlan();
+      showToast("Задача обновлена", "success");
+    } catch (error) {
+      console.error("Failed to update task:", error);
+      showToast("Ошибка обновления", "error");
     }
   };
 
   const deleteTask = async (taskId: string) => {
-    if (confirm("Удалить эту задачу?")) {
+    const confirmed = await showConfirm(
+      "Удалить задачу?",
+      "Вы уверены, что хотите удалить эту задачу?",
+      "danger",
+    );
+    if (confirmed) {
       try {
         await api.delete(`/planner/tasks/${taskId}`);
         await loadWeekPlan();
+        showToast("Задача удалена", "success");
       } catch (error) {
         console.error("Failed to delete task:", error);
+        showToast("Ошибка удаления", "error");
       }
     }
+  };
+
+  const openEditTaskModal = (task: any) => {
+    setEditingTask(task);
+    setEditTaskTitle(task.title);
+    setEditTaskColor(task.color);
+    setEditTaskStart(task.start_time || "09:00");
+    setEditTaskEnd(task.end_time || "10:00");
+    setShowEditModal(true);
   };
 
   const toggleWeekVisibility = (weekNumber: number) => {
@@ -435,11 +542,11 @@ export default function PlannerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-pink-50 p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            <h1 className="text-3xl font-bold text-pink-950 mb-2">
               Планировщик
             </h1>
             <p className="text-gray-600">Планируй свои дни и задачи</p>
@@ -451,7 +558,7 @@ export default function PlannerPage() {
               setSelectedMonth(today.getMonth());
               setSelectedYear(today.getFullYear());
             }}
-            className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+            className="px-4 py-2 text-pink-900 bg-pink-200 rounded-lg hover:bg-pink-300 transition"
           >
             Сегодня
           </button>
@@ -462,21 +569,24 @@ export default function PlannerPage() {
           <div className="flex justify-end mb-6 gap-3">
             <button
               onClick={prevMonthPeriod}
-              className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+              className="p-2 bg-pink-500 rounded-lg hover:bg-pink-600 transition"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-5 text-white h-5" />
             </button>
             <button
               onClick={nextMonthPeriod}
-              className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+              className="p-2 bg-pink-500 rounded-lg hover:bg-pink-600 transition"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-5 h-5 text-white" />
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {months.map((month, idx) => (
-              <div key={idx} className="bg-white rounded-xl shadow-lg p-4">
+              <div
+                key={idx}
+                className="bg-white rounded-xl shadow-lg p-4 relative"
+              >
                 <h2 className="text-xl font-bold text-gray-800 mb-4 text-center">
                   {month.name} {month.year}
                 </h2>
@@ -501,30 +611,42 @@ export default function PlannerPage() {
                   ))}
                   {month.days.map((day: any) => {
                     const date = new Date(day.date);
-                    const isImportant = day.is_important;
+                    const dayInfo = weekPlan
+                      .find((w) => w.days.some((d: any) => d.date === day.date))
+                      ?.days.find((d: any) => d.date === day.date);
+                    const isImportant = dayInfo?.isImportant || false;
                     const hasTasks = day.has_tasks;
                     const isToday =
                       date.toDateString() === new Date().toDateString();
+                    const dayNotes = dayInfo?.notes;
 
                     return (
-                      <Link
-                        key={day.date}
-                        href={`/business/planner/${day.date}`}
-                        className={`
-                          h-12 rounded-lg flex flex-col items-center justify-center p-1 transition hover:scale-105
-                          ${isImportant ? "bg-yellow-100 hover:bg-yellow-200" : "bg-gray-50 hover:bg-gray-100"}
-                          ${isToday ? "ring-2 ring-blue-500" : ""}
-                        `}
-                      >
-                        <span
-                          className={`text-sm font-medium ${isImportant ? "text-yellow-800" : "text-gray-700"}`}
+                      <div key={day.date} className="relative group">
+                        <Link
+                          href={`/business/planner/${day.date}`}
+                          className={`
+                            h-12 rounded-lg flex flex-col items-center justify-center p-1 transition hover:scale-105 block
+                            ${isImportant ? "bg-yellow-100 hover:bg-yellow-200" : "bg-gray-50 hover:bg-gray-100"}
+                            ${isToday ? "ring-2 ring-pink-300" : ""}
+                          `}
                         >
-                          {date.getDate()}
-                        </span>
-                        {hasTasks && (
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-0.5" />
+                          <span
+                            className={`text-sm font-medium ${isImportant ? "text-yellow-800" : "text-gray-700"}`}
+                          >
+                            {date.getDate()}
+                          </span>
+                          {hasTasks && (
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-0.5" />
+                          )}
+                        </Link>
+                        {isImportant && dayNotes && (
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none z-10">
+                            {dayNotes.length > 30
+                              ? dayNotes.substring(0, 30) + "..."
+                              : dayNotes}
+                          </div>
                         )}
-                      </Link>
+                      </div>
                     );
                   })}
                 </div>
@@ -533,11 +655,87 @@ export default function PlannerPage() {
           </div>
         </div>
 
+        {/* Панель настройки тегов */}
+        <div className=" rounded-xl p-4 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Tag className="w-5 h-5 text-pink-800" />
+            <h3 className="font-semibold text-gray-800">
+              Настройка тегов для цветов
+            </h3>
+          </div>
+          <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+            {colors.map((color) => (
+              <div key={color.name} className="flex flex-col gap-1">
+                <div
+                  className={`flex items-center gap-2 p-2 rounded-lg ${color.bg}`}
+                >
+                  <div className={`w-4 h-4 rounded-full ${color.base}`} />
+                  <span className="text-sm">
+                    {tagNames[color.name] ? tagNames[color.name] : color.name}
+                  </span>
+                  <button
+                    onClick={() => {
+                      setEditingTag(color.name);
+                      setNewTagName(tagNames[color.name] || "");
+                    }}
+                    className="ml-auto text-xs text-pink-500 hover:text-pink-700"
+                  >
+                    <Pen className="w-5 h-5"></Pen>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Модальное окно редактирования тега */}
+        {editingTag && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-6 max-w-md w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-800">
+                  Редактировать тег для{" "}
+                  {colors.find((c) => c.name === editingTag)?.label}
+                </h3>
+                <button
+                  onClick={() => setEditingTag(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  placeholder="Название тега"
+                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  autoFocus
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => saveTagName(editingTag)}
+                    className="flex-1 bg-pink-600 text-white py-2 rounded-lg hover:bg-pink-700"
+                  >
+                    Сохранить
+                  </button>
+                  <button
+                    onClick={() => setEditingTag(null)}
+                    className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* Недельный план */}
-        <div className="mt-12 pt-8 border-t-2 border-gray-200">
+        <div className="mt-12 pt-8 border-t-[1px] border-pink-200">
           <button
             onClick={() => setIsWeekVisible(!isWeekVisible)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-4 transition"
+            className="flex items-center gap-2 text-pink-800 hover:text-pink-900 mb-4 transition"
           >
             {isWeekVisible ? (
               <ChevronUp className="w-5 h-5" />
@@ -561,84 +759,27 @@ export default function PlannerPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={prevMonthForWeek}
-                      className="p-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+                      className="p-1.5 bg-pink-200 rounded-lg hover:bg-pink-300 transition"
                     >
-                      <ChevronLeft className="w-4 h-4" />
+                      <ChevronLeft className="w-4 text-pink-800 h-4" />
                     </button>
                     <button
                       onClick={nextMonthForWeek}
-                      className="p-1.5 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+                      className="p-1.5 bg-pink-200 rounded-lg hover:bg-pink-300 transition"
                     >
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-4 text-pink-900 h-4" />
                     </button>
                   </div>
                 </div>
               </div>
 
-              {/* Панель настройки тегов */}
-              <div className="bg-gray-100 rounded-xl p-4 mb-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <Tag className="w-5 h-5 text-gray-600" />
-                  <h3 className="font-semibold text-gray-800">
-                    Настройка тегов для цветов
-                  </h3>
-                </div>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                  {colors.map((color) => (
-                    <div key={color.name} className="flex flex-col gap-1">
-                      <div
-                        className={`flex items-center gap-2 p-2 rounded-lg ${color.bg}`}
-                      >
-                        <div className={`w-4 h-4 rounded-full ${color.base}`} />
-                        <span className="text-sm">{color.label}</span>
-                      </div>
-                      {editingTag === color.name ? (
-                        <div className="flex gap-1">
-                          <input
-                            type="text"
-                            value={newTagName}
-                            onChange={(e) => setNewTagName(e.target.value)}
-                            className="flex-1 text-xs p-1 border rounded"
-                            placeholder="Название тега"
-                            autoFocus
-                          />
-                          <button
-                            onClick={() => saveTagName(color.name)}
-                            className="px-2 py-1 bg-green-500 text-white rounded text-xs"
-                          >
-                            <Check className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={() => setEditingTag(null)}
-                            className="px-2 py-1 bg-gray-400 text-white rounded text-xs"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setEditingTag(color.name);
-                            setNewTagName(tagNames[color.name] || "");
-                          }}
-                          className="text-xs text-gray-500 hover:text-gray-700 text-left"
-                        >
-                          {tagNames[color.name] || "Добавить тег"}
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
               {/* Цель на месяц */}
-              <div className="bg-purple-50 rounded-xl p-4 mb-6 border border-purple-200">
+              <div className="bg-pink-100 rounded-lg p-4 mb-6 border border-pink-300">
                 <div className="flex items-center gap-2 mb-2">
-                  <Target className="w-5 h-5 text-purple-600" />
-                  <h3 className="font-semibold text-gray-800">Цель на месяц</h3>
+                  <h3 className="font-semibold text-pink-950">Цель на месяц</h3>
                 </div>
                 {editingMonthlyGoal ? (
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
                     <textarea
                       value={monthlyGoal}
                       onChange={(e) => setMonthlyGoal(e.target.value)}
@@ -647,18 +788,20 @@ export default function PlannerPage() {
                       placeholder="Какая у тебя цель на этот месяц?"
                       autoFocus
                     />
-                    <button
-                      onClick={saveMonthlyGoal}
-                      className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
-                    >
-                      Сохранить
-                    </button>
-                    <button
-                      onClick={() => setEditingMonthlyGoal(false)}
-                      className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                    >
-                      Отмена
-                    </button>
+                    <div className="flex flex-row gap-3">
+                      <button
+                        onClick={saveMonthlyGoal}
+                        className="px-4 py-2 bg-pink-600 text-white rounded hover:bg-pink-700"
+                      >
+                        Сохранить
+                      </button>
+                      <button
+                        onClick={() => setEditingMonthlyGoal(false)}
+                        className="px-4 py-2 bg-pink-50 border border-pink-300 rounded hover:bg-gray-100"
+                      >
+                        Отмена
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="flex justify-between items-start">
@@ -668,7 +811,7 @@ export default function PlannerPage() {
                     </p>
                     <button
                       onClick={() => setEditingMonthlyGoal(true)}
-                      className="text-purple-600 hover:text-purple-700 ml-2"
+                      className="text-pink-600 hover:text-pink-700 ml-2"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
@@ -680,23 +823,23 @@ export default function PlannerPage() {
                 {weekPlan.map((week) => {
                   const isHidden = hiddenWeeks.includes(week.weekNumber);
                   return (
-                    <div
-                      key={week.weekNumber}
-                      className="border rounded-xl bg-white shadow-sm overflow-hidden"
-                    >
+                    <div key={week.weekNumber} className="">
                       <button
                         onClick={() => toggleWeekVisibility(week.weekNumber)}
-                        className="w-full flex justify-between items-center p-4 hover:bg-gray-50 transition"
+                        className="w-full flex justify-between items-center rounded-lg p-4 hover:bg-pink-100 transition"
                       >
                         <div className="flex items-center gap-3">
-                          <Calendar className="w-5 h-5 text-blue-500" />
-                          <h3 className="text-lg font-semibold text-gray-800">
-                            Неделя {week.weekNumber}
+                          <Calendar className="w-5 h-5 text-pink-500" />
+                          <h3 className="text-lg font-semibold text-pink-900">
+                            Неделя {week.weekNumber}{" "}
                           </h3>
+                          <p className="text-gray-700">
+                            {getWeekRange(new Date(week.startDate))}
+                          </p>
                           {isHidden ? (
-                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                            <ChevronDown className="w-4 h-4 text-pink-500" />
                           ) : (
-                            <ChevronUp className="w-4 h-4 text-gray-500" />
+                            <ChevronUp className="w-4 h-4 text-pink-500" />
                           )}
                         </div>
                       </button>
@@ -704,15 +847,14 @@ export default function PlannerPage() {
                       {!isHidden && (
                         <div className="p-4 pt-0 border-t">
                           {/* Цель на неделю */}
-                          <div className="bg-blue-50 rounded-lg p-3 mb-4">
+                          <div className="bg-pink-100 mt-[20px] rounded-lg p-3 mb-4">
                             <div className="flex items-center gap-2 mb-1">
-                              <Target className="w-4 h-4 text-blue-600" />
-                              <span className="text-sm font-medium text-gray-700">
+                              <span className="text-sm font-medium text-pink-800">
                                 Цель на неделю
                               </span>
                             </div>
                             {editingWeeklyGoal === week.weekNumber ? (
-                              <div className="flex gap-2 mt-2">
+                              <div className="flex flex-col gap-2 mt-2">
                                 <input
                                   type="text"
                                   value={weeklyGoals[week.weekNumber] || ""}
@@ -726,20 +868,22 @@ export default function PlannerPage() {
                                   placeholder="Цель на эту неделю..."
                                   autoFocus
                                 />
-                                <button
-                                  onClick={() =>
-                                    saveWeeklyGoal(week.weekNumber)
-                                  }
-                                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                                >
-                                  Сохранить
-                                </button>
-                                <button
-                                  onClick={() => setEditingWeeklyGoal(null)}
-                                  className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                                >
-                                  Отмена
-                                </button>
+                                <div className="flex flex-row gap-3">
+                                  <button
+                                    onClick={() =>
+                                      saveWeeklyGoal(week.weekNumber)
+                                    }
+                                    className="px-4 py-2 bg-pink-600 text-white rounded hover:bg-pink-700"
+                                  >
+                                    Сохранить
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingWeeklyGoal(null)}
+                                    className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                                  >
+                                    Отмена
+                                  </button>
+                                </div>
                               </div>
                             ) : (
                               <div className="flex justify-between items-start">
@@ -750,19 +894,18 @@ export default function PlannerPage() {
                                   onClick={() =>
                                     setEditingWeeklyGoal(week.weekNumber)
                                   }
-                                  className="text-blue-600 hover:text-blue-700"
+                                  className="text-pink-600 hover:text-blue-700"
                                 >
-                                  <Edit className="w-3 h-3" />
+                                  <Edit className="w-4 h-4" />
                                 </button>
                               </div>
                             )}
                           </div>
 
                           {/* Заметка на неделю */}
-                          <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                          <div className="bg-pink-100 rounded-lg p-3 mb-4">
                             <div className="flex items-center gap-2 mb-1">
-                              <FileText className="w-4 h-4 text-gray-600" />
-                              <span className="text-sm font-medium text-gray-700">
+                              <span className="text-sm font-medium text-pink-800">
                                 Заметка на неделю
                               </span>
                             </div>
@@ -781,18 +924,18 @@ export default function PlannerPage() {
                                   placeholder="Что важно помнить на этой неделе?"
                                   autoFocus
                                 />
-                                <div className="flex flex-col gap-2">
+                                <div className="flex flex-row gap-3">
                                   <button
                                     onClick={() =>
                                       saveWeeklyNote(week.weekNumber)
                                     }
-                                    className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                                   >
                                     Сохранить
                                   </button>
                                   <button
                                     onClick={() => setEditingWeeklyNote(null)}
-                                    className="px-3 py-1 bg-gray-300 rounded hover:bg-gray-400"
+                                    className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
                                   >
                                     Отмена
                                   </button>
@@ -808,9 +951,9 @@ export default function PlannerPage() {
                                   onClick={() =>
                                     setEditingWeeklyNote(week.weekNumber)
                                   }
-                                  className="text-gray-600 hover:text-gray-800"
+                                  className="text-pink-600 hover:text-pink-700"
                                 >
-                                  <Edit className="w-3 h-3" />
+                                  <Edit className="w-4 h-4" />
                                 </button>
                               </div>
                             )}
@@ -822,30 +965,42 @@ export default function PlannerPage() {
                               <div
                                 key={day.date}
                                 className={`
-                                  bg-white rounded-xl shadow-md p-4 transition hover:shadow-xl flex flex-col min-w-[280px] sm:min-w-[300px] border
+                                  bg-white rounded-lg text-pink-900 shadow-sm p-4 transition hover:shadow-md flex flex-col min-w-[280px] sm:min-w-[300px] border-[1px] border-pink-200
                                   ${day.isImportant ? "border-yellow-400" : "border-gray-200"}
                                 `}
                               >
-                                <Link
-                                  href={`/business/planner/${day.date}`}
-                                  className="cursor-pointer"
-                                >
-                                  <div className="flex flex-row items-center justify-between w-full mb-3">
-                                    <div className="flex items-baseline gap-2">
-                                      <p
-                                        className={`text-xl font-bold ${day.isImportant ? "text-yellow-600" : "text-gray-800"}`}
-                                      >
-                                        {day.dayNumber}
-                                      </p>
-                                      <p className="text-sm font-medium text-gray-500">
-                                        {weekDays[week.days.indexOf(day)]}
-                                      </p>
-                                    </div>
-                                    {day.isImportant && (
-                                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                                    )}
-                                  </div>
-                                </Link>
+                                <div className="flex flex-row items-center justify-between w-full mb-3">
+                                  <Link
+                                    href={`/business/planner/${day.date}`}
+                                    className="flex items-baseline gap-2 cursor-pointer flex-1"
+                                  >
+                                    <p
+                                      className={`text-xl font-bold ${day.isImportant ? "text-yellow-600" : "text-pink-950"}`}
+                                    >
+                                      {day.dayNumber}
+                                    </p>
+                                    <p className="text-sm font-medium text-gray-500">
+                                      {weekDays[week.days.indexOf(day)]}
+                                    </p>
+                                  </Link>
+                                  <button
+                                    onClick={() =>
+                                      toggleDayImportance(
+                                        day.date,
+                                        day.isImportant,
+                                      )
+                                    }
+                                    className="cursor-pointer hover:scale-110 transition"
+                                  >
+                                    <Star
+                                      className={`w-5 h-5 ${
+                                        day.isImportant
+                                          ? "text-yellow-500 fill-yellow-500"
+                                          : "text-gray-300 hover:text-yellow-400"
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
 
                                 <div className="space-y-2 flex-1">
                                   {day.tasks.slice(0, 3).map((task: any) => {
@@ -876,34 +1031,49 @@ export default function PlannerPage() {
                                                 <Check className="w-3 h-3 text-white" />
                                               )}
                                             </button>
-                                            <Link
-                                              href={`/business/planner/${day.date}`}
-                                              className="flex-1"
-                                            >
-                                              <div>
-                                                <p
-                                                  className={`font-medium text-sm ${task.is_completed && "line-through text-gray-400"}`}
-                                                >
-                                                  {task.title}
+                                            <div className="flex-1">
+                                              <p
+                                                className={`font-medium text-sm ${task.is_completed && "line-through text-gray-400"}`}
+                                              >
+                                                {task.title}
+                                              </p>
+                                              {(task.start_time ||
+                                                task.end_time) && (
+                                                <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                                  <Clock className="w-3 h-3" />
+                                                  {task.start_time} -{" "}
+                                                  {task.end_time}
                                                 </p>
-                                                {displayName !==
-                                                  colorInfo?.label && (
-                                                  <p className="text-xs text-gray-500 mt-0.5">
-                                                    <span
-                                                      className={`inline-block w-2 h-2 rounded-full ${colorInfo?.base} mr-1`}
-                                                    />
-                                                    {displayName}
-                                                  </p>
-                                                )}
-                                              </div>
-                                            </Link>
+                                              )}
+                                              {displayName !==
+                                                colorInfo?.label && (
+                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                  <span
+                                                    className={`inline-block w-2 h-2 rounded-full ${colorInfo?.base} mr-1`}
+                                                  />
+                                                  {displayName}
+                                                </p>
+                                              )}
+                                            </div>
                                           </div>
-                                          <button
-                                            onClick={() => deleteTask(task.id)}
-                                            className="opacity-0 group-hover:opacity-100 transition text-red-500 hover:text-red-700 ml-2"
-                                          >
-                                            <Trash2 className="w-3 h-3" />
-                                          </button>
+                                          <div className="flex gap-1">
+                                            <button
+                                              onClick={() =>
+                                                openEditTaskModal(task)
+                                              }
+                                              className="opacity-0 group-hover:opacity-100 transition text-blue-500 hover:text-blue-700"
+                                            >
+                                              <Edit className="w-3 h-3" />
+                                            </button>
+                                            <button
+                                              onClick={() =>
+                                                deleteTask(task.id)
+                                              }
+                                              className="opacity-0 group-hover:opacity-100 transition text-red-500 hover:text-red-700"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </button>
+                                          </div>
                                         </div>
                                       </div>
                                     );
@@ -943,7 +1113,11 @@ export default function PlannerPage() {
                                                   ? "ring-2 ring-offset-1 ring-gray-600"
                                                   : ""
                                               }`}
-                                              title={color.label}
+                                              title={
+                                                tagNames[color.name]
+                                                  ? tagNames[color.name]
+                                                  : color.name
+                                              }
                                             />
                                           ))}
                                         </div>
@@ -1001,6 +1175,91 @@ export default function PlannerPage() {
           )}
         </div>
       </div>
+
+      {/* Модальное окно редактирования задачи */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">
+                Редактировать задачу
+              </h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <input
+                type="text"
+                value={editTaskTitle}
+                onChange={(e) => setEditTaskTitle(e.target.value)}
+                placeholder="Название задачи"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
+              />
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm text-gray-600 mb-1">
+                    Начало
+                  </label>
+                  <input
+                    type="time"
+                    value={editTaskStart}
+                    onChange={(e) => setEditTaskStart(e.target.value)}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm text-gray-600 mb-1">
+                    Конец
+                  </label>
+                  <input
+                    type="time"
+                    value={editTaskEnd}
+                    onChange={(e) => setEditTaskEnd(e.target.value)}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-2">Цвет</label>
+                <div className="flex gap-2">
+                  {colors.slice(0, 6).map((color) => (
+                    <button
+                      key={color.name}
+                      onClick={() => setEditTaskColor(color.name)}
+                      className={`w-8 h-8 rounded-full transition ${color.base} ${
+                        editTaskColor === color.name
+                          ? "ring-2 ring-offset-2 ring-gray-600"
+                          : ""
+                      }`}
+                      title={
+                        tagNames[color.name] ? tagNames[color.name] : color.name
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={updateTask}
+                  className="flex-1 bg-pink-600 text-white py-2 rounded-lg hover:bg-pink-700"
+                >
+                  Сохранить
+                </button>
+                <button
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50"
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -319,7 +319,7 @@ export default function SleepPage() {
         bars.push(
           <div
             key={`${startTotal}-24`}
-            className="absolute h-full bg-purple-500 rounded-l-full"
+            className="absolute h-full bg-purple-500 rounded-l-lg"
             style={{
               left: `${(startTotal / 24) * 100}%`,
               width: `${((24 - startTotal) / 24) * 100}%`,
@@ -329,7 +329,7 @@ export default function SleepPage() {
         bars.push(
           <div
             key={`0-${endTotal}`}
-            className="absolute h-full bg-purple-500 rounded-r-full"
+            className="absolute h-full bg-purple-500 rounded-r-lg"
             style={{
               left: "0%",
               width: `${(endTotal / 24) * 100}%`,
@@ -340,7 +340,7 @@ export default function SleepPage() {
         bars.push(
           <div
             key={`${startTotal}-${endTotal}`}
-            className="absolute h-full bg-purple-500 rounded-full"
+            className="absolute h-full bg-purple-500 rounded-lg"
             style={{
               left: `${(startTotal / 24) * 100}%`,
               width: `${((endTotal - startTotal) / 24) * 100}%`,
@@ -387,7 +387,7 @@ export default function SleepPage() {
   return (
     <div className="h-full w-full min-h-[1200px] flex flex-col items-center bg-pink-50 p-8">
       <div className="max-w-[1100px]">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center   mb-8">
           <div>
             <h1 className="text-3xl font-bold text-pink-950 mb-2">
               Трекер сна
@@ -583,7 +583,7 @@ export default function SleepPage() {
           </div>
         </div>
         {/* Таблица по дням недели */}
-        <div className="bg-white rounded-lg shadow-md mt-[20px] p-6 mb-8">
+        <div className="bg-white hidden md:block rounded-lg shadow-md mt-[20px] p-6 mb-8">
           <h2 className="text-xl font-semibold text-pink-950 mb-4">
             Статистика по дням недели
           </h2>

@@ -113,13 +113,13 @@ export default function NewEntryPage() {
   const selectedDate = formData.created_at.split("T")[0];
 
   return (
-    <div className="h-full w-full min-h-screen bg-pink-50 py-8 px-[20px] flex justify-center">
-      <div className="w-full h-full max-w-[1000px]">
+    <div className="h-full w-full min-h-screen bg-pink-50 py-8  flex justify-center">
+      <div className="w-full h-full max-w-[1100px] flex flex-col flex-1 ">
         <div className="flex flex-row justify-between items-center text-pink-900">
           <Link href="/personal/diary" className="text-pink-900">
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5 ml-[40px]" />
           </Link>
-          <div className="flex flex-row items-center">
+          <div className="flex flex-row mr-[10px] items-center">
             <button
               type="button"
               onClick={toggleFavorite}
@@ -132,7 +132,7 @@ export default function NewEntryPage() {
                 className={`w-5 h-5 ${formData.is_favorite ? "fill-yellow-500 text-yellow-500" : "text-pink-900"}`}
               />
             </button>
-            <p className="mr-[10px] text-sm border-pink-900 hover:bg-pink-200 duration-300 cursor-pointer border-[1px] px-[10px] py-[5px] rounded-lg">
+            <p className="mr-[15px] text-sm border-pink-900 hover:bg-pink-200 duration-300 cursor-pointer border-[1px] px-[10px] py-[5px] rounded-lg">
               Вопросы
             </p>
             <button
@@ -142,7 +142,6 @@ export default function NewEntryPage() {
             >
               {saving ? "Сохранение..." : "Сохранить"}
             </button>
-            <EllipsisVertical className="w-5 h-5 cursor-pointer hover:text-pink-700" />
           </div>
         </div>
 

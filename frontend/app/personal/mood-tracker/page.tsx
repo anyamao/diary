@@ -273,7 +273,7 @@ export default function MoodTrackerPage() {
 
   return (
     <div className="min-h-screen bg-pink-100 p-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-[1100px] flex flex-col mx-auto">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
           Трекер настроения
         </h1>
@@ -281,180 +281,187 @@ export default function MoodTrackerPage() {
           Отслеживай свои эмоции и анализируй статистику
         </p>
 
-        {/* Управление месяцем */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex gap-3">
-            <button
-              onClick={prevMonth}
-              className="p-2 bg-white rounded-lg shadow hover:bg-gray-50 transition"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <button
-              onClick={goToToday}
-              className="px-4 py-2 bg-white rounded-lg shadow hover:bg-gray-50 transition text-sm font-medium"
-            >
-              Сегодня
-            </button>
-            <button
-              onClick={nextMonth}
-              className="p-2 bg-white rounded-lg shadow hover:bg-gray-50 transition"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-800">
-            {currentMonthName} {currentYear}
-          </h2>
-        </div>
+        <div className="flex lg:flex-row items-center flex-col ">
+          {/* Управление месяцем */}
+          <div className="flex flex-col   max-w-[500px]">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-800">
+                {currentMonthName} {currentYear}
+              </h2>
 
-        {/* Календарь настроений */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="grid grid-cols-7 gap-2 mb-2">
-            {weekDays.map((day) => (
-              <div
-                key={day}
-                className="text-center font-medium text-gray-600 py-2"
-              >
-                {day}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-2">
-            {calendar.map((day, idx) => {
-              if (day.isEmpty) {
-                return (
-                  <div
-                    key={idx}
-                    className="aspect-square rounded-lg bg-gray-50"
-                  />
-                );
-              }
-
-              const dayNumber = day.date.getUTCDate();
-              const weekday = getRussianWeekday(day.date);
-              const hasEntry = day.entry !== null;
-              const mood = day.mood;
-              const isToday =
-                formatUTCDate(day.date) === formatUTCDate(new Date());
-
-              return (
+              <div className="flex gap-3">
                 <button
-                  key={idx}
-                  onClick={() => handleDateClick(day.date)}
-                  className={`aspect-square rounded-lg flex flex-col items-center justify-center p-2 transition hover:scale-105 ${
-                    hasEntry
-                      ? "bg-pink-100 hover:bg-pink-200"
-                      : "bg-gray-50 hover:bg-gray-100"
-                  } ${isToday ? "ring-2 ring-blue-500" : ""}`}
+                  onClick={prevMonth}
+                  className="p-2 bg-white rounded-lg shadow hover:bg-gray-50 transition"
                 >
-                  <span
-                    className={`text-sm font-medium ${hasEntry ? "text-pink-700" : "text-gray-700"}`}
-                  >
-                    {dayNumber}
-                  </span>
-                  <span className="text-xs text-gray-400 mt-0.5">
-                    {weekday}
-                  </span>
-                  {mood && mood !== "noemotions" && (
-                    <img
-                      src={moodImages[mood]}
-                      alt={mood}
-                      className="w-8 h-8 mt-1"
-                    />
-                  )}
-                  {hasEntry && !mood && (
-                    <div className="w-8 h-8 mt-1 flex items-center justify-center">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    </div>
-                  )}
+                  <ChevronLeft className="w-5 h-5" />
                 </button>
-              );
-            })}
-          </div>
-          <div className="mt-4 text-sm text-gray-500 text-center">
-            * Кликните на день, чтобы увидеть запись за эту дату
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Распределение настроений
-            </h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={moodStats}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) =>
-                    `${name}: ${(percent * 100).toFixed(0)}%`
-                  }
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
+                <button
+                  onClick={goToToday}
+                  className="px-4 py-2 bg-white rounded-lg shadow hover:bg-gray-50 transition text-sm font-medium"
                 >
-                  {moodStats.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+                  Сегодня
+                </button>
+                <button
+                  onClick={nextMonth}
+                  className="p-2 bg-white rounded-lg shadow hover:bg-gray-50 transition"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Общая статистика
-            </h2>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center p-3 bg-pink-50 rounded-lg">
-                <span className="text-gray-600">Всего записей:</span>
-                <span className="text-2xl font-bold text-pink-600">
-                  {totalEntries}
-                </span>
+            {/* Календарь настроений */}
+            <div className="flex flex-col items-center w-full">
+              <div className="bg-white rounded-lg w-[500px] shadow-md p-6 mb-8">
+                <div className="grid grid-cols-7  gap-2 mb-2">
+                  {weekDays.map((day) => (
+                    <div
+                      key={day}
+                      className="text-center w-[58px] h-[58px] font-medium text-gray-600 py-2"
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-2">
+                  {calendar.map((day, idx) => {
+                    if (day.isEmpty) {
+                      return (
+                        <div
+                          key={idx}
+                          className="aspect-square w-[60px] h-[60px] rounded-lg "
+                        />
+                      );
+                    }
+
+                    const dayNumber = day.date.getUTCDate();
+                    const weekday = getRussianWeekday(day.date);
+                    const hasEntry = day.entry !== null;
+                    const mood = day.mood;
+                    const isToday =
+                      formatUTCDate(day.date) === formatUTCDate(new Date());
+
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => handleDateClick(day.date)}
+                        className={`aspect-square rounded-lg w-[58px] h-[58px] flex flex-col items-center justify-center p-0 transition hover:scale-105 ${
+                          hasEntry
+                            ? "bg-pink-100 hover:bg-pink-200"
+                            : " hover:bg-pink-100"
+                        } ${isToday ? "ring-2 ring-pink-300" : ""}`}
+                      >
+                        {!mood && (
+                          <span
+                            className={`text-sm font-medium ${hasEntry ? "text-pink-700" : "text-gray-700"}`}
+                          >
+                            {dayNumber}
+                          </span>
+                        )}
+                        {mood && (
+                          <img
+                            src={moodImages[mood]}
+                            alt={mood}
+                            className="w-9 h-9 mt-1"
+                          />
+                        )}
+                        {hasEntry && !mood && (
+                          <div className="w-8 h-8 mt-1 flex items-center justify-center">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4 text-sm text-gray-500 text-center">
+                  * Кликните на день, чтобы увидеть запись за эту дату
+                </div>
               </div>
-              <div className="flex justify-between items-center p-3 bg-pink-50 rounded-lg">
-                <span className="text-gray-600">Всего символов:</span>
-                <span className="text-2xl font-bold text-pink-600">
-                  {totalChars.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-pink-50 rounded-lg">
-                <span className="text-gray-600">Средняя длина записи:</span>
-                <span className="text-2xl font-bold text-pink-600">
-                  {totalEntries ? Math.round(totalChars / totalEntries) : 0}
-                </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-8 mb-8  lg:ml-[30px] lg:w-full">
+            <div className="bg-white rounded-lg w-full shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                Распределение настроений
+              </h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={moodStats}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) =>
+                      `${name}: ${(percent * 100).toFixed(0)}%`
+                    }
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {moodStats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                Общая статистика
+              </h2>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 bg-pink-50 rounded-lg">
+                  <span className="text-gray-600">Всего записей:</span>
+                  <span className="text-2xl font-bold text-pink-600">
+                    {totalEntries}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-pink-50 rounded-lg">
+                  <span className="text-gray-600">Всего символов:</span>
+                  <span className="text-2xl font-bold text-pink-600">
+                    {totalChars.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-pink-50 rounded-lg">
+                  <span className="text-gray-600">Средняя длина записи:</span>
+                  <span className="text-2xl font-bold text-pink-600">
+                    {totalEntries ? Math.round(totalChars / totalEntries) : 0}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
         </div>
-
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            Настроения по дням недели
-          </h2>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={weekdayStats}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              {Object.entries(moodNames).map(([moodKey, moodName]) => (
-                <Bar
-                  key={moodKey}
-                  dataKey={moodName}
-                  stackId="a"
-                  fill={getMoodColor(moodKey)}
-                />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="flex flex-col">
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Настроения по дням недели
+            </h2>
+            <ResponsiveContainer width="100%" height={400}>
+              <BarChart data={weekdayStats}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                {Object.entries(moodNames).map(([moodKey, moodName]) => (
+                  <Bar
+                    key={moodKey}
+                    dataKey={moodName}
+                    stackId="a"
+                    fill={getMoodColor(moodKey)}
+                  />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
             Активность по дням недели

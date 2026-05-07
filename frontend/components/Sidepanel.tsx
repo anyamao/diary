@@ -14,10 +14,12 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { useAuthStore } from "@/store/authStore";
+import { useSidepanelStore } from "@/store/sidepanelStore";
 import { useRouter, usePathname } from "next/navigation";
 import { eventBus } from "@/lib/eventBus";
 import { showConfirm } from "@/components/ConfirmDialog";
 import { showToast } from "@/components/Toast";
+
 interface DiaryEntry {
   id: string;
   title: string;
@@ -29,11 +31,24 @@ interface DiaryEntry {
 export default function Sidepanel() {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isOpen, setIsOpen] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const { isAuthenticated, checkAuth } = useAuthStore();
+  const { isOpen, close, open } = useSidepanelStore();
   const router = useRouter();
   const pathname = usePathname();
+
+  // Проверяем ширину экрана
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint в Tailwind это 768px
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     checkAuth();
@@ -140,6 +155,11 @@ export default function Sidepanel() {
   const favoriteEntries = entries.filter((entry) => entry.is_favorite);
   const normalEntries = entries.filter((entry) => !entry.is_favorite);
 
+  // На мобильных устройствах ничего не возвращаем
+  if (isMobile) {
+    return null;
+  }
+
   if (!isAuthenticated) {
     return null;
   }
@@ -148,7 +168,7 @@ export default function Sidepanel() {
     return (
       <div className="fixed left-0 top-[120px] z-20">
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={open}
           className="bg-pink-500 text-white p-2 rounded-r-lg hover:bg-pink-600 transition shadow-md"
         >
           <PanelRight className="w-4 h-4" />
@@ -158,7 +178,7 @@ export default function Sidepanel() {
   }
 
   return (
-    <div className="h-full  w-[280px] bg-white border-r-[1px] border-pink-200 overflow-y-auto shadow-sm">
+    <div className="h-full w-[280px] bg-white border-r-[1px] border-pink-200 overflow-y-auto shadow-sm">
       <div className="flex flex-col p-4">
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-pink-200">
           <p className="text-pink-900 font-bold text-sm">Мой дневник</p>
@@ -171,7 +191,7 @@ export default function Sidepanel() {
               <Plus className="w-4 h-4 text-pink-600" />
             </button>
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={close}
               className="p-1 hover:bg-pink-100 rounded transition"
               title="Свернуть"
             >
@@ -257,6 +277,7 @@ export default function Sidepanel() {
   );
 }
 
+// EntryItem component remains the same
 function EntryItem({
   entry,
   pathname,
@@ -313,7 +334,7 @@ function EntryItem({
             e.stopPropagation();
             setOpenMenuId(isMenuOpen ? null : entry.id);
           }}
-          className={`p-1 ${entry.is_favorite ? "hover:bg-pink-200" : "hover:bg-pink-100"}   rounded transition`}
+          className={`p-1 ${entry.is_favorite ? "hover:bg-pink-200" : "hover:bg-pink-100"} rounded transition`}
           title="Меню"
         >
           <MoreHorizontal className="w-4 h-4 text-gray-500" />

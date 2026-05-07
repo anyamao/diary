@@ -271,13 +271,21 @@ export default function PersonalDiaryPage() {
   }
 
   return (
-    <div className="p-8 w-full h-full flex-1 bg-pink-50 flex justify-center min-h-screen">
+    <div className="p-3 pt-8 sm:p-8 w-full h-full flex-1 bg-pink-50 flex justify-center min-h-screen">
       <div className="flex flex-col w-full h-full max-w-[1000px]">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Мой дневник</h1>
-          <p className="text-gray-600 mt-2">
-            С возвращением, {user?.full_name || user?.username}!
-          </p>
+          <div className="flex flex-row w-full justify-between items-center">
+            <p className="text-gray-600 mt-2">
+              С возвращением, {user?.full_name || user?.username}!
+            </p>
+            <Link
+              href="/personal/diary/new"
+              className="bg-pink-500 text-white px-6 py-2 rounded-lg hover:bg-pink-600 transition inline-block"
+            >
+              Создать новую запись
+            </Link>
+          </div>
         </div>
 
         <div className="mb-6 space-y-3">

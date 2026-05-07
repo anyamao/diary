@@ -5,7 +5,18 @@ import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Pin, PinOff, Trash2, Edit, Plus, X } from "lucide-react";
+import MarkdownPreview from "@/components/MarkdownPreview";
+import {
+  Search,
+  Bookmark,
+  Trash2,
+  Edit,
+  Plus,
+  X,
+  BookmarkOff,
+} from "lucide-react";
+import { showToast } from "@/components/Toast";
+import { showConfirm } from "@/components/ConfirmDialog";
 
 interface BusinessNote {
   id: string;
@@ -25,6 +36,7 @@ export default function BusinessNotesPage() {
   const [selectedTag, setSelectedTag] = useState<string>("");
   const [allTags, setAllTags] = useState<string[]>([]);
   const [showTagFilter, setShowTagFilter] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { isAuthenticated, isLoading } = useAuthStore();
   const router = useRouter();
 
@@ -49,6 +61,7 @@ export default function BusinessNotesPage() {
       setNotes(response.data);
     } catch (error) {
       console.error("Failed to fetch notes:", error);
+      showToast("Не удалось загрузить заметки", "error");
     } finally {
       setLoading(false);
     }
@@ -66,7 +79,6 @@ export default function BusinessNotesPage() {
   const filterNotes = () => {
     let filtered = [...notes];
 
-    // Поиск по заголовку и содержанию
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
@@ -76,7 +88,6 @@ export default function BusinessNotesPage() {
       );
     }
 
-    // Фильтр по тегу
     if (selectedTag) {
       filtered = filtered.filter(
         (note) =>
@@ -88,7 +99,6 @@ export default function BusinessNotesPage() {
       );
     }
 
-    // Сначала закрепленные, потом по дате обновления
     filtered.sort((a, b) => {
       if (a.is_pinned !== b.is_pinned) {
         return a.is_pinned ? -1 : 1;
@@ -102,29 +112,58 @@ export default function BusinessNotesPage() {
   };
 
   const deleteNote = async (id: string) => {
-    if (confirm("Удалить эту заметку?")) {
+    const confirmed = await showConfirm(
+      "Удалить заметку?",
+      "Вы уверены, что хотите удалить эту заметку? Это действие нельзя отменить.",
+      "danger",
+    );
+
+    if (confirmed) {
+      setIsDeleting(true);
       try {
         await api.delete(`/business-notes/${id}`);
-        fetchNotes();
+        await fetchNotes();
+        showToast("Заметка успешно удалена", "success");
       } catch (error) {
         console.error("Failed to delete note:", error);
-        alert("Ошибка удаления");
+        showToast("Не удалось удалить заметку", "error");
+      } finally {
+        setIsDeleting(false);
       }
     }
   };
 
-  const togglePin = async (id: string) => {
+  const togglePin = async (id: string, isPinned: boolean) => {
     try {
       await api.patch(`/business-notes/${id}/pin`);
-      fetchNotes();
+      await fetchNotes();
+      showToast(
+        isPinned ? "Заметка откреплена" : "Заметка закреплена",
+        "success",
+      );
     } catch (error) {
       console.error("Failed to toggle pin:", error);
+      showToast("Не удалось изменить статус закрепления", "error");
     }
   };
 
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedTag("");
+  };
+
+  const getPreviewText = (content: string) => {
+    let text = content
+      .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
+      .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+      .replace(/`(.*?)`/g, "$1")
+      .replace(/#{1,6}\s/g, "")
+      .replace(/\n/g, " ")
+      .slice(0, 150);
+
+    if (content.length > 150) text += "...";
+    return text || "Нет содержимого";
   };
 
   if (isLoading || loading) {
@@ -136,11 +175,11 @@ export default function BusinessNotesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-pink-50 p-8">
+      <div className="max-w-[1100px] mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            <h1 className="text-3xl font-bold text-pink-950 mb-2">
               Бизнес-идеи и заметки
             </h1>
             <p className="text-gray-600">
@@ -149,7 +188,7 @@ export default function BusinessNotesPage() {
           </div>
           <Link
             href="/business/notes/new"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+            className="bg-pink-500 text-white px-4 py-2 rounded-lg hover:bg-pink-600 transition flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Новая заметка
@@ -157,7 +196,7 @@ export default function BusinessNotesPage() {
         </div>
 
         {/* Панель поиска и фильтров */}
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+        <div className="mb-6">
           <div className="flex gap-3">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -166,7 +205,7 @@ export default function BusinessNotesPage() {
                 placeholder="Поиск по заголовку или содержанию..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-pink-500"
               />
             </div>
             <div className="relative">
@@ -174,7 +213,7 @@ export default function BusinessNotesPage() {
                 onClick={() => setShowTagFilter(!showTagFilter)}
                 className={`px-4 py-2 rounded-lg border transition ${
                   selectedTag
-                    ? "bg-blue-600 text-white border-blue-600"
+                    ? "bg-pink-600 text-white border-pink-600"
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
@@ -234,84 +273,81 @@ export default function BusinessNotesPage() {
         </div>
 
         {/* Список заметок */}
-        <div className="grid gap-4">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredNotes.map((note) => (
             <div
               key={note.id}
-              className={`bg-white rounded-lg shadow-md p-6 transition hover:shadow-lg ${
-                note.is_pinned ? "border-l-4 border-yellow-400" : ""
-              }`}
+              className={`bg-white rounded-lg border-l-[4px]  hover:border-b-[2px] border-b-pink-400 shadow-md hover:shadow-lg transition cursor-pointer flex flex-col h-full border-pink-400 
+              
+              `}
+              onClick={() => router.push(`/business/notes/${note.id}`)}
             >
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    {note.is_pinned && (
-                      <Pin className="w-4 h-4 text-yellow-500" />
+              <div className="p-6 flex flex-col h-full">
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1">
+                    <h2 className="text-xl max-w-[240px] font-semibold text-gray-800 hover:text-pink-600 line-clamp-1">
+                      {note.title}
+                    </h2>
+                    {note.tags && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {note.tags.split(",").map((tag, i) => (
+                          <span
+                            key={i}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTag(tag.trim());
+                            }}
+                            className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded cursor-pointer hover:bg-gray-200"
+                          >
+                            #{tag.trim()}
+                          </span>
+                        ))}
+                      </div>
                     )}
-                    <Link href={`/business/notes/${note.id}`}>
-                      <h2 className="text-xl font-semibold text-gray-800 hover:text-blue-600">
-                        {note.title}
-                      </h2>
-                    </Link>
                   </div>
-                  {note.tags && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {note.tags.split(",").map((tag, i) => (
-                        <span
-                          key={i}
-                          onClick={() => setSelectedTag(tag.trim())}
-                          className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded cursor-pointer hover:bg-gray-200"
-                        >
-                          #{tag.trim()}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => togglePin(note.id)}
-                    className="text-gray-400 hover:text-yellow-500 transition"
-                    title={note.is_pinned ? "Открепить" : "Закрепить"}
-                  >
-                    {note.is_pinned ? (
-                      <Pin className="w-4 h-4" />
-                    ) : (
-                      <PinOff className="w-4 h-4" />
-                    )}
-                  </button>
-                  <Link href={`/business/notes/${note.id}`}>
-                    <button className="text-blue-500 hover:text-blue-700 transition">
-                      <Edit className="w-4 h-4" />
+                  <div className="flex gap-2 ml-2 flex-shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNote(note.id);
+                      }}
+                      disabled={isDeleting}
+                      className="text-red-500 p-1 hover:text-red-600 transition hover:bg-pink-100 rounded-lg disabled:opacity-50"
+                    >
+                      <Trash2 className="w-5 h-5" />
                     </button>
-                  </Link>
-                  <button
-                    onClick={() => deleteNote(note.id)}
-                    className="text-red-500 hover:text-red-700 transition"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        togglePin(note.id, note.is_pinned);
+                      }}
+                      className="text-gray-400 hover:text-yellow-500 transition"
+                      title={note.is_pinned ? "Открепить" : "Закрепить"}
+                    >
+                      {note.is_pinned ? (
+                        <Bookmark className="w-6 h-6 text-yellow-500 fill-yellow-500" />
+                      ) : (
+                        <Bookmark className="w-6 h-6 hover:text-yellow-500" />
+                      )}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <Link href={`/business/notes/${note.id}`}>
-                <div className="text-gray-600 line-clamp-3 prose prose-sm max-w-none">
-                  <div
-                    dangerouslySetInnerHTML={{
-                      __html: note.content || "Нет содержимого",
-                    }}
-                  />
+                <div className="mb-2 flex-1">
+                  <div className="text-gray-600 line-clamp-3 prose prose-sm max-w-none">
+                    <MarkdownPreview content={getPreviewText(note.content)} />
+                  </div>
                 </div>
-              </Link>
 
-              <div className="text-xs text-gray-400 mt-3">
-                Обновлено: {new Date(note.updated_at).toLocaleString()}
+                <div className="text-xs text-gray-400 mt-3">
+                  Обновлено: {new Date(note.updated_at).toLocaleString()}
+                </div>
               </div>
             </div>
           ))}
 
           {filteredNotes.length === 0 && (
-            <div className="text-center py-16 bg-white rounded-lg shadow-md">
+            <div className="col-span-full text-center py-16 bg-white rounded-lg shadow-md">
               <div className="text-6xl mb-4">💡</div>
               <h2 className="text-2xl text-gray-600 mb-4">
                 {searchQuery || selectedTag
@@ -326,14 +362,14 @@ export default function BusinessNotesPage() {
               {searchQuery || selectedTag ? (
                 <button
                   onClick={clearFilters}
-                  className="text-blue-600 hover:text-blue-700"
+                  className="text-pink-600 hover:text-pink-700"
                 >
                   Сбросить фильтры
                 </button>
               ) : (
                 <Link
                   href="/business/notes/new"
-                  className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
+                  className="inline-block bg-pink-600 text-white px-6 py-2 rounded-lg hover:bg-pink-700 transition"
                 >
                   Создать первую заметку
                 </Link>
