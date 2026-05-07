@@ -11,6 +11,24 @@ import EmotionPicker from "@/components/EmotionPicker";
 import DatePicker from "@/components/DatePicker";
 import SleepInDiary from "@/components/SleepInDiary";
 import { eventBus } from "@/lib/eventBus";
+import { showToast } from "@/components/Toast";
+
+// Функция для получения даты в UTC без смещения
+const getUTCDate = () => {
+  const now = new Date();
+  return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+};
+
+// Форматирование даты для отображения
+const formatDisplayDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return {
+    day: date.getUTCDate(),
+    month: date.toLocaleString("ru-RU", { month: "long", timeZone: "UTC" }),
+    year: date.getUTCFullYear(),
+  };
+};
+
 export default function NewEntryPage() {
   const [formData, setFormData] = useState({
     title: "",
@@ -18,7 +36,7 @@ export default function NewEntryPage() {
     mood: "noemotions",
     tags: "",
     is_favorite: false,
-    created_at: new Date().toISOString(),
+    created_at: getUTCDate().toISOString(),
   });
   const [saving, setSaving] = useState(false);
   const [showEmotionPicker, setShowEmotionPicker] = useState(false);
@@ -49,6 +67,8 @@ export default function NewEntryPage() {
 
       console.log("Sending entry:", entryData);
       await api.post("/diary/entries", entryData);
+      eventBus.emit("diary-entry-created");
+      showToast("Запись успешно создана!", "success");
       router.push("/personal/diary");
     } catch (error: any) {
       console.error("Failed to save entry:", error);
@@ -57,7 +77,7 @@ export default function NewEntryPage() {
         error.response?.data?.detail ||
         "Не удалось сохранить запись";
       setError(errorMsg);
-      alert(errorMsg);
+      showToast(errorMsg, "error");
     } finally {
       setSaving(false);
     }
@@ -69,12 +89,14 @@ export default function NewEntryPage() {
       form.dispatchEvent(
         new Event("submit", { cancelable: true, bubbles: true }),
       );
-      eventBus.emit("diary-entry-created");
     }
   };
 
   const handleDateChange = (newDate: Date) => {
-    setFormData({ ...formData, created_at: newDate.toISOString() });
+    const utcDate = new Date(
+      Date.UTC(newDate.getFullYear(), newDate.getMonth(), newDate.getDate()),
+    );
+    setFormData({ ...formData, created_at: utcDate.toISOString() });
     setShowDatePicker(false);
   };
 
@@ -87,21 +109,12 @@ export default function NewEntryPage() {
     return `/${emotion}.png`;
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return {
-      day: date.getDate(),
-      month: date.toLocaleString("ru-RU", { month: "long" }),
-      year: date.getFullYear(),
-    };
-  };
-
-  const date = formatDate(formData.created_at);
+  const date = formatDisplayDate(formData.created_at);
   const selectedDate = formData.created_at.split("T")[0];
 
   return (
-    <div className="h-full w-full min-h-screen bg-pink-50 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
+    <div className="h-full w-full min-h-screen bg-pink-50 py-8 px-[20px] flex justify-center">
+      <div className="w-full h-full max-w-[1000px]">
         <div className="flex flex-row justify-between items-center text-pink-900">
           <Link href="/personal/diary" className="text-pink-900">
             <ArrowLeft className="w-5 h-5" />
@@ -169,8 +182,7 @@ export default function NewEntryPage() {
               </button>
             </div>
 
-            {/* Компонент сна */}
-            <SleepInDiary date={selectedDate} onSleepSaved={() => {}} />
+            <SleepInDiary date={selectedDate} />
 
             <div>
               <input

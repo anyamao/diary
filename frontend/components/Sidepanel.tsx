@@ -16,7 +16,8 @@ import api from "@/lib/axios";
 import { useAuthStore } from "@/store/authStore";
 import { useRouter, usePathname } from "next/navigation";
 import { eventBus } from "@/lib/eventBus";
-
+import { showConfirm } from "@/components/ConfirmDialog";
+import { showToast } from "@/components/Toast";
 interface DiaryEntry {
   id: string;
   title: string;
@@ -75,7 +76,12 @@ export default function Sidepanel() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Удалить эту запись?")) {
+    const confirmed = await showConfirm(
+      "Удалить запись?",
+      "Вы уверены, что хотите удалить эту запись?",
+      "danger",
+    );
+    if (confirmed) {
       try {
         await api.delete(`/diary/entries/${id}`);
         setEntries(entries.filter((entry) => entry.id !== id));
@@ -83,10 +89,11 @@ export default function Sidepanel() {
         if (pathname === `/personal/diary/${id}/edit`) {
           router.push("/personal/diary");
         }
+        showToast("Удалено успешно!", "success");
         setOpenMenuId(null);
       } catch (error) {
         console.error("Failed to delete:", error);
-        alert("Не удалось удалить запись");
+        showToast("Не удалось удалить", "error");
       }
     }
   };
@@ -151,7 +158,7 @@ export default function Sidepanel() {
   }
 
   return (
-    <div className="h-full min-h-screen w-[280px] bg-white border-r-[1px] border-pink-200 overflow-y-auto shadow-sm">
+    <div className="h-full  w-[280px] bg-white border-r-[1px] border-pink-200 overflow-y-auto shadow-sm">
       <div className="flex flex-col p-4">
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-pink-200">
           <p className="text-pink-900 font-bold text-sm">Мой дневник</p>
@@ -306,7 +313,7 @@ function EntryItem({
             e.stopPropagation();
             setOpenMenuId(isMenuOpen ? null : entry.id);
           }}
-          className="p-1 hover:bg-pink-100 rounded transition"
+          className={`p-1 ${entry.is_favorite ? "hover:bg-pink-200" : "hover:bg-pink-100"}   rounded transition`}
           title="Меню"
         >
           <MoreHorizontal className="w-4 h-4 text-gray-500" />

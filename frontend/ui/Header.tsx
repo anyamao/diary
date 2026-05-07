@@ -33,7 +33,7 @@ function Header() {
 
   return (
     <div className="w-full flex flex-col">
-      <div className="w-full bg-white shadow-xs border-b-[1px] border-pink-200 fixed p-[20px] top-0 left-0 min-h-[60px] max-h-[60px] flex items-center justify-between z-10">
+      <div className="w-full bg-white shadow-xs border-b-[1px] border-pink-200 fixed p-[20px] top-0 left-0 min-h-[60px] max-h-[60px] flex items-center justify-between z-40">
         <Link
           href="/"
           className="text-lg text-pink-950 font-bold cursor-pointer hover:text-pink-700"
@@ -150,7 +150,7 @@ function Header() {
 
       {/* Only show the second navigation bar on /personal routes */}
       {pathname.startsWith("/personal") && (
-        <div className="w-full bg-white border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-9">
+        <div className="w-full  border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-40">
           <div className="flex flex-row font-semibold text-pink-950 text-xs items-center justify-between">
             <Star className="text-yellow-600 h-4 w-4 -rotate-90" />
             <div className="flex items-center flex-row mx-[10px] justify-center">
@@ -193,7 +193,7 @@ function Header() {
       )}
 
       {pathname.startsWith("/business") && (
-        <div className="w-full bg-white border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-9">
+        <div className="w-full bg-white border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-40">
           <div className="flex flex-row font-semibold text-pink-950 text-xs items-center justify-between">
             <Star className="text-yellow-600 h-4 w-4 -rotate-90" />
             <div className="flex items-center flex-row mx-[10px] justify-center">

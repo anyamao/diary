@@ -8,6 +8,8 @@ import { useAuthStore } from "@/store/authStore";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import MiniTimer from "@/components/MiniTimer";
+import ToastContainer from "@/components/Toast";
+import { ConfirmDialogContainer } from "@/components/ConfirmDialog";
 const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
@@ -29,10 +31,16 @@ export default function RootLayout({
       <body className={inter.className}>
         {!isAuthPage && <Header />}
         {!isAuthPage && <MiniTimer />}
+        {!isAuthPage && <ToastContainer />}
+        {!isAuthPage && <ConfirmDialogContainer />}
         <div className={!isAuthPage ? "mt-[100px]" : ""}>
           {showSidepanel ? (
-            <div className="flex">
-              <Sidepanel />
+            <div className="flex  flex-row  ">
+              <div
+                className={`flex ${showSidepanel ? "  w-[280px]" : " bg-red-500 w-[30px]"} bg-pink-50 min-h-full`}
+              >
+                <Sidepanel />
+              </div>
               <div className="flex-1 ">{children}</div>
             </div>
           ) : (

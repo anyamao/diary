@@ -1,4 +1,5 @@
 "use client";
+
 import { eventBus } from "@/lib/eventBus";
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
@@ -20,6 +21,7 @@ import QuestionsModal from "@/components/QuestionsModal";
 import EntryInfoModal from "@/components/EntryInfoModal";
 import DatePicker from "@/components/DatePicker";
 import SleepInDiary from "@/components/SleepInDiary";
+import { showToast } from "@/components/Toast";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -46,7 +48,6 @@ export default function EditEntryPage({ params }: PageProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
 
-  // Получаем дату для компонента сна
   const selectedDate = formData.created_at
     ? formData.created_at.split("T")[0]
     : new Date().toISOString().split("T")[0];
@@ -67,6 +68,7 @@ export default function EditEntryPage({ params }: PageProps) {
       setFormData(response.data);
     } catch (error) {
       console.error("Failed to fetch entry:", error);
+      showToast("Не удалось загрузить запись", "error");
       router.push("/personal/diary");
     } finally {
       setLoading(false);
@@ -79,10 +81,12 @@ export default function EditEntryPage({ params }: PageProps) {
 
     try {
       await api.put(`/diary/entries/${entryId}`, formData);
+      eventBus.emit("diary-entry-updated");
+      showToast("Запись успешно обновлена!", "success");
       router.push("/personal/diary");
     } catch (error) {
       console.error("Failed to update entry:", error);
-      alert("Не удалось обновить запись");
+      showToast("Не удалось обновить запись", "error");
     } finally {
       setSaving(false);
     }
@@ -137,7 +141,7 @@ export default function EditEntryPage({ params }: PageProps) {
       </div>
     );
   }
-  console.log("Edit page rendered, selectedDate:", selectedDate);
+
   return (
     <div className="h-full w-full min-h-[1200px] bg-pink-50 py-8">
       <div className="container mx-auto px-4 max-w-4xl">
@@ -212,7 +216,6 @@ export default function EditEntryPage({ params }: PageProps) {
               </button>
             </div>
 
-            {/* Компонент сна */}
             <SleepInDiary date={selectedDate} />
 
             <div>

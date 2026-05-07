@@ -17,6 +17,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface DiaryEntry {
   id: string;
@@ -51,11 +52,39 @@ const moodNames: { [key: string]: string } = {
 };
 
 const weekDays = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+const monthNames = [
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
+];
+
+// Функция для форматирования даты в YYYY-MM-DD (UTC)
+const formatUTCDate = (date: Date) => {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+// Получение дня недели из UTC даты
+const getRussianWeekday = (date: Date) => {
+  const day = date.getUTCDay();
+  return weekDays[day];
+};
 
 export default function MoodTrackerPage() {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterType, setFilterType] = useState<"all" | "week" | "month">("all");
+  const [currentDate, setCurrentDate] = useState(new Date());
   const { isAuthenticated, isLoading } = useAuthStore();
   const router = useRouter();
 
@@ -80,34 +109,68 @@ export default function MoodTrackerPage() {
     }
   };
 
-  const getStartDate = () => {
-    if (entries.length === 0) return new Date();
-    const firstEntry = entries.reduce((oldest, entry) =>
-      new Date(entry.created_at) < new Date(oldest.created_at) ? entry : oldest,
-    );
-    return new Date(firstEntry.created_at);
+  const prevMonth = () => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(currentDate.getMonth() - 1);
+    setCurrentDate(newDate);
   };
 
-  const generateCalendar = () => {
-    const startDate = getStartDate();
-    const endDate = new Date();
-    const calendar: {
-      date: Date;
-      entry: DiaryEntry | null;
-      mood: string | null;
-    }[] = [];
+  const nextMonth = () => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(currentDate.getMonth() + 1);
+    setCurrentDate(newDate);
+  };
 
-    let currentDate = new Date(startDate);
-    while (currentDate <= endDate) {
-      const dateStr = currentDate.toISOString().split("T")[0];
-      const entry = entries.find((e) => e.created_at.split("T")[0] === dateStr);
-      calendar.push({
-        date: new Date(currentDate),
-        entry: entry || null,
-        mood: entry?.mood || null,
-      });
-      currentDate.setDate(currentDate.getDate() + 1);
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth();
+    return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  };
+
+  const getFirstDayOfMonth = (date: Date) => {
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth();
+    const firstDay = new Date(Date.UTC(year, month, 1));
+    return firstDay.getUTCDay();
+  };
+
+  const generateMonthCalendar = () => {
+    const year = currentDate.getUTCFullYear();
+    const month = currentDate.getUTCMonth();
+    const daysInMonth = getDaysInMonth(currentDate);
+    const firstDay = getFirstDayOfMonth(currentDate);
+
+    // Создаем Map для быстрого поиска записей по дате
+    const entriesByDate = new Map();
+    entries.forEach((entry) => {
+      const entryDate = new Date(entry.created_at);
+      const dateKey = formatUTCDate(entryDate);
+      entriesByDate.set(dateKey, entry);
+    });
+
+    const calendar = [];
+    // Добавляем пустые дни в начале месяца
+    for (let i = 0; i < firstDay; i++) {
+      calendar.push({ date: null, entry: null, mood: null, isEmpty: true });
     }
+
+    // Добавляем дни месяца
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(Date.UTC(year, month, day));
+      const dateKey = formatUTCDate(date);
+      const entry = entriesByDate.get(dateKey) || null;
+      calendar.push({
+        date: date,
+        entry: entry,
+        mood: entry?.mood || null,
+        isEmpty: false,
+      });
+    }
+
     return calendar;
   };
 
@@ -128,7 +191,7 @@ export default function MoodTrackerPage() {
     const stats: { [key: string]: { [key: string]: number } } = {};
     entries.forEach((entry) => {
       const date = new Date(entry.created_at);
-      const weekday = weekDays[date.getDay()];
+      const weekday = getRussianWeekday(date);
       const mood = entry.mood || "noemotions";
 
       if (!stats[weekday]) stats[weekday] = {};
@@ -150,7 +213,7 @@ export default function MoodTrackerPage() {
     const stats: { [key: string]: { totalChars: number; count: number } } = {};
     entries.forEach((entry) => {
       const date = new Date(entry.created_at);
-      const weekday = weekDays[date.getDay()];
+      const weekday = getRussianWeekday(date);
       const charCount =
         (entry.title?.length || 0) + (entry.content?.length || 0);
 
@@ -182,7 +245,8 @@ export default function MoodTrackerPage() {
   };
 
   const handleDateClick = (date: Date) => {
-    const dateStr = date.toISOString().split("T")[0];
+    if (!date) return;
+    const dateStr = formatUTCDate(date);
     router.push(`/personal/diary?date=${dateStr}`);
   };
 
@@ -194,7 +258,7 @@ export default function MoodTrackerPage() {
     );
   }
 
-  const calendar = generateCalendar();
+  const calendar = generateMonthCalendar();
   const moodStats = getMoodStats();
   const weekdayStats = getWeekdayStats();
   const charStats = getCharStats();
@@ -204,8 +268,11 @@ export default function MoodTrackerPage() {
     0,
   );
 
+  const currentYear = currentDate.getUTCFullYear();
+  const currentMonthName = monthNames[currentDate.getUTCMonth()];
+
   return (
-    <div className="min-h-screen bg-pink-50 p-8">
+    <div className="min-h-screen bg-pink-100 p-8">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
           Трекер настроения
@@ -214,32 +281,35 @@ export default function MoodTrackerPage() {
           Отслеживай свои эмоции и анализируй статистику
         </p>
 
-        <div className="flex gap-3 mb-6">
-          <button
-            onClick={() => setFilterType("all")}
-            className={`px-4 py-2 rounded-lg transition ${filterType === "all" ? "bg-pink-500 text-white" : "bg-white text-gray-700 hover:bg-pink-100"}`}
-          >
-            За все время
-          </button>
-          <button
-            onClick={() => setFilterType("week")}
-            className={`px-4 py-2 rounded-lg transition ${filterType === "week" ? "bg-pink-500 text-white" : "bg-white text-gray-700 hover:bg-pink-100"}`}
-          >
-            За неделю
-          </button>
-          <button
-            onClick={() => setFilterType("month")}
-            className={`px-4 py-2 rounded-lg transition ${filterType === "month" ? "bg-pink-500 text-white" : "bg-white text-gray-700 hover:bg-pink-100"}`}
-          >
-            За месяц
-          </button>
+        {/* Управление месяцем */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex gap-3">
+            <button
+              onClick={prevMonth}
+              className="p-2 bg-white rounded-lg shadow hover:bg-gray-50 transition"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              onClick={goToToday}
+              className="px-4 py-2 bg-white rounded-lg shadow hover:bg-gray-50 transition text-sm font-medium"
+            >
+              Сегодня
+            </button>
+            <button
+              onClick={nextMonth}
+              className="p-2 bg-white rounded-lg shadow hover:bg-gray-50 transition"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800">
+            {currentMonthName} {currentYear}
+          </h2>
         </div>
 
         {/* Календарь настроений */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            Календарь настроений
-          </h2>
           <div className="grid grid-cols-7 gap-2 mb-2">
             {weekDays.map((day) => (
               <div
@@ -251,24 +321,56 @@ export default function MoodTrackerPage() {
             ))}
           </div>
           <div className="grid grid-cols-7 gap-2">
-            {calendar.map((day, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleDateClick(day.date)}
-                className="aspect-square rounded-lg flex flex-col items-center justify-center p-2 transition hover:scale-105 bg-pink-50 hover:bg-pink-100"
-              >
-                <span className="text-sm font-medium text-gray-700">
-                  {day.date.getDate()}
-                </span>
-                {day.mood && (
-                  <img
-                    src={moodImages[day.mood]}
-                    alt={day.mood}
-                    className="w-10 h-10 mt-1"
+            {calendar.map((day, idx) => {
+              if (day.isEmpty) {
+                return (
+                  <div
+                    key={idx}
+                    className="aspect-square rounded-lg bg-gray-50"
                   />
-                )}
-              </button>
-            ))}
+                );
+              }
+
+              const dayNumber = day.date.getUTCDate();
+              const weekday = getRussianWeekday(day.date);
+              const hasEntry = day.entry !== null;
+              const mood = day.mood;
+              const isToday =
+                formatUTCDate(day.date) === formatUTCDate(new Date());
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => handleDateClick(day.date)}
+                  className={`aspect-square rounded-lg flex flex-col items-center justify-center p-2 transition hover:scale-105 ${
+                    hasEntry
+                      ? "bg-pink-100 hover:bg-pink-200"
+                      : "bg-gray-50 hover:bg-gray-100"
+                  } ${isToday ? "ring-2 ring-blue-500" : ""}`}
+                >
+                  <span
+                    className={`text-sm font-medium ${hasEntry ? "text-pink-700" : "text-gray-700"}`}
+                  >
+                    {dayNumber}
+                  </span>
+                  <span className="text-xs text-gray-400 mt-0.5">
+                    {weekday}
+                  </span>
+                  {mood && mood !== "noemotions" && (
+                    <img
+                      src={moodImages[mood]}
+                      alt={mood}
+                      className="w-8 h-8 mt-1"
+                    />
+                  )}
+                  {hasEntry && !mood && (
+                    <div className="w-8 h-8 mt-1 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
           <div className="mt-4 text-sm text-gray-500 text-center">
             * Кликните на день, чтобы увидеть запись за эту дату

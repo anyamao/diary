@@ -20,6 +20,9 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { showToast } from "@/components/Toast";
+import { showConfirm } from "@/components/ConfirmDialog";
+import { Trash2 } from "lucide-react";
 
 interface SleepRecord {
   id: string;
@@ -39,16 +42,29 @@ interface SleepNote {
   sleep_record_id: string;
 }
 
-const weekDays = [
-  "Воскресенье",
+const weekDays = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+const fullWeekDays = [
   "Понедельник",
   "Вторник",
   "Среда",
   "Четверг",
   "Пятница",
   "Суббота",
+  "Воскресенье",
 ];
-const shortWeekDays = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+
+// Типы снов с PNG иконками
+const dreamTypes = {
+  noemotions: {
+    name: "Без эмоций",
+    image: "/noemotionsdream.png",
+    color: "#9ca3af",
+  },
+  sad: { name: "Грустный", image: "/sad.png", color: "#3b82f6" },
+  romantic: { name: "Любовный", image: "/romantic.png", color: "#ec4899" },
+  nightmare: { name: "Кошмар", image: "/nightmare.png", color: "#ef4444" },
+  good: { name: "Хороший", image: "/gooddream.png", color: "#10b981" },
+};
 
 export default function SleepPage() {
   const [records, setRecords] = useState<SleepRecord[]>([]);
@@ -56,8 +72,8 @@ export default function SleepPage() {
   const [filteredRecords, setFilteredRecords] = useState<SleepRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState<
-    "week" | "month" | "year" | "custom"
-  >("week");
+    "week" | "month" | "all" | "custom"
+  >("all");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [showCustomFilter, setShowCustomFilter] = useState(false);
@@ -88,6 +104,7 @@ export default function SleepPage() {
       setAllNotes(notesRes.data);
     } catch (error) {
       console.error("Failed to fetch data:", error);
+      showToast("Ошибка загрузки данных", "error");
     } finally {
       setLoading(false);
     }
@@ -105,10 +122,6 @@ export default function SleepPage() {
       const monthAgo = new Date();
       monthAgo.setMonth(now.getMonth() - 1);
       filtered = filtered.filter((r) => new Date(r.date) >= monthAgo);
-    } else if (filterType === "year") {
-      const yearAgo = new Date();
-      yearAgo.setFullYear(now.getFullYear() - 1);
-      filtered = filtered.filter((r) => new Date(r.date) >= yearAgo);
     } else if (filterType === "custom" && customStartDate && customEndDate) {
       const start = new Date(customStartDate);
       const end = new Date(customEndDate);
@@ -175,6 +188,85 @@ export default function SleepPage() {
     };
   };
 
+  const getWeekdayTableData = () => {
+    const weekdayStats: {
+      [key: string]: {
+        totalDuration: number;
+        totalBedtime: number;
+        totalWakeTime: number;
+        dreamTypeCount: { [key: string]: number };
+        count: number;
+      };
+    } = {};
+
+    filteredRecords.forEach((record) => {
+      const date = new Date(record.date);
+      const weekday = weekDays[date.getDay() === 0 ? 6 : date.getDay() - 1];
+      const duration = calculateTotalSleep(record.segments);
+      const firstSegment = record.segments[0];
+
+      if (!weekdayStats[weekday]) {
+        weekdayStats[weekday] = {
+          totalDuration: 0,
+          totalBedtime: 0,
+          totalWakeTime: 0,
+          dreamTypeCount: {},
+          count: 0,
+        };
+      }
+
+      weekdayStats[weekday].totalDuration += duration;
+      weekdayStats[weekday].count++;
+
+      if (firstSegment) {
+        let startHour = parseInt(firstSegment.start.split(":")[0]);
+        let endHour = parseInt(firstSegment.end.split(":")[0]);
+        if (endHour <= startHour) endHour += 24;
+        weekdayStats[weekday].totalBedtime += startHour;
+        weekdayStats[weekday].totalWakeTime += endHour;
+      }
+
+      const dayNotes = allNotes.filter((n) => n.sleep_record_id === record.id);
+      dayNotes.forEach((note) => {
+        if (note.dream_type) {
+          weekdayStats[weekday].dreamTypeCount[note.dream_type] =
+            (weekdayStats[weekday].dreamTypeCount[note.dream_type] || 0) + 1;
+        }
+      });
+    });
+
+    return weekDays.map((day) => {
+      const stats = weekdayStats[day];
+      if (!stats) {
+        return {
+          day,
+          avgDuration: 0,
+          avgBedtime: 0,
+          avgWakeTime: 0,
+          mostCommonDream: "Нет данных",
+        };
+      }
+
+      const mostCommonDream = Object.entries(stats.dreamTypeCount).sort(
+        (a, b) => b[1] - a[1],
+      )[0];
+      return {
+        day,
+        avgDuration: (stats.totalDuration / stats.count).toFixed(1),
+        avgBedtime: getNormalizedHour(stats.totalBedtime / stats.count).toFixed(
+          1,
+        ),
+        avgWakeTime: getNormalizedHour(
+          stats.totalWakeTime / stats.count,
+        ).toFixed(1),
+        mostCommonDream: mostCommonDream
+          ? dreamTypes[mostCommonDream[0] as keyof typeof dreamTypes]?.name ||
+            mostCommonDream[0]
+          : "Нет данных",
+      };
+    });
+  };
+
   const getTrendData = () => {
     return filteredRecords
       .map((record) => {
@@ -188,138 +280,30 @@ export default function SleepPage() {
         if (endHour <= startHour) endHour += 24;
 
         const date = new Date(record.date);
+        const duration = calculateTotalSleep(record.segments);
         return {
           date: date.getTime(),
           label: `${date.getDate()}.${date.getMonth() + 1}`,
           bedtime: startHour,
           waketime: getNormalizedHour(endHour),
-          weekday: shortWeekDays[date.getDay()],
+          duration: duration.toFixed(1),
         };
       })
       .sort((a, b) => a.date - b.date);
   };
 
-  const getSleepSchedule = () => {
-    const stats: {
-      [key: string]: { bedtime: number; waketime: number; count: number };
-    } = {};
-
-    filteredRecords.forEach((record) => {
-      const date = new Date(record.date);
-      const weekday = weekDays[date.getDay()];
-      const firstSegment = record.segments?.[0];
-
-      if (firstSegment) {
-        if (!stats[weekday])
-          stats[weekday] = { bedtime: 0, waketime: 0, count: 0 };
-        let startHour = parseInt(firstSegment.start.split(":")[0]);
-        let endHour = parseInt(firstSegment.end.split(":")[0]);
-        if (endHour <= startHour) endHour += 24;
-        stats[weekday].bedtime += startHour;
-        stats[weekday].waketime += endHour;
-        stats[weekday].count++;
-      }
-    });
-
-    return weekDays.map((day) => ({
-      name: day,
-      bedtime: stats[day]
-        ? getNormalizedHour(stats[day].bedtime / stats[day].count).toFixed(1)
-        : 0,
-      waketime: stats[day]
-        ? getNormalizedHour(stats[day].waketime / stats[day].count).toFixed(1)
-        : 0,
-    }));
-  };
-
-  // Функция для отрисовки полосок сна с добавлением иконки типа сна
-  const getDreamTypeForRecord = (recordId: string) => {
-    const notes = allNotes.filter((n) => n.sleep_record_id === recordId);
-    const types = [...new Set(notes.map((n) => n.dream_type).filter((t) => t))];
-    return types;
-  };
-
-  const getDreamTypeEmoji = (type: string | null) => {
-    const types: Record<string, string> = {
-      nightmare: "😨",
-      love: "❤️",
-      sad: "😢",
-      happy: "😊",
-    };
-    return types[type || ""] || "😴";
-  };
-
-  // Статистика по типам снов
   const getDreamTypeStats = () => {
     const stats: Record<string, number> = {};
     allNotes.forEach((note) => {
-      const type = note.dream_type || "normal";
+      const type = note.dream_type || "noemotions";
       stats[type] = (stats[type] || 0) + 1;
     });
 
-    const typeNames: Record<string, string> = {
-      nightmare: "Кошмары",
-      normal: "Обычные",
-      love: "Любовные",
-      sad: "Грустные",
-      happy: "Счастливые",
-    };
-
-    const colors: Record<string, string> = {
-      nightmare: "#ef4444",
-      normal: "#9ca3af",
-      love: "#ec4899",
-      sad: "#3b82f6",
-      happy: "#fbbf24",
-    };
-
     return Object.entries(stats).map(([type, count]) => ({
-      name: typeNames[type] || type,
+      name: dreamTypes[type as keyof typeof dreamTypes]?.name || type,
       value: count,
-      color: colors[type] || "#8884d8",
-    }));
-  };
-
-  // Статистика по тегам
-  const getTagStats = () => {
-    const tagCount: Record<string, number> = {};
-    allNotes.forEach((note) => {
-      note.tags?.forEach((tag) => {
-        tagCount[tag] = (tagCount[tag] || 0) + 1;
-      });
-    });
-    return Object.entries(tagCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([tag, count]) => ({ tag, count }));
-  };
-
-  // Статистика по настроению после пробуждения
-  const getWakeMoodStats = () => {
-    const stats: Record<string, number> = {};
-    allNotes.forEach((note) => {
-      const mood = note.wake_mood || "neutral";
-      stats[mood] = (stats[mood] || 0) + 1;
-    });
-
-    const moodNames: Record<string, string> = {
-      sad: "Грустное",
-      happy: "Веселое",
-      scared: "В ужасе",
-      neutral: "Обычное",
-    };
-
-    const colors: Record<string, string> = {
-      sad: "#3b82f6",
-      happy: "#fbbf24",
-      scared: "#ef4444",
-      neutral: "#9ca3af",
-    };
-
-    return Object.entries(stats).map(([mood, count]) => ({
-      name: moodNames[mood] || mood,
-      value: count,
-      color: colors[mood] || "#8884d8",
+      color: dreamTypes[type as keyof typeof dreamTypes]?.color || "#8884d8",
+      image: dreamTypes[type as keyof typeof dreamTypes]?.image,
     }));
   };
 
@@ -332,47 +316,59 @@ export default function SleepPage() {
       let endTotal = endHour + endMin / 60;
 
       if (endTotal < startTotal) {
-        const leftPercent1 = (startTotal / 24) * 100;
-        const widthPercent1 = ((24 - startTotal) / 24) * 100;
         bars.push(
           <div
             key={`${startTotal}-24`}
-            className="absolute h-full bg-blue-500 rounded-l-full"
+            className="absolute h-full bg-purple-500 rounded-l-full"
             style={{
-              left: `${leftPercent1}%`,
-              width: `${widthPercent1}%`,
+              left: `${(startTotal / 24) * 100}%`,
+              width: `${((24 - startTotal) / 24) * 100}%`,
             }}
           />,
         );
-
-        const leftPercent2 = 0;
-        const widthPercent2 = (endTotal / 24) * 100;
         bars.push(
           <div
             key={`0-${endTotal}`}
-            className="absolute h-full bg-blue-500 rounded-r-full"
+            className="absolute h-full bg-purple-500 rounded-r-full"
             style={{
-              left: `${leftPercent2}%`,
-              width: `${widthPercent2}%`,
+              left: "0%",
+              width: `${(endTotal / 24) * 100}%`,
             }}
           />,
         );
       } else {
-        const leftPercent = (startTotal / 24) * 100;
-        const widthPercent = ((endTotal - startTotal) / 24) * 100;
         bars.push(
           <div
             key={`${startTotal}-${endTotal}`}
-            className="absolute h-full bg-blue-500 rounded-full"
+            className="absolute h-full bg-purple-500 rounded-full"
             style={{
-              left: `${leftPercent}%`,
-              width: `${widthPercent}%`,
+              left: `${(startTotal / 24) * 100}%`,
+              width: `${((endTotal - startTotal) / 24) * 100}%`,
             }}
           />,
         );
       }
     }
     return bars;
+  };
+
+  const handleDeleteRecord = async (recordId: string, date: string) => {
+    const confirmed = await showConfirm(
+      "Удалить запись о сне?",
+      `Вы уверены, что хотите удалить запись о сне за ${date}?`,
+      "danger",
+    );
+
+    if (confirmed) {
+      try {
+        await api.delete(`/sleep/records/${date}`);
+        showToast("Запись о сне успешно удалена!", "success");
+        await fetchAllData();
+      } catch (error) {
+        console.error("Failed to delete record:", error);
+        showToast("Ошибка при удалении записи", "error");
+      }
+    }
   };
 
   if (isLoading || loading) {
@@ -385,68 +381,53 @@ export default function SleepPage() {
 
   const stats = getSleepStats();
   const trendData = getTrendData();
-  const sleepSchedule = getSleepSchedule();
+  const weekdayTableData = getWeekdayTableData();
   const dreamTypeStats = getDreamTypeStats();
-  const tagStats = getTagStats();
-  const wakeMoodStats = getWakeMoodStats();
-  const totalNotes = allNotes.length;
 
   return (
-    <div className="min-h-screen bg-blue-50 p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="h-full w-full min-h-[1200px] flex flex-col items-center bg-pink-50 p-8">
+      <div className="max-w-[1100px]">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            <h1 className="text-3xl font-bold text-pink-950 mb-2">
               Трекер сна
             </h1>
             <p className="text-gray-600">Отслеживай свой сон и улучшай режим</p>
           </div>
           <Link
             href="/personal/sleep/add"
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition"
+            className="bg-pink-500 text-white px-4 py-2 rounded-lg hover:bg-pink-600 transition"
           >
             + Добавить запись
           </Link>
         </div>
 
-        {/* Фильтры */}
         <div className="flex flex-wrap gap-3 mb-6">
-          <button
-            onClick={() => {
-              setFilterType("week");
-              setShowCustomFilter(false);
-            }}
-            className={`px-4 py-2 rounded-lg transition ${filterType === "week" ? "bg-blue-500 text-white" : "bg-white text-gray-700 hover:bg-blue-100"}`}
-          >
-            За неделю
-          </button>
-          <button
-            onClick={() => {
-              setFilterType("month");
-              setShowCustomFilter(false);
-            }}
-            className={`px-4 py-2 rounded-lg transition ${filterType === "month" ? "bg-blue-500 text-white" : "bg-white text-gray-700 hover:bg-blue-100"}`}
-          >
-            За месяц
-          </button>
-          <button
-            onClick={() => {
-              setFilterType("year");
-              setShowCustomFilter(false);
-            }}
-            className={`px-4 py-2 rounded-lg transition ${filterType === "year" ? "bg-blue-500 text-white" : "bg-white text-gray-700 hover:bg-blue-100"}`}
-          >
-            За год
-          </button>
-          <button
-            onClick={() => {
-              setFilterType("custom");
-              setShowCustomFilter(true);
-            }}
-            className={`px-4 py-2 rounded-lg transition ${filterType === "custom" ? "bg-blue-500 text-white" : "bg-white text-gray-700 hover:bg-blue-100"}`}
-          >
-            Свой период
-          </button>
+          {(["all", "week", "month", "custom"] as const).map((type) => (
+            <button
+              key={type}
+              onClick={() => {
+                setFilterType(type);
+                setShowCustomFilter(type === "custom");
+              }}
+              className={`px-4 py-2 rounded-lg transition ${
+                filterType === type
+                  ? "bg-purple-500 text-white hover:bg-purple-600"
+                  : "bg-white text-gray-700 hover:bg-purple-200"
+              }`}
+            >
+              {type === "week"
+                ? "За неделю"
+                : type === "month"
+                  ? "За месяц"
+                  : type === "all"
+                    ? "За все время"
+                    : "Свой период"}
+            </button>
+          ))}
+          <p className="text-sm text-pink-500 ml-2">
+            * Фильтр применяется ко всем графикам и записям
+          </p>
         </div>
 
         {showCustomFilter && (
@@ -476,58 +457,219 @@ export default function SleepPage() {
         <div className="grid md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow-md p-4 text-center">
             <p className="text-gray-500 text-sm">Записей о сне</p>
-            <p className="text-2xl font-bold text-blue-600">
+            <p className="text-2xl font-bold text-pink-600">
               {filteredRecords.length}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-4 text-center">
-            <p className="text-gray-500 text-sm">Заметок о снах</p>
-            <p className="text-2xl font-bold text-blue-600">{totalNotes}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-4 text-center">
             <p className="text-gray-500 text-sm">Средняя продолжительность</p>
-            <p className="text-2xl font-bold text-blue-600">
+            <p className="text-2xl font-bold text-pink-600">
               {stats.avgDuration} ч
             </p>
           </div>
           <div className="bg-white rounded-lg shadow-md p-4 text-center">
-            <p className="text-gray-500 text-sm">Средний отход/пробуждение</p>
-            <p className="text-sm font-bold text-blue-600">
-              {stats.avgBedtime}:00 / {stats.avgWakeTime}:00
+            <p className="text-gray-500 text-sm">Средний отход ко сну</p>
+            <p className="text-2xl font-bold text-pink-600">
+              {stats.avgBedtime}:00
+            </p>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-4 text-center">
+            <p className="text-gray-500 text-sm">Среднее пробуждение</p>
+            <p className="text-2xl font-bold text-pink-600">
+              {stats.avgWakeTime}:00
             </p>
           </div>
         </div>
+        <div className="   mb-[40px] ">
+          <h2 className="text-xl font-semibold text-pink-950 mb-4">
+            Записи о сне
+          </h2>
+          <div className="space-y-4">
+            {filteredRecords.map((record) => {
+              const date = new Date(record.date);
+              const totalHours = calculateTotalSleep(record.segments);
+              const dayNotes = allNotes.filter(
+                (n) => n.sleep_record_id === record.id,
+              );
+              const dreamTypesList = [
+                ...new Set(dayNotes.map((n) => n.dream_type).filter((t) => t)),
+              ];
 
-        {/* График динамики отхода ко сну и пробуждения */}
+              return (
+                <div
+                  key={record.id}
+                  onClick={() =>
+                    router.push(`/personal/sleep/${record.date.split("T")[0]}`)
+                  }
+                  className="block bg-white border border-pink-300 rounded-lg p-4 shadow-sm hover:shadow-md cursor-pointer transition"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-row items-center mb-[5px]">
+                          {dreamTypesList.length > 0 && (
+                            <div className="flex gap-1 mt-1">
+                              {dreamTypesList.map((type) => (
+                                <img
+                                  key={type}
+                                  src={
+                                    dreamTypes[type as keyof typeof dreamTypes]
+                                      ?.image
+                                  }
+                                  alt={type}
+                                  className="w-10 h-10"
+                                  title={
+                                    dreamTypes[type as keyof typeof dreamTypes]
+                                      ?.name
+                                  }
+                                />
+                              ))}
+                            </div>
+                          )}
+
+                          <span className="font-medium ml-[10px] text-pink-800">
+                            {date.getDate()}{" "}
+                            {date.toLocaleString("ru", { month: "long" })}{" "}
+                            {date.getFullYear()}
+                          </span>
+                          <span className="ml-2 text-sm text-gray-500">
+                            (
+                            {
+                              fullWeekDays[
+                                date.getDay() === 0 ? 6 : date.getDay() - 1
+                              ]
+                            }
+                            )
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-pink-900 font-medium ml-4">
+                      {totalHours.toFixed(1)} ч
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteRecord(
+                          record.id,
+                          record.date.split("T")[0],
+                        );
+                      }}
+                      className="text-red-500 ml-[10px] transition p-1 hover:bg-pink-50 rounded"
+                      title="Удалить запись"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="relative h-7 my-[10px] bg-gray-100 rounded-lg overflow-hidden mt-2">
+                    {renderSleepBar(record.segments)}
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>00:00</span>
+                    <span>06:00</span>
+                    <span>12:00</span>
+                    <span>18:00</span>
+                    <span>24:00</span>
+                  </div>
+                </div>
+              );
+            })}
+            {filteredRecords.length === 0 && (
+              <p className="text-center text-gray-500 py-8">
+                Нет записей о сне за выбранный период
+              </p>
+            )}
+          </div>
+        </div>
+        {/* Таблица по дням недели */}
+        <div className="bg-white rounded-lg shadow-md mt-[20px] p-6 mb-8">
+          <h2 className="text-xl font-semibold text-pink-950 mb-4">
+            Статистика по дням недели
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full ">
+              <thead>
+                <tr className=" text-md text-pink-950">
+                  <th className="  px-4 py-2 text-left text-md border-r-[1px] border-pink-200">
+                    День недели
+                  </th>
+                  <th className=" px-4 py-2 text-center   border-r-[1px] border-pink-200">
+                    Средняя продолжительность (ч)
+                  </th>
+                  <th className="mx-[10px] px-4 py-2 text-center  border-r-[1px] border-pink-200">
+                    Среднее время отхода
+                  </th>
+                  <th className=" px-4 py-2 text-center     border-r-[1px] border-pink-200">
+                    Среднее время пробуждения
+                  </th>
+                  <th className="  px-4 py-2 text-center    ">
+                    Самый частый тип сна
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {weekdayTableData.map((row) => (
+                  <tr
+                    key={row.day}
+                    className="hover:bg-pink-50 text-gray-700 hover:text-pink-700"
+                  >
+                    <td className="border-y-[1px] border-r-[1px] border-pink-300 px-4 py-2 font-medium">
+                      {row.day}
+                    </td>
+                    <td className="  border-y-[1px] border-r-[1px] border-pink-300 px-4 py-2 text-center">
+                      {row.avgDuration} ч
+                    </td>
+                    <td className="  border-y-[1px] border-r-[1px] border-pink-300 px-4 py-2 text-center">
+                      {row.avgBedtime}:00
+                    </td>
+                    <td className=" border-y-[1px] border-r-[1px] border-pink-300   px-4 py-2 text-center">
+                      {row.avgWakeTime}:00
+                    </td>
+                    <td className="border-y-[1px] border-l-[1px] border-pink-300  px-4 py-2 text-center">
+                      {row.mostCommonDream}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* График динамики сна */}
+
         {trendData.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Динамика режима сна
+            <h2 className="text-xl font-semibold text-pink-800 mb-4">
+              Динамика сна
             </h2>
-            <div className="text-sm text-gray-500 mb-2">
-              <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-1"></span>{" "}
-              Синий - время отхода ко сну (ч)
-              <span className="inline-block w-3 h-3 bg-red-500 rounded-full ml-3 mr-1"></span>{" "}
-              Красный - время пробуждения (ч)
-            </div>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="label" />
-                <YAxis domain={[0, 24]} />
+                <YAxis
+                  yAxisId="left"
+                  orientation="left"
+                  domain={[0, 24]}
+                  label={{ value: "Время", angle: -90, position: "insideLeft" }}
+                />
                 <Tooltip />
                 <Legend />
                 <Line
+                  yAxisId="left"
                   type="monotone"
                   dataKey="bedtime"
-                  stroke="#3b82f6"
-                  name="Время отхода ко сну (ч)"
+                  stroke="#ec4899" // pink-500
+                  strokeWidth={3}
+                  name="Время отхода"
                 />
                 <Line
+                  yAxisId="left"
                   type="monotone"
                   dataKey="waketime"
-                  stroke="#ef4444"
-                  name="Время пробуждения (ч)"
+                  stroke="#a855f7" // purple-500
+                  strokeWidth={3}
+                  name="Время пробуждения"
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -588,149 +730,7 @@ export default function SleepPage() {
           </div>
         )}
 
-        {/* Самые частые теги */}
-        {tagStats.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Самые частые элементы снов
-            </h2>
-            <div className="flex flex-wrap gap-3">
-              {tagStats.map(({ tag, count }) => (
-                <div
-                  key={tag}
-                  className="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg"
-                >
-                  #{tag} <span className="font-bold ml-1">{count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Настроение после пробуждения */}
-        {wakeMoodStats.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Настроение после пробуждения
-            </h2>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={wakeMoodStats}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) =>
-                    `${name}: ${(percent * 100).toFixed(0)}%`
-                  }
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {wakeMoodStats.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        )}
-
-        {/* График расписания сна по дням недели */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            Режим сна по дням недели
-          </h2>
-          <div className="text-sm text-gray-500 mb-2">
-            <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-1"></span>{" "}
-            Синий - отход ко сну (ч)
-            <span className="inline-block w-3 h-3 bg-red-500 rounded-full ml-3 mr-1"></span>{" "}
-            Красный - пробуждение (ч)
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={sleepSchedule}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" angle={45} textAnchor="start" height={80} />
-              <YAxis domain={[0, 24]} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="bedtime" fill="#3b82f6" name="Отход ко сну (ч)" />
-              <Bar dataKey="waketime" fill="#ef4444" name="Пробуждение (ч)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
         {/* Список записей */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            Записи о сне
-          </h2>
-          <div className="space-y-4">
-            {filteredRecords.map((record) => {
-              const date = new Date(record.date);
-              const weekday = weekDays[date.getDay()];
-              const totalHours = calculateTotalSleep(record.segments);
-              const dreamTypes = getDreamTypeForRecord(record.id);
-
-              return (
-                <Link
-                  key={record.id}
-                  href={`/personal/sleep/${record.date.split("T")[0]}`}
-                  className="block border border-gray-200 rounded-lg p-4 hover:bg-blue-50 transition"
-                >
-                  <div className="flex justify-between items-center mb-2">
-                    <div>
-                      <span className="font-medium text-gray-800">
-                        {date.getDate()}{" "}
-                        {date.toLocaleString("ru", { month: "long" })}{" "}
-                        {date.getFullYear()}
-                      </span>
-                      <span className="ml-2 text-sm text-gray-500">
-                        ({weekday})
-                      </span>
-                      {dreamTypes.length > 0 && (
-                        <div className="flex gap-1 mt-1">
-                          {dreamTypes.map((type) => (
-                            <span key={type} className="text-sm" title={type}>
-                              {getDreamTypeEmoji(type)}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <span className="text-blue-600 font-medium">
-                      {totalHours.toFixed(1)} часов
-                    </span>
-                  </div>
-
-                  {/* Визуализация сна - правильные полоски для пересекающих полночь */}
-                  <div className="relative h-12 bg-gray-100 rounded-lg overflow-hidden mt-2">
-                    {renderSleepBar(record.segments)}
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-400 mt-1">
-                    <span>00:00</span>
-                    <span>06:00</span>
-                    <span>12:00</span>
-                    <span>18:00</span>
-                    <span>24:00</span>
-                  </div>
-
-                  {record.notes && (
-                    <p className="text-sm text-gray-500 mt-2 line-clamp-1">
-                      {record.notes}
-                    </p>
-                  )}
-                </Link>
-              );
-            })}
-            {filteredRecords.length === 0 && (
-              <p className="text-center text-gray-500 py-8">
-                Нет записей о сне за выбранный период
-              </p>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );
