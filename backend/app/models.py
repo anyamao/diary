@@ -244,7 +244,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     last_login = Column(DateTime(timezone=True), nullable=True)
-
+    avatar = Column(String, default="icon1.jpg")
     __table_args__ = (
         Index("idx_user_email", "email"),
         Index("idx_user_username", "username"),

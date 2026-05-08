@@ -22,10 +22,14 @@ export default function RootLayout({
   const { toggle, isOpen } = useSidepanelStore();
 
   // Не показываем хедер на страницах авторизации
-  const isAuthPage = pathname === "/login" || pathname === "/register";
-
+  const isAuthPage =
+    pathname === "/login" || pathname === "/register" || pathname === "/";
+  const { checkAuth, isAuthenticated, isLoading } = useAuthStore();
   // Показываем сайдпанель только на /personal/diary и его дочерних страницах
   const showSidepanel = pathname?.startsWith("/personal/diary");
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   return (
     <html lang="ru">

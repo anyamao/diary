@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { User, authService } from "@/lib/auth";
+import api from "@/lib/axios";
 
 interface AuthState {
   user: User | null;
@@ -13,73 +13,65 @@ interface AuthState {
   setUser: (user: User | null) => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      user: null,
-      isLoading: true,
-      isAuthenticated: false,
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  isLoading: true,
+  isAuthenticated: false,
 
-      login: async (email: string, password: string) => {
-        set({ isLoading: true });
-        try {
-          await authService.login({ email, password });
-          const user = await authService.getCurrentUser();
-          set({
-            user,
-            isAuthenticated: true,
-            isLoading: false,
-          });
-        } catch (error) {
-          console.error("Login error:", error);
-          set({ isLoading: false });
-          throw error;
-        }
-      },
+  login: async (email: string, password: string) => {
+    set({ isLoading: true });
+    try {
+      await authService.login({ email, password });
+      const user = await authService.getCurrentUser();
+      set({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      set({ isLoading: false });
+      throw error;
+    }
+  },
 
-      register: async (data: any) => {
-        set({ isLoading: true });
-        try {
-          await authService.register(data);
-          set({ isLoading: false });
-        } catch (error) {
-          console.error("Register error:", error);
-          set({ isLoading: false });
-          throw error;
-        }
-      },
+  register: async (data: any) => {
+    set({ isLoading: true });
+    try {
+      await authService.register(data);
+      set({ isLoading: false });
+    } catch (error) {
+      console.error("Register error:", error);
+      set({ isLoading: false });
+      throw error;
+    }
+  },
 
-      logout: async () => {
-        set({ isLoading: true });
-        try {
-          await authService.logout();
-          set({ user: null, isAuthenticated: false, isLoading: false });
-        } catch (error) {
-          console.error("Logout error:", error);
-          set({ isLoading: false });
-          throw error;
-        }
-      },
+  logout: async () => {
+    set({ isLoading: true });
+    try {
+      await authService.logout();
+      set({ user: null, isAuthenticated: false, isLoading: false });
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout error:", error);
+      set({ isLoading: false });
+      throw error;
+    }
+  },
 
-      checkAuth: async () => {
-        try {
-          const user = await authService.getCurrentUser();
-          set({ user, isAuthenticated: true, isLoading: false });
-        } catch (error) {
-          set({ user: null, isAuthenticated: false, isLoading: false });
-        }
-      },
+  checkAuth: async () => {
+    set({ isLoading: true });
+    try {
+      const user = await authService.getCurrentUser();
+      set({ user, isAuthenticated: true, isLoading: false });
+    } catch (error) {
+      console.error("Check auth error:", error);
+      set({ user: null, isAuthenticated: false, isLoading: false });
+    }
+  },
 
-      setUser: (user: User | null) => {
-        set({ user, isAuthenticated: !!user });
-      },
-    }),
-    {
-      name: "auth-storage",
-      partialize: (state) => ({
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-      }),
-    },
-  ),
-);
+  setUser: (user: User | null) => {
+    set({ user, isAuthenticated: !!user });
+  },
+}));

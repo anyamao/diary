@@ -273,18 +273,18 @@ export default function PersonalityTest() {
 
     currentQuestions.forEach((q, idx) => {
       const answer = answers[idx];
-      if (answer) {
+      if (answer && "trait" in q) {
         let score = answer;
         if (q.reverse) score = 8 - score;
-        const trait = q.trait as keyof typeof scoresData;
-        scoresData[trait] += score;
-        scoresData.count[trait]++;
+        const trait = q.trait as "E" | "N" | "C" | "A" | "O";
+        scoresData[trait] = (scoresData[trait] || 0) + score;
+        scoresData.count[trait] = (scoresData.count[trait] || 0) + 1;
       }
     });
 
     const getPercentile = (score: number, trait: string) => {
       const maxScore =
-        scoresData.count[trait as keyof typeof scoresData.count] * 7;
+        scoresData.count[trait as "E" | "N" | "C" | "A" | "O"] * 7;
       return (score / maxScore) * 100;
     };
 
@@ -295,7 +295,6 @@ export default function PersonalityTest() {
       agreeableness: getPercentile(scoresData.A, "A"),
       openness: getPercentile(scoresData.O, "O"),
     };
-
     const descriptions = {
       extraversion:
         traits.extraversion > 60

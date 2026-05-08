@@ -1,6 +1,7 @@
 "use client";
-
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import api from "@/lib/axios";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LogIn,
@@ -13,18 +14,33 @@ import {
   Bell,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { useState } from "react";
 
 function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, user, logout } = useAuthStore();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [currentAvatar, setCurrentAvatar] = useState("icon1.jpg");
 
   const handleLogout = async () => {
     await logout();
     setIsProfileMenuOpen(false);
     router.push("/login");
+  };
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      fetchCurrentAvatar();
+    }
+  }, [isAuthenticated, user]);
+
+  const fetchCurrentAvatar = async () => {
+    try {
+      const response = await api.get("/auth/avatar");
+      setCurrentAvatar(response.data.avatar);
+    } catch (error) {
+      console.error("Failed to fetch avatar:", error);
+    }
   };
 
   const toggleProfileMenu = () => {
@@ -37,12 +53,12 @@ function Header() {
       <div className="w-full bg-white shadow-xs border-b-[1px] border-pink-200 fixed p-[20px] top-0 left-0 min-h-[60px] max-h-[60px] flex items-center justify-between z-40">
         <Link
           href="/"
-          className=" text-sm md:text-lg text-pink-950 font-bold cursor-pointer hover:text-pink-700"
+          className="text-sm md:text-lg text-pink-950 font-bold cursor-pointer hover:text-pink-700"
         >
           VibeNote
         </Link>
 
-        <div className="flex flex-row justify-center w-full md:ml-[-30px] font-semibold bg-pink-200 h-[30px] rounded-lg  max-w-[270px]   text-xs text-pink-950 items-center">
+        <div className="flex flex-row justify-center w-full md:ml-[-30px] font-semibold bg-pink-200 h-[30px] rounded-lg max-w-[270px] md:max-w-[400px] text-xs text-pink-950 items-center">
           <Link
             href="/personal"
             className={`flex-1 cursor-pointer hover:text-pink-700 duration-300 flex items-center h-full rounded-l-lg justify-center ${
@@ -56,9 +72,9 @@ function Header() {
 
           <Link
             href="/business"
-            className={`flex-1 hover:bg-pink-300 hover:text-pink-700 hover:rounded-r-lg duration-300 flex cursor-pointer h-full items-center justify-center ${
+            className={`flex-1 hover:bg-pink-300 hover:text-pink-700 duration-300 flex cursor-pointer h-full items-center justify-center ${
               pathname.startsWith("/business")
-                ? "bg-pink-300 text-pink-700 rounded-r-lg"
+                ? "bg-pink-300 text-pink-700"
                 : ""
             }`}
           >
@@ -67,6 +83,8 @@ function Header() {
         </div>
 
         <div className="flex items-center gap-3 relative">
+          <Bell className="text-yellow-600 w-5 h-5 cursor-pointer" />
+
           {isAuthenticated ? (
             <>
               <button
@@ -74,8 +92,8 @@ function Header() {
                 className="focus:outline-none"
               >
                 <img
-                  src="/diaryicon.png"
-                  className="w-[30px] border-[1px] duration-300 cursor-pointer border-pink-300 p-[1px] rounded-full hover:scale-105 transition"
+                  src={`/${currentAvatar}`}
+                  className="w-[30px] border-[1px] duration-300 cursor-pointer border-pink-300 p-[1px] rounded-full hover:scale-105 transition object-cover"
                   alt="Avatar"
                 />
               </button>
@@ -92,21 +110,28 @@ function Header() {
         </div>
       </div>
 
-      {/* Profile dropdown menu - ABOVE everything */}
+      {/* Profile dropdown menu */}
       {isProfileMenuOpen && isAuthenticated && (
         <>
-          {/* Overlay */}
           <div
             className="fixed inset-0 z-[100]"
             onClick={() => setIsProfileMenuOpen(false)}
           />
-          {/* Menu */}
           <div className="fixed top-[60px] right-4 z-[101] w-[280px] bg-white border-[1px] border-pink-200 rounded-lg shadow-lg overflow-hidden">
             <div className="px-4 py-3 border-b border-pink-100">
-              <p className="text-sm font-semibold text-pink-900">
-                {user?.full_name || user?.username}
-              </p>
-              <p className="text-xs text-gray-500">{user?.email}</p>
+              <div className="flex items-center gap-3 mb-2">
+                <img
+                  src={`/${currentAvatar}`}
+                  className="w-12 h-12 border-[1px] border-pink-300 p-[2px] rounded-full object-cover"
+                  alt="Avatar"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-pink-900">
+                    {user?.full_name || user?.username}
+                  </p>
+                  <p className="text-xs text-gray-500">{user?.email}</p>
+                </div>
+              </div>
             </div>
 
             <div className="py-2">
@@ -116,7 +141,7 @@ function Header() {
                 onClick={() => setIsProfileMenuOpen(false)}
               >
                 <User className="w-4 h-4 text-pink-500" />
-                Мой аккаунт
+                Мой профиль
               </Link>
 
               <button
@@ -131,7 +156,7 @@ function Header() {
         </>
       )}
 
-      {/* Only show the second navigation bar on /personal routes */}
+      {/* Navigation bars */}
       {pathname.startsWith("/personal") && (
         <div className="w-full border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-30">
           <div className="flex flex-row font-semibold text-pink-950 text-xs items-center justify-between">
@@ -150,7 +175,7 @@ function Header() {
               <Link
                 href="/personal/mood-tracker"
                 className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
-                  pathname === "/personal/mood-tracker"
+                  pathname.startsWith("/personal/mood-tracker")
                     ? "text-pink-600 underline"
                     : ""
                 }`}
@@ -187,7 +212,7 @@ function Header() {
               <Link
                 href="/business/planner"
                 className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
-                  pathname === "/personal/diary"
+                  pathname.startsWith("/business/planner")
                     ? "text-pink-600 underline"
                     : ""
                 }`}
@@ -197,7 +222,7 @@ function Header() {
               <Link
                 href="/business/notes"
                 className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
-                  pathname === "/personal/mood-tracker"
+                  pathname.startsWith("/business/notes")
                     ? "text-pink-600 underline"
                     : ""
                 }`}
@@ -207,7 +232,7 @@ function Header() {
               <Link
                 href="/business/study-timer"
                 className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
-                  pathname === "/personal/mood-tracker"
+                  pathname.startsWith("/business/study-timer")
                     ? "text-pink-600 underline"
                     : ""
                 }`}

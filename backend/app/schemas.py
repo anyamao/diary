@@ -86,7 +86,7 @@ class UserResponse(UserBase):
     is_verified: bool
     created_at: datetime
     last_login: Optional[datetime]
-
+    avatar: Optional[str] = "icon1.jpg"
     model_config = ConfigDict(from_attributes=True)
 
 
