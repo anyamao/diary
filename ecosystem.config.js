@@ -2,26 +2,28 @@ module.exports = {
   apps: [
     {
       name: 'diary-backend',
-      script: 'backend/venv/bin/gunicorn',
-      args: 'app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8011',
-      cwd: '/home/your-user/diary',
+      script: 'gunicorn',
+      args: '-w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind 127.0.0.1:8011',
+      cwd: '/home/vika/diary/backend',
+      interpreter: '/home/vika/diary/backend/venv/bin/python',
       instances: 1,
       autorestart: true,
       watch: false,
-      max_memory_restart: '1G',
+      max_memory_restart: '512M',
       env: {
         NODE_ENV: 'production',
-        PYTHONPATH: '/home/your-user/diary/backend'
+        PYTHONPATH: '/home/vika/diary/backend'
       }
     },
     {
       name: 'diary-frontend',
-      script: 'node_modules/next/dist/bin/next',
+      script: 'pnpm',
       args: 'start -p 3011',
-      cwd: '/home/your-user/diary/frontend',
+      cwd: '/home/vika/diary/frontend',
       instances: 1,
       autorestart: true,
       watch: false,
+      max_memory_restart: '512M',
       env: {
         NODE_ENV: 'production',
         PORT: 3011

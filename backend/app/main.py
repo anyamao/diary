@@ -17,19 +17,6 @@ from app.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
 app = FastAPI(title="Diary API", version="1.0.0")
 
 # CORS настройки для cookie-based аутентификации
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3011",
-        "http://127.0.0.1:3011",
-        "https://vibenote.ru",
-        "https://www.vibenote.ru",
-    ],
-    allow_credentials=True,  # Важно для кук
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
 
 # Добавляем middleware безопасности
 app.add_middleware(RateLimitMiddleware)
