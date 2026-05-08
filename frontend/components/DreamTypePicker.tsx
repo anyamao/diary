@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 
 interface DreamTypePickerProps {
@@ -21,66 +21,69 @@ export default function DreamTypePicker({
   onSelectType,
 }: DreamTypePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [selected, setSelected] = useState(currentType || "noemotions");
+
+  useEffect(() => {
+    setSelected(currentType || "noemotions");
+  }, [currentType]);
 
   const getCurrentImage = () => {
     const type = dreamTypes.find((t) => t.id === currentType);
     return type?.image || "/noemotionsdream.png";
   };
 
+  const handleSelect = (typeId: string) => {
+    setSelected(typeId);
+    onSelectType(typeId);
+    setIsOpen(false);
+  };
+
   return (
-    <div className="relative">
+    <>
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen(true)}
         className="cursor-pointer hover:scale-110 transition-transform w-10 h-10"
       >
-        <img src={getCurrentImage()} alt="dream type" className="w-10 h-10 " />
+        <img src={getCurrentImage()} alt="dream type" className="w-10 h-10" />
       </button>
 
       {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-40 bg-black/50"
-            onClick={() => setIsOpen(false)}
-          />
-          <div className="absolute left-0 mt-2 bg-white rounded-lg shadow-lg border border-gray-200 p-3 z-50 min-w-[280px] max-w-[340px]">
-            <div className="flex justify-between items-center mb-3 pb-2 border-b">
-              <span className="text-sm font-medium text-gray-700">Тип сна</span>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-800">Тип сна</h3>
               <button
-                type="button"
                 onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
+                className="p-1 hover:bg-gray-100 rounded-full transition"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+
+            <div className="grid grid-cols-2 gap-4">
               {dreamTypes.map((type) => (
                 <button
                   key={type.id}
-                  type="button"
-                  onClick={() => {
-                    onSelectType(type.id);
-                    setIsOpen(false);
-                  }}
-                  className={`flex items-center gap-2 p-2 rounded-lg transition ${
-                    currentType === type.id
-                      ? "bg-blue-50 border border-blue-300"
-                      : "hover:bg-gray-50"
+                  onClick={() => handleSelect(type.id)}
+                  className={`flex items-center gap-3 p-3 rounded-xl transition ${
+                    selected === type.id
+                      ? "bg-pink-100 border-2 border-pink-500"
+                      : "hover:bg-gray-50 border-2 border-transparent"
                   }`}
                 >
                   <img
                     src={type.image}
                     alt={type.name}
-                    className="w-6 h-6 object-contain"
+                    className="w-10 h-10 object-contain"
                   />
-                  <span className="text-xs text-gray-700">{type.name}</span>
+                  <span className="text-sm text-gray-700">{type.name}</span>
                 </button>
               ))}
             </div>
           </div>
-        </>
+        </div>
       )}
-    </div>
+    </>
   );
 }

@@ -32,6 +32,33 @@ def get_utc_now():
     return datetime.now(timezone.utc)
 
 
+@router.delete("/sessions/{session_id}")
+async def delete_session(
+    session_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Удалить сессию по ID"""
+    try:
+        query = text("""
+            DELETE FROM study_timer_sessions
+            WHERE id = :session_id AND user_id = :user_id
+            RETURNING id
+        """)
+        result = await db.execute(
+            query, {"session_id": session_id, "user_id": current_user.id}
+        )
+        await db.commit()
+
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        return {"message": "Session deleted successfully"}
+    except Exception as e:
+        print(f"Error deleting session: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/start", response_model=schemas.StudyTimerSessionResponse)
 async def start_session(
     data: schemas.StudyTimerSessionCreate,

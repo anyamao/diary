@@ -42,52 +42,50 @@ export default function PersonalityPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Моя личность</h1>
+    <div className="min-h-screen bg-pink-50 p-8">
+      <div className="max-w-[1100px] mx-auto">
+        <h1 className="text-3xl font-bold text-pink-950 mb-2">Моя личность</h1>
+
         <p className="text-gray-600 mb-8">
           Узнай себя лучше через тесты и самонаблюдение
         </p>
-
-        {/* Навигация */}
-        <div className="flex flex-wrap gap-3 mb-8">
+        <div className="flex gap-3 mb-3">
           <button
             onClick={() => setActiveTab("personality")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg transition ${
+            className={`px-4 py-2 rounded-lg transition ${
               activeTab === "personality"
-                ? "bg-purple-600 text-white shadow-md"
-                : "bg-white text-gray-700 hover:bg-purple-50"
+                ? "bg-pink-500 text-white"
+                : "bg-white text-gray-700 hover:bg-pink-100"
             }`}
           >
-            <Brain className="w-5 h-5" />
             Тип личности
           </button>
           <button
             onClick={() => setActiveTab("depression")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg transition ${
+            className={`px-4 py-2 rounded-lg transition ${
               activeTab === "depression"
-                ? "bg-purple-600 text-white shadow-md"
-                : "bg-white text-gray-700 hover:bg-purple-50"
+                ? "bg-pink-500 text-white"
+                : "bg-white text-gray-700 hover:bg-pink-100"
             }`}
           >
-            <Activity className="w-5 h-5" />
             Психологическое состояние
           </button>
           <button
             onClick={() => setActiveTab("mood")}
-            className={`flex items-center gap-2 px-6 py-3 rounded-lg transition ${
+            className={`px-4 py-2 rounded-lg transition ${
               activeTab === "mood"
-                ? "bg-purple-600 text-white shadow-md"
-                : "bg-white text-gray-700 hover:bg-purple-50"
+                ? "bg-pink-500 text-white"
+                : "bg-white text-gray-700 hover:bg-pink-100"
             }`}
           >
-            <Heart className="w-5 h-5" />
             Настроение и ресурсы
           </button>
         </div>
 
+        {/* Навигация */}
+
         {/* Контент */}
-        <div className="bg-white rounded-2xl shadow-lg p-6">
+        <div className=" mt-[30px]">
           {activeTab === "personality" && <PersonalityTest />}
           {activeTab === "depression" && <DepressionTest />}
           {activeTab === "mood" && <MoodBoosters />}

@@ -10,6 +10,7 @@ from app.routers import (
     notes,
     study_timer,
     notifications,
+    color_tags,
 )
 from app.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
 
@@ -44,6 +45,7 @@ app.include_router(planner.router)
 app.include_router(notes.router)
 app.include_router(study_timer.router)
 app.include_router(notifications.router)
+app.include_router(color_tags.router)
 
 
 @app.get("/")

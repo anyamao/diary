@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from typing import List, Dict, Optional
@@ -198,26 +198,38 @@ async def save_mood_items(
 # Personality test endpoints
 @router.get("/personality-test/result")
 async def get_personality_test_result(
-    current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    current_user: User = Depends(get_current_user),
+    test_type: str = Query(
+        "big5", description="Test type: big5, emotional_intelligence, motivation"
+    ),
+    db: AsyncSession = Depends(get_db),
 ):
     try:
+        print(f"=== GETTING RESULT ===")
+        print(f"test_type: {test_type}")
+        print(f"user_id: {current_user.id}")
+
         query = text("""
             SELECT result, scores, created_at
             FROM personality_test_results
-            WHERE user_id = :user_id
+            WHERE user_id = :user_id AND test_type = :test_type
             ORDER BY created_at DESC
             LIMIT 1
         """)
-        result = await db.execute(query, {"user_id": current_user.id})
+        result = await db.execute(
+            query, {"user_id": current_user.id, "test_type": test_type}
+        )
         row = result.fetchone()
 
         if row:
+            print(f"✅ Found result for {test_type}")
             return {
                 "has_result": True,
                 "result": row[0],
                 "scores": row[1],
                 "created_at": row[2].isoformat(),
             }
+        print(f"❌ No result found for {test_type}")
         return {"has_result": False}
     except Exception as e:
         print(f"Error getting personality test result: {e}")
@@ -231,26 +243,54 @@ async def save_personality_test_result(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        # Удаляем старый результат
+        test_type = data.get("test_type", "big5")
+        result_data = data.get("result")
+        scores_data = data.get("scores")
+
+        print(f"=== SAVING RESULT ===")
+        print(f"test_type: {test_type}")
+        print(f"result: {result_data[:100] if result_data else None}...")
+        print(f"scores: {scores_data}")
+
+        # Удаляем старый результат для этого типа теста
         delete_query = text(
-            "DELETE FROM personality_test_results WHERE user_id = :user_id"
+            "DELETE FROM personality_test_results WHERE user_id = :user_id AND test_type = :test_type"
         )
-        await db.execute(delete_query, {"user_id": current_user.id})
+        await db.execute(
+            delete_query, {"user_id": current_user.id, "test_type": test_type}
+        )
 
         # Сохраняем новый
         insert_query = text("""
-            INSERT INTO personality_test_results (id, user_id, result, scores)
-            VALUES (gen_random_uuid(), :user_id, :result, :scores)
+            INSERT INTO personality_test_results (id, user_id, result, scores, test_type)
+            VALUES (gen_random_uuid(), :user_id, :result, :scores, :test_type)
         """)
         await db.execute(
             insert_query,
             {
                 "user_id": current_user.id,
-                "result": data.get("result"),
-                "scores": json.dumps(data.get("scores")),
+                "result": result_data,
+                "scores": scores_data,
+                "test_type": test_type,
             },
         )
         await db.commit()
+
+        # Проверяем, что сохранилось
+        check_query = text("""
+            SELECT id, test_type, result, scores 
+            FROM personality_test_results 
+            WHERE user_id = :user_id AND test_type = :test_type
+        """)
+        check_result = await db.execute(
+            check_query, {"user_id": current_user.id, "test_type": test_type}
+        )
+        row = check_result.fetchone()
+        if row:
+            print(f"✅ Successfully saved! ID: {row[0]}, test_type: {row[1]}")
+        else:
+            print(f"❌ Failed to verify save!")
+
         return {"message": "Saved successfully"}
     except Exception as e:
         print(f"Error saving personality test result: {e}")

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import MarkdownPreview from "./MarkdownPreview";
 
 interface MarkdownEditorProps {
@@ -17,6 +17,22 @@ export default function MarkdownEditor({
   rows = 10,
 }: MarkdownEditorProps) {
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Автоматически изменяем высоту при изменении value и при переключении на вкладку write
+  useEffect(() => {
+    if (activeTab === "write" && textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [value, activeTab]);
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onChange(e.target.value);
+    // Мгновенное изменение высоты при вводе
+    e.target.style.height = "auto";
+    e.target.style.height = `${e.target.scrollHeight}px`;
+  };
 
   return (
     <div className="">
@@ -47,18 +63,18 @@ export default function MarkdownEditor({
 
       {activeTab === "write" ? (
         <textarea
+          ref={textareaRef}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={handleTextareaChange}
           placeholder={placeholder}
-          rows={rows}
-          className="w-full px-4 py-3 bg-pink-50 outline-none  font-mono text-sm"
+          rows={1}
+          className="w-full px-4 py-3 bg-pink-50 outline-none font-mono text-sm resize-none overflow-hidden"
         />
       ) : (
-        <div className="p-4 min-h-[300px]  overflow-y-auto">
+        <div className="p-4 min-h-[300px] overflow-y-auto">
           <MarkdownPreview content={value || "*Пусто*"} />
         </div>
       )}
-
       <div className="bg-pink-50 px-4 py-2 text-xs text-gray-500">
         <details>
           <summary className="cursor-pointer">

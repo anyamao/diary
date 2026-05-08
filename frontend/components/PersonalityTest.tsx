@@ -1,8 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Download, RotateCcw } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  RotateCcw,
+  Check,
+} from "lucide-react";
 import api from "@/lib/axios";
+import { showToast } from "@/components/Toast";
 
 const questions = [
   { text: "Я люблю знакомиться с новыми людьми", trait: "E", reverse: false },
@@ -59,49 +66,205 @@ const questions = [
   { text: "Я тревожусь по поводу здоровья", trait: "N", reverse: false },
 ];
 
-const options = [
-  { value: 1, label: "Совсем не согласен" },
-  { value: 2, label: "Не согласен" },
-  { value: 3, label: "Нейтрально" },
-  { value: 4, label: "Согласен" },
-  { value: 5, label: "Полностью согласен" },
+// Типы для результатов
+interface BigFiveResult {
+  traits: {
+    extraversion: number;
+    neuroticism: number;
+    conscientiousness: number;
+    agreeableness: number;
+    openness: number;
+  };
+  descriptions: {
+    extraversion: string;
+    neuroticism: string;
+    conscientiousness: string;
+    agreeableness: string;
+    openness: string;
+  };
+}
+
+interface SimpleResult {
+  percentage: number;
+  level: string;
+  description: string;
+  totalScore: number;
+  maxScore: number;
+}
+
+type TestResult = BigFiveResult | SimpleResult | null;
+
+const additionalTests = [
+  {
+    id: "emotional_intelligence",
+    name: "Тест на эмоциональный интеллект",
+    questions: [
+      { text: "Я легко распознаю свои эмоции", reverse: false },
+      { text: "Мне трудно контролировать гнев", reverse: true },
+      { text: "Я понимаю чувства других людей", reverse: false },
+      {
+        text: "Я умею успокаивать себя в стрессовых ситуациях",
+        reverse: false,
+      },
+      { text: "Мне сложно выражать свои чувства словами", reverse: true },
+      { text: "Я замечаю, когда кто-то нуждается в поддержке", reverse: false },
+      { text: "Я часто действую импульсивно", reverse: true },
+      { text: "Я могу вдохновлять других", reverse: false },
+      { text: "Мне трудно принимать критику", reverse: true },
+      { text: "Я умею находить компромиссы", reverse: false },
+    ],
+  },
+  {
+    id: "motivation",
+    name: "Тест на мотивацию",
+    questions: [
+      { text: "Я ставлю перед собой чёткие цели", reverse: false },
+      { text: "Мне трудно начинать новые проекты", reverse: true },
+      { text: "Я получаю удовольствие от процесса обучения", reverse: false },
+      { text: "Я быстро сдаюсь при первых трудностях", reverse: true },
+      { text: "Меня вдохновляют успехи других", reverse: false },
+      { text: "Я часто откладываю важные дела", reverse: true },
+      { text: "Я верю в свои силы", reverse: false },
+      { text: "Мне нужны внешние поощрения для работы", reverse: true },
+      { text: "Я люблю преодолевать препятствия", reverse: false },
+      { text: "Я знаю своё предназначение", reverse: false },
+    ],
+  },
 ];
 
+// 7 вариантов ответов
+const options = [
+  {
+    value: 1,
+    color: "border-green-600 hover:bg-green-600",
+    size: "w-[45px] h-[45px]",
+    iconSize: "w-6 h-6",
+  },
+  {
+    value: 2,
+    color: "border-green-600 hover:bg-green-600",
+    size: "w-[40px] h-[40px]",
+    iconSize: "w-5 h-5",
+  },
+  {
+    value: 3,
+    color: "border-green-600 hover:bg-green-600",
+    size: "w-[35px] h-[35px]",
+    iconSize: "w-4 h-4",
+  },
+  {
+    value: 4,
+    color: "border-gray-400 hover:bg-gray-400",
+    size: "w-[30px] h-[30px]",
+    iconSize: "w-3 h-3",
+  },
+  {
+    value: 5,
+    color: "border-purple-600 hover:bg-purple-600",
+    size: "w-[35px] h-[35px]",
+    iconSize: "w-4 h-4",
+  },
+  {
+    value: 6,
+    color: "border-purple-600 hover:bg-purple-600",
+    size: "w-[40px] h-[40px]",
+    iconSize: "w-5 h-5",
+  },
+  {
+    value: 7,
+    color: "border-purple-600 hover:bg-purple-600",
+    size: "w-[45px] h-[45px]",
+    iconSize: "w-6 h-6",
+  },
+];
+
+const getBarColor = (percentage: number) => {
+  if (percentage >= 80) return "bg-green-500";
+  if (percentage >= 60) return "bg-lime-400";
+  if (percentage >= 40) return "bg-gray-400";
+  if (percentage >= 20) return "bg-orange-400";
+  return "bg-red-500";
+};
+
 export default function PersonalityTest() {
+  const [activeTest, setActiveTest] = useState<
+    "big5" | "emotional_intelligence" | "motivation"
+  >("big5");
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [currentPage, setCurrentPage] = useState(0);
-  const [result, setResult] = useState<string | null>(null);
-  const [scores, setScores] = useState<any>(null);
+  const [result, setResult] = useState<TestResult>(null);
   const [hasExistingResult, setHasExistingResult] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [savingResult, setSavingResult] = useState(false);
+  const [testStarted, setTestStarted] = useState(false);
+
+  const currentQuestions =
+    activeTest === "big5"
+      ? questions
+      : additionalTests.find((t) => t.id === activeTest)?.questions || [];
   const questionsPerPage = 10;
-  const totalPages = Math.ceil(questions.length / questionsPerPage);
+  const totalPages = Math.ceil(currentQuestions.length / questionsPerPage);
 
-  useEffect(() => {
-    loadExistingResult();
-  }, []);
-
+  // Основная функция загрузки результата
   const loadExistingResult = async () => {
+    setLoading(true);
     try {
-      const response = await api.get("/personality/personality-test/result");
-      if (response.data.has_result) {
-        setResult(response.data.result);
-        setScores(response.data.scores);
-        setHasExistingResult(true);
+      const timestamp = Date.now();
+      const response = await api.get(`/personality/personality-test/result`, {
+        params: { test: activeTest, _t: timestamp },
+      });
+      console.log("Loaded result for", activeTest, ":", response.data);
+      console.log("has_result:", response.data.has_result);
+      console.log("result object:", response.data.result);
+
+      if (response.data.has_result && response.data.result) {
+        let resultData;
+        if (typeof response.data.result === "string") {
+          try {
+            resultData = JSON.parse(response.data.result);
+            console.log("Parsed result:", resultData);
+          } catch (e) {
+            console.error("Failed to parse result:", e);
+            resultData = response.data.result;
+          }
+        } else {
+          resultData = response.data.result;
+        }
+
+        if (resultData && typeof resultData === "object") {
+          setResult(resultData);
+          setHasExistingResult(true);
+          setTestStarted(false);
+          console.log("Result loaded successfully for", activeTest);
+        } else {
+          console.log("No valid result object for", activeTest);
+          setHasExistingResult(false);
+          setResult(null);
+        }
+      } else {
+        console.log("No result found for", activeTest);
+        setHasExistingResult(false);
+        setResult(null);
       }
     } catch (error) {
       console.error("Failed to load existing result:", error);
+      setHasExistingResult(false);
+      setResult(null);
     } finally {
       setLoading(false);
     }
   };
+  // Загружаем результат при монтировании и при смене теста
+  useEffect(() => {
+    loadExistingResult();
+  }, [activeTest]);
 
   const handleAnswer = (index: number, value: number) => {
     setAnswers((prev) => ({ ...prev, [index]: value }));
   };
 
-  const calculateAndSaveResult = async () => {
-    const scores = {
+  const calculateBigFiveResult = async () => {
+    const scoresData = {
       E: 0,
       N: 0,
       C: 0,
@@ -110,229 +273,438 @@ export default function PersonalityTest() {
       count: { E: 0, N: 0, C: 0, A: 0, O: 0 },
     };
 
-    questions.forEach((q, idx) => {
+    currentQuestions.forEach((q, idx) => {
       const answer = answers[idx];
       if (answer) {
         let score = answer;
-        if (q.reverse) score = 6 - score;
-        scores[q.trait] += score;
-        scores.count[q.trait]++;
+        if (q.reverse) score = 8 - score;
+        const trait = q.trait as keyof typeof scoresData;
+        scoresData[trait] += score;
+        scoresData.count[trait]++;
       }
     });
 
     const getPercentile = (score: number, trait: string) => {
-      const maxScore = scores.count[trait] * 5;
+      const maxScore =
+        scoresData.count[trait as keyof typeof scoresData.count] * 7;
       return (score / maxScore) * 100;
     };
 
-    const ePercent = getPercentile(scores.E, "E");
-    const nPercent = getPercentile(scores.N, "N");
-    const cPercent = getPercentile(scores.C, "C");
-    const aPercent = getPercentile(scores.A, "A");
-    const oPercent = getPercentile(scores.O, "O");
-
     const traits = {
-      extraversion:
-        ePercent > 60 ? "Высокая" : ePercent < 40 ? "Низкая" : "Средняя",
-      neuroticism:
-        nPercent > 60 ? "Высокая" : nPercent < 40 ? "Низкая" : "Средняя",
-      conscientiousness:
-        cPercent > 60 ? "Высокая" : cPercent < 40 ? "Низкая" : "Средняя",
-      agreeableness:
-        aPercent > 60 ? "Высокая" : aPercent < 40 ? "Низкая" : "Средняя",
-      openness:
-        oPercent > 60 ? "Высокая" : oPercent < 40 ? "Низкая" : "Средняя",
+      extraversion: getPercentile(scoresData.E, "E"),
+      neuroticism: getPercentile(scoresData.N, "N"),
+      conscientiousness: getPercentile(scoresData.C, "C"),
+      agreeableness: getPercentile(scoresData.A, "A"),
+      openness: getPercentile(scoresData.O, "O"),
     };
 
     const descriptions = {
       extraversion:
-        traits.extraversion === "Высокая"
+        traits.extraversion > 60
           ? "Вы энергичны, общительны и любите быть в компании людей."
-          : traits.extraversion === "Низкая"
+          : traits.extraversion < 40
             ? "Вы интроверт, предпочитаете спокойное общение и время наедине с собой."
             : "Вы балансируете между общительностью и потребностью в личном пространстве.",
       neuroticism:
-        traits.neuroticism === "Высокая"
+        traits.neuroticism > 60
           ? "Вы эмоционально чувствительны, что делает вас эмпатичным, но может вызывать стресс."
-          : traits.neuroticism === "Низкая"
+          : traits.neuroticism < 40
             ? "Вы эмоционально стабильны, спокойно переживаете трудности и быстро восстанавливаетесь."
             : "У вас хороший эмоциональный баланс, вы чувствуете перепады настроения, но справляетесь с ними.",
       conscientiousness:
-        traits.conscientiousness === "Высокая"
+        traits.conscientiousness > 60
           ? "Вы организованны, ответственны и всегда доводите дела до конца."
-          : traits.conscientiousness === "Низкая"
+          : traits.conscientiousness < 40
             ? "Вы гибки и спонтанны, но иногда вам не хватает самодисциплины."
             : "Вы сочетаете организованность с гибкостью, находите баланс между планами и спонтанностью.",
       agreeableness:
-        traits.agreeableness === "Высокая"
+        traits.agreeableness > 60
           ? "Вы дружелюбны, доверчивы и стремитесь к гармонии в отношениях."
-          : traits.agreeableness === "Низкая"
+          : traits.agreeableness < 40
             ? "Вы независимы и критичны, но можете быть более требовательны к другим."
             : "Вы умеете находить баланс между своими интересами и потребностями других.",
       openness:
-        traits.openness === "Высокая"
+        traits.openness > 60
           ? "Вы любопытны, креативны и открыты к новому опыту и идеям."
-          : traits.openness === "Низкая"
+          : traits.openness < 40
             ? "Вы практичны и консервативны, предпочитаете проверенные пути."
             : "Вы гибки в мышлении, открыты к новому, но цените и проверенные подходы.",
     };
 
-    const resultText = `
-      📊 РЕЗУЛЬТАТЫ ТЕСТА "БОЛЬШАЯ ПЯТЕРКА"
-      
-      🗣️ Экстраверсия: ${traits.extraversion}
-      ${descriptions.extraversion}
-      
-      😟 Нейротизм: ${traits.neuroticism}
-      ${descriptions.neuroticism}
-      
-      📋 Добросовестность: ${traits.conscientiousness}
-      ${descriptions.conscientiousness}
-      
-      🤝 Доброжелательность: ${traits.agreeableness}
-      ${descriptions.agreeableness}
-      
-      🎨 Открытость опыту: ${traits.openness}
-      ${descriptions.openness}
-      
-      💡 Этот тест основан на модели "Большой пятерки" (Big Five) — одной из наиболее научно обоснованных моделей личности в психологии.
-    `;
-
-    // Сохраняем результат
+    const resultData: BigFiveResult = { traits, descriptions };
     try {
       await api.post("/personality/personality-test/result", {
-        result: resultText,
-        scores: traits,
+        result: JSON.stringify(resultData),
+        scores: JSON.stringify(traits),
+        test_type: activeTest,
       });
-      window.location.reload();
+      setResult(resultData);
+      setHasExistingResult(true);
+      setAnswers({}); // ОЧИЩАЕМ ОТВЕТЫ ПОСЛЕ СОХРАНЕНИЯ
+      showToast("Результат сохранён", "success");
     } catch (error) {
       console.error("Failed to save result:", error);
+      showToast("Ошибка сохранения результата", "error");
     }
-
-    setResult(resultText);
-    setScores(traits);
-    setHasExistingResult(true);
   };
 
-  const resetTest = () => {
+  const calculateSimpleResult = async () => {
+    let totalScore = 0;
+    currentQuestions.forEach((q, idx) => {
+      const answer = answers[idx];
+      if (answer) {
+        let score = answer;
+        if (q.reverse) score = 8 - score;
+        totalScore += score;
+      }
+    });
+
+    const maxScore = currentQuestions.length * 7;
+    const percentage = (totalScore / maxScore) * 100;
+    let level = "";
+    let description = "";
+
+    if (percentage >= 80) {
+      level = "Высокий";
+      description =
+        activeTest === "emotional_intelligence"
+          ? "У вас отличный эмоциональный интеллект! Вы хорошо понимаете свои и чужие эмоции, умеете управлять ими и эффективно общаться с окружающими."
+          : "У вас отличная самомотивация! Вы знаете свои цели и уверенно идёте к ним.";
+    } else if (percentage >= 60) {
+      level = "Выше среднего";
+      description =
+        activeTest === "emotional_intelligence"
+          ? "У вас хороший эмоциональный интеллект. Вы в целом понимаете эмоции, но есть куда расти."
+          : "У вас хороший уровень мотивации, но иногда могут возникать сомнения.";
+    } else if (percentage >= 40) {
+      level = "Средний";
+      description =
+        activeTest === "emotional_intelligence"
+          ? "У вас средний уровень эмоционального интеллекта. Работа над распознаванием и управлением эмоциями поможет вам."
+          : "Ваша мотивация нестабильна. Попробуйте найти то, что действительно вас вдохновляет.";
+    } else {
+      level = "Низкий";
+      description =
+        activeTest === "emotional_intelligence"
+          ? "Возможно, вам стоит больше внимания уделять эмоциональной сфере."
+          : "Вам трудно себя мотивировать. Начните с маленьких побед.";
+    }
+
+    const resultData: SimpleResult = {
+      percentage,
+      level,
+      description,
+      totalScore,
+      maxScore,
+    };
+    try {
+      await api.post("/personality/personality-test/result", {
+        result: JSON.stringify(resultData),
+        scores: JSON.stringify({ level, percentage }),
+        test_type: activeTest,
+      });
+      setResult(resultData);
+      setHasExistingResult(true);
+      setAnswers({}); // ОЧИЩАЕМ ОТВЕТЫ ПОСЛЕ СОХРАНЕНИЯ
+      showToast("Результат сохранён", "success");
+    } catch (error) {
+      console.error("Failed to save result:", error);
+      showToast("Ошибка сохранения результата", "error");
+    }
+  };
+
+  const calculateAndSaveResult = async () => {
+    setSavingResult(true);
+    try {
+      if (activeTest === "big5") {
+        await calculateBigFiveResult();
+      } else {
+        await calculateSimpleResult();
+      }
+    } catch (error) {
+      console.error("Error calculating result:", error);
+      showToast("Ошибка при расчете результата", "error");
+    } finally {
+      setSavingResult(false);
+    }
+  };
+  const switchToTest = (
+    test: "big5" | "emotional_intelligence" | "motivation",
+  ) => {
+    if (test === activeTest) return;
+
+    // Если есть несохраненные ответы ИЛИ мы не в режиме просмотра результата
+    if (Object.keys(answers).length > 0 && !hasExistingResult) {
+      if (
+        !confirm(
+          "Вы уверены, что хотите сменить тест? Весь прогресс будет потерян.",
+        )
+      ) {
+        return;
+      }
+    }
+
+    setActiveTest(test);
     setAnswers({});
     setCurrentPage(0);
+    setTestStarted(false);
     setResult(null);
-    setScores(null);
     setHasExistingResult(false);
   };
 
+  const startNewTest = () => {
+    setAnswers({});
+    setCurrentPage(0);
+    setResult(null);
+    setHasExistingResult(false);
+    setTestStarted(true);
+  };
+
   const saveToFile = () => {
-    const blob = new Blob([result || ""], { type: "text/plain" });
+    const textResult = JSON.stringify(result, null, 2);
+    const blob = new Blob([textResult], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `personality_test_${new Date().toISOString().split("T")[0]}.txt`;
+    a.download = `${activeTest}_result_${new Date().toISOString().split("T")[0]}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const isBigFiveResult = (res: TestResult): res is BigFiveResult => {
+    return res !== null && typeof res === "object" && "traits" in res;
+  };
+
+  const isSimpleResult = (res: TestResult): res is SimpleResult => {
+    return res !== null && typeof res === "object" && "percentage" in res;
   };
 
   if (loading) {
     return <div className="text-center py-8">Загрузка...</div>;
   }
 
-  if (hasExistingResult && result && !Object.keys(answers).length) {
-    return (
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Ваш результат</h2>
-        <div className="bg-purple-50 rounded-xl p-6 whitespace-pre-wrap font-mono text-sm">
-          {result}
+  // Показываем результат, если он есть и тест не был начат заново
+  if (hasExistingResult && result && !testStarted) {
+    if (isBigFiveResult(result)) {
+      return (
+        <div>
+          <div className="flex gap-3 mb-6">
+            {["big5", "emotional_intelligence", "motivation"].map((test) => (
+              <button
+                key={test}
+                onClick={() => switchToTest(test as any)}
+                className={`px-4 py-2 rounded-lg transition ${activeTest === test ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-700"}`}
+              >
+                {test === "big5"
+                  ? "Большая пятёрка"
+                  : test === "emotional_intelligence"
+                    ? "Эмоциональный интеллект"
+                    : "Мотивация"}
+              </button>
+            ))}
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">
+            Ваш результат: Большая пятёрка
+          </h2>
+          <div className="space-y-6 mb-8">
+            {Object.entries(result.traits).map(([trait, value]) => {
+              const percent = value as number;
+              const traitNames: Record<string, string> = {
+                extraversion: "Экстраверсия",
+                neuroticism: "Нейротизм",
+                conscientiousness: "Добросовестность",
+                agreeableness: "Доброжелательность",
+                openness: "Открытость опыту",
+              };
+              return (
+                <div key={trait}>
+                  <div className="flex justify-between mb-2">
+                    <span className="font-medium text-gray-700">
+                      {traitNames[trait]}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {Math.round(percent)}%
+                    </span>
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${getBarColor(percent)} rounded-full`}
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    {
+                      result.descriptions[
+                        trait as keyof typeof result.descriptions
+                      ]
+                    }
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={startNewTest}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              <RotateCcw className="w-4 h-4" /> Пройти заново
+            </button>
+            <button
+              onClick={saveToFile}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              <Download className="w-4 h-4" /> Сохранить результат
+            </button>
+          </div>
         </div>
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={saveToFile}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            <Download className="w-4 h-4" /> Сохранить результат
-          </button>
-          <button
-            onClick={resetTest}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            <RotateCcw className="w-4 h-4" /> Пройти заново
-          </button>
+      );
+    }
+
+    if (isSimpleResult(result)) {
+      return (
+        <div>
+          <div className="flex gap-3 mb-6">
+            {["big5", "emotional_intelligence", "motivation"].map((test) => (
+              <button
+                key={test}
+                onClick={() => switchToTest(test as any)}
+                className={`px-4 py-2 rounded-lg transition ${activeTest === test ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-700"}`}
+              >
+                {test === "big5"
+                  ? "Большая пятёрка"
+                  : test === "emotional_intelligence"
+                    ? "Эмоциональный интеллект"
+                    : "Мотивация"}
+              </button>
+            ))}
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Ваш результат:{" "}
+            {activeTest === "emotional_intelligence"
+              ? "Эмоциональный интеллект"
+              : "Мотивация"}
+          </h2>
+          <div className="bg-purple-50 rounded-xl p-6 mb-6">
+            <div className="text-center mb-6">
+              <div className="text-6xl font-bold text-purple-600 mb-2">
+                {Math.round(result.percentage)}%
+              </div>
+              <div className="h-4 bg-gray-200 rounded-full overflow-hidden max-w-md mx-auto">
+                <div
+                  className={`h-full ${getBarColor(result.percentage)} rounded-full`}
+                  style={{ width: `${result.percentage}%` }}
+                />
+              </div>
+              <div className="text-xl font-semibold text-gray-800 mt-4">
+                {result.level} уровень
+              </div>
+            </div>
+            <p className="text-gray-700 leading-relaxed">
+              {result.description}
+            </p>
+            <div className="mt-4 text-sm text-gray-500">
+              {result.totalScore} из {result.maxScore} баллов
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={startNewTest}
+              className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              <RotateCcw className="w-4 h-4" /> Пройти заново
+            </button>
+            <button
+              onClick={saveToFile}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              <Download className="w-4 h-4" /> Сохранить результат
+            </button>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
   }
 
-  if (result && !hasExistingResult) {
-    return (
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Ваш результат</h2>
-        <div className="bg-purple-50 rounded-xl p-6 whitespace-pre-wrap font-mono text-sm">
-          {result}
-        </div>
-        <div className="flex gap-3 mt-6">
-          <button
-            onClick={saveToFile}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            <Download className="w-4 h-4" /> Сохранить результат
-          </button>
-          <button
-            onClick={resetTest}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            <RotateCcw className="w-4 h-4" /> Пройти заново
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const currentQuestions = questions.slice(
+  const currentQuestionsList = currentQuestions.slice(
     currentPage * questionsPerPage,
     (currentPage + 1) * questionsPerPage,
   );
 
   const startIdx = currentPage * questionsPerPage;
   const answeredCount = Object.keys(answers).length;
-  const isPageComplete = currentQuestions.every(
+  const isPageComplete = currentQuestionsList.every(
     (_, idx) => answers[startIdx + idx] !== undefined,
   );
 
   return (
     <div>
+      <div className="flex gap-3 mb-6">
+        <button
+          onClick={() => switchToTest("big5")}
+          className={`px-4 py-2 rounded-lg transition ${activeTest === "big5" ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-700"}`}
+        >
+          Большая пятёрка
+        </button>
+        <button
+          onClick={() => switchToTest("emotional_intelligence")}
+          className={`px-4 py-2 rounded-lg transition ${activeTest === "emotional_intelligence" ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-700"}`}
+        >
+          Эмоциональный интеллект
+        </button>
+        <button
+          onClick={() => switchToTest("motivation")}
+          className={`px-4 py-2 rounded-lg transition ${activeTest === "motivation" ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-700"}`}
+        >
+          Мотивация
+        </button>
+      </div>
+
       <h2 className="text-2xl font-bold text-gray-800 mb-4">
-        Тест на тип личности
+        {activeTest === "big5" && "Тест на тип личности (Большая пятёрка)"}
+        {activeTest === "emotional_intelligence" &&
+          "Тест на эмоциональный интеллект"}
+        {activeTest === "motivation" && "Тест на мотивацию"}
       </h2>
       <p className="text-gray-600 mb-6">
-        Ответьте на 40 вопросов, чтобы узнать свой психологический профиль.
-        Отвечайте честно, выбирая степень согласия с каждым утверждением.
+        {activeTest === "big5" &&
+          "Ответьте на 40 вопросов, чтобы узнать свой психологический профиль."}
+        {activeTest === "emotional_intelligence" &&
+          "Оцените свой эмоциональный интеллект."}
+        {activeTest === "motivation" && "Узнайте уровень своей мотивации."}
         <br />
         <span className="text-sm text-purple-600">
-          Отвечено вопросов: {answeredCount} из {questions.length}
+          Отвечено вопросов: {answeredCount} из {currentQuestions.length}
         </span>
       </p>
 
-      <div className="space-y-6 mb-8">
-        {currentQuestions.map((q, idx) => {
+      <div className="space-y-8 mb-8">
+        {currentQuestionsList.map((q, idx) => {
           const globalIdx = startIdx + idx;
+          const selectedValue = answers[globalIdx];
           return (
             <div key={globalIdx} className="border-b border-gray-200 pb-4">
-              <p className="font-medium text-gray-800 mb-3">
+              <p className="font-medium text-gray-800 mb-4">
                 {globalIdx + 1}. {q.text}
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex justify-between items-center max-w-md mx-auto">
                 {options.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => handleAnswer(globalIdx, opt.value)}
-                    className={`px-3 py-1.5 rounded-lg text-sm transition ${
-                      answers[globalIdx] === opt.value
-                        ? "bg-purple-600 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    className={`${opt.size} flex items-center justify-center border-[2px] ${opt.color} rounded-full transition-all duration-200 hover:scale-110 ${
+                      selectedValue === opt.value ? opt.color : "bg-transparent"
                     }`}
                   >
-                    {opt.label}
+                    {selectedValue === opt.value && (
+                      <Check className={`text-white ${opt.iconSize}`} />
+                    )}
                   </button>
                 ))}
+              </div>
+              <div className="flex w-full h-[50px] flex-row items-center justify-between mt-2">
+                <p className="text-green-800">Согласен</p>
+                <p className="text-purple-800">Не согласен</p>
               </div>
             </div>
           );
@@ -353,10 +725,10 @@ export default function PersonalityTest() {
         {currentPage === totalPages - 1 ? (
           <button
             onClick={calculateAndSaveResult}
-            disabled={answeredCount < questions.length}
+            disabled={answeredCount < currentQuestions.length || savingResult}
             className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
           >
-            Получить результат
+            {savingResult ? "Сохранение..." : "Получить результат"}
           </button>
         ) : (
           <button

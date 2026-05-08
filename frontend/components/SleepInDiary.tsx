@@ -29,10 +29,12 @@ interface SleepRecord {
 }
 
 interface SleepInDiaryProps {
-  date: string;
+  date?: string;
+  recordId?: string;
+  onSleepSaved?: () => void;
+  onCancel?: () => void;
 }
 
-// Компонент для автоматического изменения высоты textarea
 function AutoResizeTextarea({ value, onChange, placeholder, className }: any) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -55,7 +57,12 @@ function AutoResizeTextarea({ value, onChange, placeholder, className }: any) {
   );
 }
 
-export default function SleepInDiary({ date }: SleepInDiaryProps) {
+export default function SleepInDiary({
+  date: propDate,
+  recordId: propRecordId,
+  onSleepSaved,
+  onCancel,
+}: SleepInDiaryProps) {
   const [sleepRecord, setSleepRecord] = useState<SleepRecord | null>(null);
   const [segments, setSegments] = useState<SleepSegment[]>([
     { start: "23:00", end: "07:00" },
@@ -75,12 +82,44 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
     tags: [] as string[],
     tagInput: "",
   });
+  const [generalSleepNote, setGeneralSleepNote] = useState("");
+  const [isEditingGeneralNote, setIsEditingGeneralNote] = useState(false);
+  const [currentDate, setCurrentDate] = useState<string>("");
 
   useEffect(() => {
-    fetchSleepRecord();
-  }, [date]);
+    if (propDate) {
+      setCurrentDate(propDate);
+      fetchSleepRecordByDate(propDate);
+    } else if (propRecordId) {
+      fetchSleepRecordById(propRecordId);
+    }
+  }, [propDate, propRecordId]);
 
-  const fetchSleepRecord = async () => {
+  const fetchSleepRecordById = async (id: string) => {
+    try {
+      const response = await api.get(`/sleep/records/${id}`);
+      if (response.data) {
+        setSleepRecord(response.data);
+        setSegments(
+          response.data.segments || [{ start: "23:00", end: "07:00" }],
+        );
+        setGeneralSleepNote(response.data.notes || "");
+        setCurrentDate(response.data.date.split("T")[0]);
+
+        const notesResponse = await api.get(
+          `/sleep-notes/record/${response.data.id}`,
+        );
+        setSleepNotes(notesResponse.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch sleep record by ID:", error);
+      showToast("Ошибка загрузки записи", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSleepRecordByDate = async (date: string) => {
     try {
       const response = await api.get(`/sleep/records/${date}`);
       if (response.data && response.data.id) {
@@ -88,6 +127,7 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
         setSegments(
           response.data.segments || [{ start: "23:00", end: "07:00" }],
         );
+        setGeneralSleepNote(response.data.notes || "");
 
         const notesResponse = await api.get(
           `/sleep-notes/record/${response.data.id}`,
@@ -97,9 +137,10 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
         setSleepRecord(null);
         setSegments([{ start: "23:00", end: "07:00" }]);
         setSleepNotes([]);
+        setGeneralSleepNote("");
       }
     } catch (error) {
-      console.error("Failed to fetch sleep record:", error);
+      console.error("Failed to fetch sleep record by date:", error);
     } finally {
       setLoading(false);
     }
@@ -186,25 +227,29 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
   const saveSleepData = async () => {
     try {
       if (sleepRecord) {
-        await api.put(`/sleep/records/${date}`, { segments, notes: "" });
-      } else {
-        const response = await api.post(`/sleep/records/${date}`, {
+        await api.put(`/sleep/records/${currentDate}`, {
           segments,
-          notes: "",
+          notes: generalSleepNote,
+        });
+        return sleepRecord.id;
+      } else {
+        const response = await api.post(`/sleep/records/${currentDate}`, {
+          segments,
+          notes: generalSleepNote,
         });
         setSleepRecord(response.data);
+        return response.data.id;
       }
-      await fetchSleepRecord();
-      showToast("Данные о сне сохранены", "success");
     } catch (err) {
       console.error("Save error:", err);
       showToast("Ошибка сохранения данных о сне", "error");
+      return null;
     }
   };
 
   const saveNote = async (note: SleepNote) => {
     if (!sleepRecord?.id) {
-      const response = await api.post(`/sleep/records/${date}`, {
+      const response = await api.post(`/sleep/records/${currentDate}`, {
         segments,
         notes: "",
       });
@@ -243,6 +288,70 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
     await api.delete(`/sleep-notes/${noteId}`);
   };
 
+  const deleteGeneralNote = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const confirmed = await showConfirm(
+      "Удалить общую заметку?",
+      "Вы уверены, что хотите удалить общую заметку о сне?",
+      "danger",
+    );
+
+    if (!confirmed) return;
+
+    setSaving(true);
+    try {
+      await api.put(`/sleep/records/${currentDate}`, {
+        segments,
+        notes: "",
+      });
+      setSleepRecord((prev) => (prev ? { ...prev, notes: "" } : prev));
+      setGeneralSleepNote("");
+      showToast("Общая заметка о сне удалена", "success");
+      setIsEditingGeneralNote(false);
+      if (onSleepSaved) onSleepSaved();
+    } catch (err) {
+      console.error("Error deleting general note:", err);
+      showToast("Ошибка удаления заметки", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveGeneralNote = async () => {
+    setSaving(true);
+    try {
+      if (!sleepRecord?.id) {
+        const response = await api.post(`/sleep/records/${currentDate}`, {
+          segments,
+          notes: generalSleepNote,
+        });
+        setSleepRecord(response.data);
+        showToast("Общая заметка о сне сохранена", "success");
+        setIsEditingGeneralNote(false);
+        if (onSleepSaved) onSleepSaved();
+        return;
+      }
+
+      await api.put(`/sleep/records/${currentDate}`, {
+        segments,
+        notes: generalSleepNote,
+      });
+      setSleepRecord((prev) =>
+        prev ? { ...prev, notes: generalSleepNote } : prev,
+      );
+      showToast("Общая заметка о сне сохранена", "success");
+      setIsEditingGeneralNote(false);
+      if (onSleepSaved) onSleepSaved();
+    } catch (err) {
+      console.error("Error saving general note:", err);
+      showToast("Ошибка сохранения заметки", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleAddNote = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -253,8 +362,11 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
 
     setSaving(true);
     try {
-      await saveSleepData();
-
+      const recordId = await saveSleepData();
+      if (!recordId && !sleepRecord?.id) {
+        showToast("Ошибка сохранения данных о сне", "error");
+        return;
+      }
       const newNote: SleepNote = {
         id: `temp_${Date.now()}`,
         title: noteForm.title,
@@ -265,7 +377,7 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
       };
 
       await saveNote(newNote);
-      await fetchSleepRecord();
+      await fetchSleepRecordByDate(currentDate);
       setAddingNote(false);
       setNoteForm({
         title: "",
@@ -276,6 +388,7 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
         tagInput: "",
       });
       showToast("Заметка о сне добавлена", "success");
+      if (onSleepSaved) onSleepSaved();
     } catch (err) {
       console.error("Error adding note:", err);
       showToast("Ошибка добавления заметки", "error");
@@ -303,7 +416,7 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
       };
 
       await updateNote(editingNoteId, updatedNote);
-      await fetchSleepRecord();
+      await fetchSleepRecordByDate(currentDate);
       setEditingNoteId(null);
       setNoteForm({
         title: "",
@@ -314,6 +427,7 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
         tagInput: "",
       });
       showToast("Заметка обновлена", "success");
+      if (onSleepSaved) onSleepSaved();
     } catch (err) {
       console.error("Error updating note:", err);
       showToast("Ошибка обновления заметки", "error");
@@ -336,8 +450,9 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
       setSaving(true);
       try {
         await deleteNoteFromServer(noteId);
-        await fetchSleepRecord();
+        await fetchSleepRecordByDate(currentDate);
         showToast("Заметка удалена", "success");
+        if (onSleepSaved) onSleepSaved();
       } catch (err) {
         console.error("Error deleting note:", err);
         showToast("Ошибка удаления заметки", "error");
@@ -427,12 +542,11 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
             <h3 className="font-semibold text-gray-800">Сон</h3>
           </div>
           <div className="flex flex-row items-center">
-            <p className="text-sm text-gray-600 mr-[10px] ">
+            <p className="text-sm text-gray-600 mr-[10px]">
               <span className="font-semibold text-pink-950">
                 {totalDuration} ч
               </span>
             </p>
-
             {sleepRecord && (
               <button
                 type="button"
@@ -500,6 +614,7 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
                   e.stopPropagation();
                   await saveSleepData();
                   setShowEditor(false);
+                  if (onSleepSaved) onSleepSaved();
                 }}
                 disabled={saving}
                 className="flex-1 bg-pink-500 text-white py-2 rounded hover:bg-pink-600 disabled:opacity-50"
@@ -523,9 +638,102 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
           </>
         )}
       </div>
+
+      {/* Общая заметка о сне */}
+      <div className="mt-4 bg-white rounded-lg border-[1px] border-pink-300 shadow-sm p-4">
+        <div className="flex justify-between items-center mb-2">
+          <label className="text-sm font-semibold text-pink-800">
+            Общая заметка о сне
+          </label>
+          <div className="flex gap-2">
+            {!isEditingGeneralNote && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditingGeneralNote(true);
+                  setGeneralSleepNote(sleepRecord?.notes || "");
+                }}
+                className="text-xs text-pink-500 hover:text-pink-600"
+              >
+                {sleepRecord?.notes ? "Редактировать" : "Добавить"}
+              </button>
+            )}
+            {sleepRecord?.notes && !isEditingGeneralNote && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteGeneralNote(e);
+                }}
+                className="text-xs text-red-500 hover:text-red-600"
+              >
+                Удалить
+              </button>
+            )}
+          </div>
+        </div>
+
+        {!isEditingGeneralNote ? (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditingGeneralNote(true);
+              setGeneralSleepNote(sleepRecord?.notes || "");
+            }}
+            className="text-sm text-gray-600 whitespace-pre-wrap break-words cursor-pointer hover:bg-pink-50 p-2 rounded-lg transition"
+          >
+            {sleepRecord?.notes ||
+              "➕ Нажмите, чтобы добавить общую заметку о сне..."}
+          </div>
+        ) : (
+          <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+            <AutoResizeTextarea
+              placeholder="Напишите общую заметку о сне (как спалось, что чувствовали и т.д.)..."
+              value={generalSleepNote}
+              onChange={(e) => setGeneralSleepNote(e.target.value)}
+              className="bg-pink-50"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  saveGeneralNote();
+                }}
+                disabled={saving}
+                className="px-4 py-1 bg-pink-500 text-white rounded-lg hover:bg-pink-600 text-sm"
+              >
+                Сохранить
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditingGeneralNote(false);
+                  setGeneralSleepNote(sleepRecord?.notes || "");
+                }}
+                className="px-4 py-1 border border-pink-300 rounded-lg hover:bg-pink-100 text-sm"
+              >
+                Отмена
+              </button>
+              {sleepRecord?.notes && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteGeneralNote(e);
+                  }}
+                  disabled={saving}
+                  className="px-4 py-1 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
+                >
+                  Удалить
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       <p className="font-semibold text-sm text-pink-800 mt-[10px]">
-        Какие сны вам сегодня снились?{" "}
+        Какие сны вам сегодня снились?
       </p>
+
       <div className="mt-3 space-y-2">
         {sleepNotes.map((note) => (
           <div
@@ -545,7 +753,6 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
                       setNoteForm({ ...noteForm, dream_type: type })
                     }
                   />
-
                   <input
                     type="text"
                     placeholder="Название"
@@ -677,7 +884,6 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
         ))}
       </div>
 
-      {/* Форма добавления новой заметки */}
       {addingNote ? (
         <div className="mt-3 bg-white rounded-lg border-pink-300 shadow-sm hover:shadow-md duration-300 border">
           <div className="space-y-2 p-[20px]">
@@ -688,7 +894,6 @@ export default function SleepInDiary({ date }: SleepInDiaryProps) {
                   setNoteForm({ ...noteForm, dream_type: type })
                 }
               />
-
               <input
                 type="text"
                 placeholder="Название"

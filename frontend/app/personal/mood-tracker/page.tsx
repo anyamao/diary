@@ -67,6 +67,8 @@ const monthNames = [
   "Декабрь",
 ];
 
+type DateFilter = "all" | "week" | "month";
+
 // Функция для форматирования даты в YYYY-MM-DD (UTC)
 const formatUTCDate = (date: Date) => {
   const year = date.getUTCFullYear();
@@ -81,10 +83,37 @@ const getRussianWeekday = (date: Date) => {
   return weekDays[day];
 };
 
+// Фильтрация записей по дате
+const filterEntriesByDate = (entries: DiaryEntry[], filter: DateFilter) => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  switch (filter) {
+    case "week":
+      const weekAgo = new Date(today);
+      weekAgo.setDate(today.getDate() - 7);
+      return entries.filter((entry) => {
+        const entryDate = new Date(entry.created_at);
+        return entryDate >= weekAgo;
+      });
+    case "month":
+      const monthAgo = new Date(today);
+      monthAgo.setMonth(today.getMonth() - 1);
+      return entries.filter((entry) => {
+        const entryDate = new Date(entry.created_at);
+        return entryDate >= monthAgo;
+      });
+    default:
+      return entries;
+  }
+};
+
 export default function MoodTrackerPage() {
   const [entries, setEntries] = useState<DiaryEntry[]>([]);
+  const [filteredEntries, setFilteredEntries] = useState<DiaryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const { isAuthenticated, isLoading } = useAuthStore();
   const router = useRouter();
 
@@ -97,6 +126,10 @@ export default function MoodTrackerPage() {
       fetchEntries();
     }
   }, [isAuthenticated, isLoading]);
+
+  useEffect(() => {
+    setFilteredEntries(filterEntriesByDate(entries, dateFilter));
+  }, [entries, dateFilter]);
 
   const fetchEntries = async () => {
     try {
@@ -144,7 +177,6 @@ export default function MoodTrackerPage() {
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
 
-    // Создаем Map для быстрого поиска записей по дате
     const entriesByDate = new Map();
     entries.forEach((entry) => {
       const entryDate = new Date(entry.created_at);
@@ -153,12 +185,10 @@ export default function MoodTrackerPage() {
     });
 
     const calendar = [];
-    // Добавляем пустые дни в начале месяца
     for (let i = 0; i < firstDay; i++) {
       calendar.push({ date: null, entry: null, mood: null, isEmpty: true });
     }
 
-    // Добавляем дни месяца
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(Date.UTC(year, month, day));
       const dateKey = formatUTCDate(date);
@@ -176,7 +206,7 @@ export default function MoodTrackerPage() {
 
   const getMoodStats = () => {
     const stats: { [key: string]: number } = {};
-    entries.forEach((entry) => {
+    filteredEntries.forEach((entry) => {
       const mood = entry.mood || "noemotions";
       stats[mood] = (stats[mood] || 0) + 1;
     });
@@ -189,7 +219,7 @@ export default function MoodTrackerPage() {
 
   const getWeekdayStats = () => {
     const stats: { [key: string]: { [key: string]: number } } = {};
-    entries.forEach((entry) => {
+    filteredEntries.forEach((entry) => {
       const date = new Date(entry.created_at);
       const weekday = getRussianWeekday(date);
       const mood = entry.mood || "noemotions";
@@ -211,7 +241,7 @@ export default function MoodTrackerPage() {
 
   const getCharStats = () => {
     const stats: { [key: string]: { totalChars: number; count: number } } = {};
-    entries.forEach((entry) => {
+    filteredEntries.forEach((entry) => {
       const date = new Date(entry.created_at);
       const weekday = getRussianWeekday(date);
       const charCount =
@@ -230,6 +260,21 @@ export default function MoodTrackerPage() {
     }));
   };
 
+  // Новая функция для статистики настроений по типам
+  const getMoodDistributionStats = () => {
+    const stats: { [key: string]: number } = {};
+    filteredEntries.forEach((entry) => {
+      const mood = entry.mood || "noemotions";
+      stats[mood] = (stats[mood] || 0) + 1;
+    });
+
+    return Object.entries(moodNames).map(([moodKey, moodName]) => ({
+      name: moodName,
+      count: stats[moodKey] || 0,
+      color: getMoodColor(moodKey),
+    }));
+  };
+
   const getMoodColor = (mood: string) => {
     const colors: { [key: string]: string } = {
       happy: "#fbbf24",
@@ -244,12 +289,40 @@ export default function MoodTrackerPage() {
     return colors[mood] || "#9ca3af";
   };
 
+  const getMostCommonMood = () => {
+    const stats: { [key: string]: number } = {};
+    filteredEntries.forEach((entry) => {
+      const mood = entry.mood || "noemotions";
+      stats[mood] = (stats[mood] || 0) + 1;
+    });
+
+    let maxMood = null;
+    let maxCount = 0;
+    for (const [mood, count] of Object.entries(stats)) {
+      if (count > maxCount) {
+        maxCount = count;
+        maxMood = mood;
+      }
+    }
+
+    return maxMood ? { name: moodNames[maxMood], count: maxCount } : null;
+  };
+
+  const getFirstEntryDate = () => {
+    if (filteredEntries.length === 0) return null;
+    const dates = filteredEntries.map((e) => new Date(e.created_at));
+    const firstDate = new Date(Math.min(...dates.map((d) => d.getTime())));
+    return `${firstDate.getDate()} ${monthNames[firstDate.getMonth()]}`;
+  };
+
   const handleDateClick = (date: Date) => {
     if (!date) return;
     const dateStr = formatUTCDate(date);
     router.push(`/personal/diary?date=${dateStr}`);
   };
-
+  const getMoodImage = (mood: string) => {
+    return moodImages[mood] || "/noemotions.png";
+  };
   if (isLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -262,8 +335,11 @@ export default function MoodTrackerPage() {
   const moodStats = getMoodStats();
   const weekdayStats = getWeekdayStats();
   const charStats = getCharStats();
-  const totalEntries = entries.length;
-  const totalChars = entries.reduce(
+  const moodDistributionStats = getMoodDistributionStats();
+  const mostCommonMood = getMostCommonMood();
+  const firstEntryDate = getFirstEntryDate();
+  const totalEntries = filteredEntries.length;
+  const totalChars = filteredEntries.reduce(
     (sum, e) => sum + (e.title?.length || 0) + (e.content?.length || 0),
     0,
   );
@@ -281,9 +357,70 @@ export default function MoodTrackerPage() {
           Отслеживай свои эмоции и анализируй статистику
         </p>
 
+        {/* Фильтр по дате */}
+        <div className="flex gap-3 mb-3">
+          <button
+            onClick={() => setDateFilter("all")}
+            className={`px-4 py-2 rounded-lg transition ${
+              dateFilter === "all"
+                ? "bg-pink-500 text-white"
+                : "bg-white text-gray-700 hover:bg-pink-100"
+            }`}
+          >
+            За всё время
+          </button>
+          <button
+            onClick={() => setDateFilter("month")}
+            className={`px-4 py-2 rounded-lg transition ${
+              dateFilter === "month"
+                ? "bg-pink-500 text-white"
+                : "bg-white text-gray-700 hover:bg-pink-100"
+            }`}
+          >
+            За месяц
+          </button>
+          <button
+            onClick={() => setDateFilter("week")}
+            className={`px-4 py-2 rounded-lg transition ${
+              dateFilter === "week"
+                ? "bg-pink-500 text-white"
+                : "bg-white text-gray-700 hover:bg-pink-100"
+            }`}
+          >
+            За неделю
+          </button>
+        </div>
+        <p className="text-sm text-pink-500 ml-2 mb-5">
+          * Фильтр применяется ко всем графикам и записям
+        </p>
+
+        <div className="grid md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-4 text-center">
+            <p className="text-gray-500 text-sm">Записей в дневнике</p>
+            <p className="text-2xl font-bold text-pink-600">{totalEntries}</p>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-4 text-center">
+            <p className="text-gray-500 text-sm">Всего символов</p>
+            <p className="text-2xl font-bold text-pink-600">
+              {totalChars.toLocaleString()}
+            </p>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-4 text-center">
+            <p className="text-gray-500 text-sm">Средняя длина записи</p>
+            <p className="text-2xl font-bold text-pink-600">
+              {totalEntries ? Math.round(totalChars / totalEntries) : 0}
+            </p>
+          </div>
+          <div className="bg-white rounded-lg shadow-md p-4 text-center">
+            <p className="text-gray-500 text-sm">Самое частое настроение</p>
+            <p className="text-2xl font-bold text-pink-600">
+              {mostCommonMood ? `${mostCommonMood.name} ` : "—"}
+            </p>
+          </div>
+        </div>
+
         <div className="flex lg:flex-row items-center flex-col ">
-          {/* Управление месяцем */}
-          <div className="flex flex-col   max-w-[500px]">
+          <div className="flex flex-col max-w-[500px]">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800">
                 {currentMonthName} {currentYear}
@@ -311,10 +448,9 @@ export default function MoodTrackerPage() {
               </div>
             </div>
 
-            {/* Календарь настроений */}
             <div className="flex flex-col items-center w-full">
               <div className="bg-white rounded-lg w-[500px] shadow-md p-6 mb-8">
-                <div className="grid grid-cols-7  gap-2 mb-2">
+                <div className="grid grid-cols-7 gap-2 mb-2">
                   {weekDays.map((day) => (
                     <div
                       key={day}
@@ -337,7 +473,6 @@ export default function MoodTrackerPage() {
                     }
 
                     const dayNumber = day.date.getUTCDate();
-                    const weekday = getRussianWeekday(day.date);
                     const hasEntry = day.entry !== null;
                     const mood = day.mood;
                     const isToday =
@@ -383,65 +518,97 @@ export default function MoodTrackerPage() {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-8 mb-8  lg:ml-[30px] lg:w-full">
-            <div className="bg-white rounded-lg w-full shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Распределение настроений
-              </h2>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={moodStats}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) =>
-                      `${name}: ${(percent * 100).toFixed(0)}%`
-                    }
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {moodStats.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+          <div className="grid grid-cols-1 gap-8 mb-8 lg:ml-[30px] lg:w-full"></div>
+        </div>
 
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">
-                Общая статистика
-              </h2>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center p-3 bg-pink-50 rounded-lg">
-                  <span className="text-gray-600">Всего записей:</span>
-                  <span className="text-2xl font-bold text-pink-600">
-                    {totalEntries}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-pink-50 rounded-lg">
-                  <span className="text-gray-600">Всего символов:</span>
-                  <span className="text-2xl font-bold text-pink-600">
-                    {totalChars.toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center p-3 bg-pink-50 rounded-lg">
-                  <span className="text-gray-600">Средняя длина записи:</span>
-                  <span className="text-2xl font-bold text-pink-600">
-                    {totalEntries ? Math.round(totalChars / totalEntries) : 0}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="bg-white rounded-lg w-full shadow-md my-[30px] p-6">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">
+            Распределение настроений
+          </h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={moodStats}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) =>
+                  `${name}: ${(percent * 100).toFixed(0)}%`
+                }
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {moodStats.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">
+            Статистика настроений по типам
+          </h2>
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={moodDistributionStats}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis
+                dataKey="name"
+                tick={({ x, y, payload }) => {
+                  const moodKey = Object.keys(moodNames).find(
+                    (key) => moodNames[key] === payload.value,
+                  );
+                  const imageSrc = moodKey
+                    ? getMoodImage(moodKey)
+                    : "/noemotions.png";
+                  return (
+                    <g transform={`translate(${x},${y})`}>
+                      <image
+                        href={imageSrc}
+                        x={-15}
+                        y={0}
+                        width={30}
+                        height={30}
+                        className="object-contain"
+                      />
+                    </g>
+                  );
+                }}
+                height={50}
+                interval={0}
+              />
+              <YAxis
+                domain={[0, "dataMax"]}
+                tickCount={
+                  Math.max(...moodDistributionStats.map((s) => s.count), 1) + 1
+                }
+                allowDecimals={false}
+                tickFormatter={(value) => Math.floor(value).toString()}
+              />
+              <Tooltip
+                formatter={(value) => [Math.floor(value), "записей"]}
+                labelFormatter={(label) => {
+                  const moodKey = Object.keys(moodNames).find(
+                    (key) => moodNames[key] === label,
+                  );
+                  return moodKey ? moodNames[moodKey] : label;
+                }}
+              />
+              <Bar dataKey="count" fill="#ec4899" name="Количество записей">
+                {moodDistributionStats.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
         <div className="flex flex-col">
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Настроения по дням недели
+              Настроение по дням недели
             </h2>
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={weekdayStats}>

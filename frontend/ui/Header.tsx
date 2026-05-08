@@ -42,7 +42,7 @@ function Header() {
           VibeNote
         </Link>
 
-        <div className="flex flex-row justify-center w-full md:ml-[-30px] font-semibold bg-pink-200 h-[30px] rounded-lg  max-w-[270px]  md:max-w-[400px] text-xs text-pink-950 items-center">
+        <div className="flex flex-row justify-center w-full md:ml-[-30px] font-semibold bg-pink-200 h-[30px] rounded-lg  max-w-[270px]   text-xs text-pink-950 items-center">
           <Link
             href="/personal"
             className={`flex-1 cursor-pointer hover:text-pink-700 duration-300 flex items-center h-full rounded-l-lg justify-center ${
@@ -64,20 +64,9 @@ function Header() {
           >
             Проекты
           </Link>
-
-          <Link
-            href="/about-us"
-            className={`flex-1 flex items-center hover:text-pink-700 duration-300 h-full cursor-pointer rounded-r-lg justify-center hover:bg-pink-300 ${
-              pathname === "/about-us" ? "bg-pink-300 text-pink-700" : ""
-            }`}
-          >
-            О нас
-          </Link>
         </div>
 
         <div className="flex items-center gap-3 relative">
-          <Bell className="text-yellow-600 w-5 h-5"></Bell>
-
           {isAuthenticated ? (
             <>
               <button
@@ -128,15 +117,6 @@ function Header() {
               >
                 <User className="w-4 h-4 text-pink-500" />
                 Мой аккаунт
-              </Link>
-
-              <Link
-                href="/settings"
-                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 transition"
-                onClick={() => setIsProfileMenuOpen(false)}
-              >
-                <Settings className="w-4 h-4 text-pink-500" />
-                Настройки
               </Link>
 
               <button

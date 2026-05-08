@@ -171,7 +171,7 @@ export default function MoodBoosters() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-800 mb-4">
+      <h2 className="text-2xl font-bold text-pink-900 mb-4">
         Что влияет на твое настроение?
       </h2>
       <p className="text-gray-600 mb-6">
@@ -179,11 +179,11 @@ export default function MoodBoosters() {
         лучше понимать себя и управлять эмоциями.
       </p>
 
-      <div className="grid md:grid-cols-2 gap-8 mb-8">
+      <div className="grid md:grid-cols-2 bg-white p-6 shadow-md border-[1px] rounded-lg border-pink-200 gap-8 mb-8">
         {/* Повышающие факторы */}
-        <div className="bg-green-50 rounded-xl p-6">
+        <div className="bg-pink-100 rounded-lg p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Heart className="w-6 h-6 text-green-600 fill-green-600" />
+            <Heart className="w-6 h-6 text-pink-600 fill-pink-600" />
             <h3 className="text-xl font-semibold text-gray-800">
               Повышает настроение
             </h3>
@@ -196,11 +196,11 @@ export default function MoodBoosters() {
               onChange={(e) => setNewBooster(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && addBooster()}
               placeholder="Например: прогулка, музыка, кофе..."
-              className="flex-1 p-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="flex-1 p-2  bg-pink-100 focus:outline-none outline-none "
             />
             <button
               onClick={addBooster}
-              className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="px-3 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -210,14 +210,14 @@ export default function MoodBoosters() {
             {boosters.map((item) => (
               <div
                 key={item.id}
-                className="flex justify-between items-center p-2 bg-white rounded-lg border border-green-200"
+                className="flex justify-between hover:text-red-500 items-center p-2 border-b-[1px] border-pink-200 "
               >
-                <span className="text-gray-800">✨ {item.text}</span>
+                <span className="text-gray-800"> {item.text}</span>
                 <button
                   onClick={() => removeBooster(item.id)}
-                  className="text-red-500 hover:text-red-700"
+                  className=" text-red-500"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-6 h-6 p-1 rounded-lg hover:bg-pink-200 duration-300" />
                 </button>
               </div>
             ))}
@@ -230,9 +230,8 @@ export default function MoodBoosters() {
         </div>
 
         {/* Понижающие факторы */}
-        <div className="bg-red-50 rounded-xl p-6">
+        <div className="bg-gray-200 rounded-xl p-6">
           <div className="flex items-center gap-2 mb-4">
-            <Frown className="w-6 h-6 text-red-600" />
             <h3 className="text-xl font-semibold text-gray-800">
               Понижает настроение
             </h3>
@@ -245,11 +244,11 @@ export default function MoodBoosters() {
               onChange={(e) => setNewDrainer(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && addDrainer()}
               placeholder="Например: стресс, одиночество, дождь..."
-              className="flex-1 p-2 border border-red-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="flex-1 p-2 outline-none focus:outline-none bg-gray-200"
             />
             <button
               onClick={addDrainer}
-              className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              className="px-3 py-2 bg-gray-400 text-white rounded-lg hover:bg-gray-500"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -259,14 +258,14 @@ export default function MoodBoosters() {
             {drainers.map((item) => (
               <div
                 key={item.id}
-                className="flex justify-between items-center p-2 bg-white rounded-lg border border-red-200"
+                className="flex justify-between items-center p-2 border-b-[1px] border-gray-300 "
               >
-                <span className="text-gray-800">💧 {item.text}</span>
+                <span className="text-gray-800"> {item.text}</span>
                 <button
                   onClick={() => removeDrainer(item.id)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-red-500 "
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-6 hover:bg-pink-200 rounded-lg p-1 h-6" />
                 </button>
               </div>
             ))}
@@ -280,11 +279,10 @@ export default function MoodBoosters() {
       </div>
 
       {/* Заметки о себе */}
-      <div className="bg-yellow-50 rounded-xl p-6 mb-8">
+      <div className="bg-pink-50 rounded-lg p-6 mb-8">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
-            <StickyNote className="w-6 h-6 text-yellow-600" />
-            <h3 className="text-xl font-semibold text-gray-800">
+            <h3 className="text-xl font-semibold text-pink-900">
               Заметки о себе
             </h3>
           </div>
@@ -294,13 +292,13 @@ export default function MoodBoosters() {
               setNoteForm({ title: "", content: "" });
               setShowNoteModal(true);
             }}
-            className="flex items-center gap-1 px-3 py-1.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm"
+            className="flex items-center gap-1 px-3 py-1.5 bg-pink-500 text-white rounded-lg duration-300 hover:bg-pink-600 text-sm"
           >
             <Plus className="w-4 h-4" /> Добавить заметку
           </button>
         </div>
 
-        <p className="text-gray-600 text-sm mb-4">
+        <p className="text-pink-600 text-sm mb-4">
           Важные напоминания о себе, своих желаниях, мечтах и решениях. То, что
           не хочется забыть.
         </p>
@@ -356,56 +354,41 @@ export default function MoodBoosters() {
         </button>
       </div>
 
-      <div className="mt-6 p-4 bg-purple-50 rounded-lg">
-        <p className="text-sm text-purple-800">
-          💡 Совет: Регулярно обновляй этот список и старайся включать больше
-          "повышающих" активностей в свою жизнь, а также минимизировать влияние
-          "понижающих" факторов. Это один из ключей к эмоциональному
-          благополучию!
-        </p>
-      </div>
-
       {/* Модальное окно для заметки */}
       {showNoteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">
+            <h2 className="text-xl font-bold mb-4 text-pink-950">
               {editingNote ? "Редактировать заметку" : "Новая заметка о себе"}
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Название
-                </label>
                 <input
                   type="text"
                   value={noteForm.title}
                   onChange={(e) =>
                     setNoteForm({ ...noteForm, title: e.target.value })
                   }
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  placeholder="Например: Важно помнить..."
+                  className="w-full p-2 outline-none text-pink-950 border-b-[1px] border-pink-200"
+                  placeholder="Название"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  Содержание
-                </label>
                 <textarea
                   value={noteForm.content}
                   onChange={(e) =>
                     setNoteForm({ ...noteForm, content: e.target.value })
                   }
                   rows={8}
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  className="w-full text-pink-950 p-2 outline-none"
                   placeholder="Что важно для тебя? Что не хочешь забыть? Какие у тебя цели и мечты?"
                 />
               </div>
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={saveSelfNote}
-                  className="flex-1 bg-yellow-600 text-white py-2 rounded-lg hover:bg-yellow-700 transition"
+                  className="flex-1 bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600 transition"
                 >
                   Сохранить
                 </button>

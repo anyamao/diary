@@ -3,8 +3,25 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
-import { Play, Square, X, Edit2, Check } from "lucide-react";
+import {
+  Play,
+  Square,
+  X,
+  Edit2,
+  Check,
+  Tag as TagIcon,
+  Pen,
+} from "lucide-react";
 import Link from "next/link";
+import { colors, getColorHex } from "@/lib/colors";
+import { useColorTags } from "@/hooks/useColorTags";
+import { showToast } from "@/components/Toast";
+
+interface Tag {
+  id: string;
+  name: string;
+  color: string;
+}
 
 interface CurrentSession {
   is_active: boolean;
@@ -20,7 +37,7 @@ export default function MiniTimer() {
   const [elapsed, setElapsed] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
   const [showTagModal, setShowTagModal] = useState(false);
-  const [tags, setTags] = useState<any[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTag, setSelectedTag] = useState("");
   const [description, setDescription] = useState("");
   const [editingDescription, setEditingDescription] = useState(false);
@@ -28,12 +45,50 @@ export default function MiniTimer() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { isAuthenticated, isLoading } = useAuthStore();
 
+  const {
+    tags: colorTags,
+    saveTag: saveColorTag,
+    loadTags: loadColorTags,
+  } = useColorTags();
+  const [editingColorTag, setEditingColorTag] = useState<string | null>(null);
+  const [newColorTagName, setNewColorTagName] = useState("");
+
+  const getTagColor = (tagName: string) => {
+    const tag = tags.find((t) => t.name === tagName);
+    if (tag && tag.color) {
+      return getColorHex(tag.color);
+    }
+    return colors[0].hex;
+  };
+
+  const getTagStyle = (tagName: string) => {
+    const tag = tags.find((t) => t.name === tagName);
+    if (tag && tag.color) {
+      return colors.find((c) => c.name === tag.color) || colors[0];
+    }
+    return colors[0];
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
+      loadColorTags();
       fetchCurrentSession();
       fetchTags();
     }
   }, [isAuthenticated]);
+
+  // Подписываемся на события обновления таймера
+  useEffect(() => {
+    const handleTimerUpdate = () => {
+      console.log("🔄 MiniTimer: получил событие timer-updated");
+      fetchCurrentSession();
+      fetchTags();
+      loadColorTags();
+    };
+
+    window.addEventListener("timer-updated", handleTimerUpdate);
+    return () => window.removeEventListener("timer-updated", handleTimerUpdate);
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -96,8 +151,10 @@ export default function MiniTimer() {
       setShowTagModal(false);
       setSelectedTag("");
       setDescription("");
+      showToast(`Начата сессия: ${selectedTag}`, "success");
     } catch (error) {
       console.error("Failed to start timer:", error);
+      showToast("Ошибка при запуске таймера", "error");
     }
   };
 
@@ -107,8 +164,10 @@ export default function MiniTimer() {
         await api.post("/study-timer/stop");
         await fetchCurrentSession();
         window.dispatchEvent(new Event("timer-updated"));
+        showToast("Сессия завершена", "success");
       } catch (error) {
         console.error("Failed to stop timer:", error);
+        showToast("Ошибка при завершении сессии", "error");
       }
     }
   };
@@ -121,17 +180,22 @@ export default function MiniTimer() {
       await fetchCurrentSession();
       setEditingDescription(false);
       window.dispatchEvent(new Event("timer-updated"));
+      showToast("Описание обновлено", "success");
     } catch (error) {
       console.error("Failed to update description:", error);
+      showToast("Ошибка при обновлении описания", "error");
     }
   };
 
-  const createTag = async (name: string) => {
+  const createTag = async (name: string, color: string = "yellow") => {
     try {
-      await api.post("/study-timer/tags", { name, color: "blue" });
-      fetchTags();
+      await api.post("/study-timer/tags", { name, color });
+      await fetchTags();
+      window.dispatchEvent(new Event("timer-updated"));
+      showToast(`Тег "${name}" создан`, "success");
     } catch (error) {
-      alert("Ошибка создания тега");
+      console.error("Failed to create tag:", error);
+      showToast("Ошибка при создании тега", "error");
     }
   };
 
@@ -275,66 +339,112 @@ export default function MiniTimer() {
         </div>
       </div>
 
-      {/* Модальное окно выбора тега */}
+      {/* Модальное окно выбора тега - такое же как в study-timer */}
       {showTagModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Начать сессию</h2>
-            <div className="space-y-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">
+                Начать сессию
+              </h2>
+              <button
+                onClick={() => setShowTagModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              {/* Выбор тега - сетка цветов с тегами */}
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Выберите предмет/тег
                 </label>
-                <select
-                  value={selectedTag}
-                  onChange={(e) => setSelectedTag(e.target.value)}
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Выберите тег</option>
-                  {tags.map((tag) => (
-                    <option key={tag.id} value={tag.name}>
-                      {tag.name}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={async () => {
-                    const name = prompt("Введите название нового тега:");
-                    if (name) {
-                      await createTag(name);
-                    }
-                  }}
-                  className="text-xs text-blue-600 mt-1 hover:text-blue-700"
-                >
-                  + Создать новый тег
-                </button>
+
+                <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto p-1">
+                  {colors.map((color) => {
+                    const tagName = colorTags[color.name];
+                    const displayName = tagName || color.label;
+
+                    return (
+                      <button
+                        key={color.name}
+                        onClick={() => setSelectedTag(displayName)}
+                        className={`
+                          flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-200
+                          ${
+                            selectedTag === displayName
+                              ? `${color.bg} border-${color.name}-500 ring-2 ring-${color.name}-300`
+                              : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                          }
+                        `}
+                      >
+                        <div
+                          className={`w-5 h-5 rounded-full ${color.base} shadow-sm`}
+                        />
+                        <span
+                          className={`text-sm font-medium ${selectedTag === displayName ? "text-gray-900" : "text-gray-700"}`}
+                        >
+                          {displayName}
+                        </span>
+                        {selectedTag === displayName && (
+                          <Check className="w-4 h-4 text-green-500 ml-auto" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <p className="text-xs text-gray-400 mt-2 text-center">
+                  Нажмите на тег, чтобы выбрать его для сессии
+                </p>
               </div>
+
+              {/* Описание */}
               <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Описание (необязательно)
                 </label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition"
                   rows={3}
-                  placeholder="Что будешь изучать?"
+                  placeholder="Что будешь изучать? Например: глава 3, задачи на циклы..."
                 />
               </div>
-              <div className="flex gap-3 pt-4">
+
+              {/* Кнопки действий */}
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={startTimer}
-                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+                  disabled={!selectedTag}
+                  className={`
+                    flex-1 py-3 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2
+                    ${
+                      selectedTag
+                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-blue-800"
+                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    }
+                  `}
                 >
-                  Начать
+                  <Play className="w-4 h-4" />
+                  Начать сессию
                 </button>
                 <button
                   onClick={() => setShowTagModal(false)}
-                  className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50"
+                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
                 >
                   Отмена
                 </button>
               </div>
+
+              {/* Подсказка */}
+              <p className="text-xs text-gray-400 text-center pt-2 border-t border-gray-100">
+                💡 Теги можно изменить в настройках цветных тегов на главной
+                странице Study Timer
+              </p>
             </div>
           </div>
         </div>

@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { showToast } from "@/components/Toast";
 import { showConfirm } from "@/components/ConfirmDialog";
-
+import { useColorTags } from "@/hooks/useColorTags";
 const weekDays = [
   "Понедельник",
   "Вторник",
@@ -130,9 +130,6 @@ export default function PlannerPage() {
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newTaskColor, setNewTaskColor] = useState("yellow");
   const [newTaskDay, setNewTaskDay] = useState<string>("");
-  const [tagNames, setTagNames] = useState<{ [key: string]: string }>({});
-  const [editingTag, setEditingTag] = useState<string | null>(null);
-  const [newTagName, setNewTagName] = useState("");
   const [showTagsModal, setShowTagsModal] = useState(false);
   const [editingTask, setEditingTask] = useState<any>(null);
   const [editTaskTitle, setEditTaskTitle] = useState("");
@@ -140,7 +137,13 @@ export default function PlannerPage() {
   const [editTaskStart, setEditTaskStart] = useState("09:00");
   const [editTaskEnd, setEditTaskEnd] = useState("10:00");
   const [showEditModal, setShowEditModal] = useState(false);
-
+  const {
+    tags: tagNames,
+    saveTag: saveTagName,
+    loadTags: loadTagNames,
+  } = useColorTags();
+  const [editingTag, setEditingTag] = useState<string | null>(null);
+  const [newTagName, setNewTagName] = useState("");
   // Цели
   const [weeklyGoals, setWeeklyGoals] = useState<{ [key: number]: string }>({});
   const [monthlyGoal, setMonthlyGoal] = useState("");
@@ -152,7 +155,6 @@ export default function PlannerPage() {
   const [editingWeeklyNote, setEditingWeeklyNote] = useState<number | null>(
     null,
   );
-
   const { isAuthenticated, isLoading } = useAuthStore();
   const router = useRouter();
 
@@ -162,14 +164,11 @@ export default function PlannerPage() {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push("/login");
-      return;
     }
     if (isAuthenticated) {
       loadMonths();
       loadWeekPlan();
       loadGoalsAndNotes();
-      loadTagNames();
     }
   }, [isAuthenticated, isLoading, currentDate, selectedMonth, selectedYear]);
 
@@ -263,37 +262,6 @@ export default function PlannerPage() {
     }
   };
 
-  const loadTagNames = async () => {
-    try {
-      const response = await api.get("/planner/tags");
-      if (response.data) {
-        const tags: { [key: string]: string } = {};
-        response.data.forEach((tag: any) => {
-          tags[tag.color] = tag.tag_name;
-        });
-        setTagNames(tags);
-      }
-    } catch (error) {
-      console.error("Failed to load tags:", error);
-    }
-  };
-
-  const saveTagName = async (color: string) => {
-    if (!newTagName.trim()) return;
-    try {
-      await api.post("/planner/tags", {
-        color: color,
-        tag_name: newTagName.trim(),
-      });
-      setTagNames({ ...tagNames, [color]: newTagName.trim() });
-      showToast(`Тег "${newTagName}" добавлен`, "success");
-      setEditingTag(null);
-      setNewTagName("");
-    } catch (error) {
-      console.error("Failed to save tag:", error);
-      showToast("Ошибка сохранения тега", "error");
-    }
-  };
   const toggleDayImportance = async (date: string, currentStatus: boolean) => {
     try {
       const dayResponse = await api.get(`/planner/days/${date}`);
@@ -715,7 +683,11 @@ export default function PlannerPage() {
                 />
                 <div className="flex gap-3">
                   <button
-                    onClick={() => saveTagName(editingTag)}
+                    onClick={async () => {
+                      await saveTagName(editingTag, newTagName);
+                      setEditingTag(null); // Закрываем модальное окно
+                      setNewTagName(""); // Очищаем поле
+                    }}
                     className="flex-1 bg-pink-600 text-white py-2 rounded-lg hover:bg-pink-700"
                   >
                     Сохранить

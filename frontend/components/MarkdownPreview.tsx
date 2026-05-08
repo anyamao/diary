@@ -20,27 +20,30 @@ export default function MarkdownPreview({
 
   const components: Components = {
     h1: ({ node, ...props }) => (
-      <h1 className="text-2xl font-bold mt-4 mb-2" {...props} />
+      <h1 className="text-2xl font-bold mt-4 mb-2 break-words" {...props} />
     ),
     h2: ({ node, ...props }) => (
-      <h2 className="text-xl font-bold mt-3 mb-2" {...props} />
+      <h2 className="text-xl font-bold mt-3 mb-2 break-words" {...props} />
     ),
     h3: ({ node, ...props }) => (
-      <h3 className="text-lg font-bold mt-2 mb-1" {...props} />
+      <h3 className="text-lg font-bold mt-2 mb-1 break-words" {...props} />
     ),
     p: ({ node, ...props }) => (
-      <p className="mb-2 leading-relaxed" {...props} />
+      <p
+        className="mb-2 leading-relaxed break-words whitespace-pre-wrap"
+        {...props}
+      />
     ),
     ul: ({ node, ...props }) => (
-      <ul className="list-disc ml-4 mb-2" {...props} />
+      <ul className="list-disc ml-4 mb-2 break-words" {...props} />
     ),
     ol: ({ node, ...props }) => (
-      <ol className="list-decimal ml-4 mb-2" {...props} />
+      <ol className="list-decimal ml-4 mb-2 break-words" {...props} />
     ),
-    li: ({ node, ...props }) => <li className="mb-1" {...props} />,
+    li: ({ node, ...props }) => <li className="mb-1 break-words" {...props} />,
     a: ({ node, ...props }) => (
       <a
-        className="text-purple-600 hover:underline"
+        className="text-purple-600 hover:underline break-words"
         target="_blank"
         rel="noopener noreferrer"
         {...props}
@@ -53,8 +56,8 @@ export default function MarkdownPreview({
         <img
           {...props}
           src={src}
-          className="max-w-[400px] h-auto rounded-lg shadow-md my-2"
-          style={{ maxWidth: "400px", height: "auto" }}
+          className="max-w-full h-auto rounded-lg shadow-md my-2"
+          style={{ maxWidth: "100%", height: "auto" }}
           alt={props.alt || "Изображение"}
         />
       );
@@ -64,7 +67,7 @@ export default function MarkdownPreview({
       if (isInline) {
         return (
           <code
-            className="bg-gray-100 rounded px-1 py-0.5 text-sm font-mono"
+            className="bg-gray-100 rounded px-1 py-0.5 text-sm font-mono break-words whitespace-pre-wrap"
             {...props}
           >
             {children}
@@ -81,7 +84,7 @@ export default function MarkdownPreview({
     },
     blockquote: ({ node, ...props }) => (
       <blockquote
-        className="border-l-4 border-purple-400 pl-4 italic my-2 text-gray-600"
+        className="border-l-4 border-purple-400 pl-4 italic my-2 text-gray-600 break-words"
         {...props}
       />
     ),
@@ -91,16 +94,20 @@ export default function MarkdownPreview({
       </div>
     ),
     th: ({ node, ...props }) => (
-      <th className="border border-gray-300 px-3 py-1 bg-gray-100" {...props} />
+      <th
+        className="border border-gray-300 px-3 py-1 bg-gray-100 break-words"
+        {...props}
+      />
     ),
     td: ({ node, ...props }) => (
-      <td className="border border-gray-300 px-3 py-1" {...props} />
+      <td className="border border-gray-300 px-3 py-1 break-words" {...props} />
     ),
   };
 
   return (
     <div
-      className={`markdown-preview prose prose-purple prose-sm max-w-none ${className}`}
+      className={`markdown-preview prose prose-purple prose-sm max-w-none w-full overflow-x-hidden ${className}`}
+      style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
