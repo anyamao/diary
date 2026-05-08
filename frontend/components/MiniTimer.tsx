@@ -3,17 +3,8 @@
 import { useEffect, useState, useRef } from "react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
-import {
-  Play,
-  Square,
-  X,
-  Edit2,
-  Check,
-  Tag as TagIcon,
-  Pen,
-} from "lucide-react";
-import Link from "next/link";
-import { colors, getColorHex } from "@/lib/colors";
+import { Play, Square, X, Edit2, Check } from "lucide-react";
+import { colors } from "@/lib/colors";
 import { useColorTags } from "@/hooks/useColorTags";
 import { showToast } from "@/components/Toast";
 import { showConfirm } from "@/components/ConfirmDialog";
@@ -46,29 +37,7 @@ export default function MiniTimer() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { isAuthenticated, isLoading } = useAuthStore();
 
-  const {
-    tags: colorTags,
-    saveTag: saveColorTag,
-    loadTags: loadColorTags,
-  } = useColorTags();
-  const [editingColorTag, setEditingColorTag] = useState<string | null>(null);
-  const [newColorTagName, setNewColorTagName] = useState("");
-
-  const getTagColor = (tagName: string) => {
-    const tag = tags.find((t) => t.name === tagName);
-    if (tag && tag.color) {
-      return getColorHex(tag.color);
-    }
-    return colors[0].hex;
-  };
-
-  const getTagStyle = (tagName: string) => {
-    const tag = tags.find((t) => t.name === tagName);
-    if (tag && tag.color) {
-      return colors.find((c) => c.name === tag.color) || colors[0];
-    }
-    return colors[0];
-  };
+  const { tags: colorTags, loadTags: loadColorTags } = useColorTags();
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -78,33 +47,44 @@ export default function MiniTimer() {
     }
   }, [isAuthenticated]);
 
-  // Подписываемся на события обновления таймера
+  // Подписываемся на события
   useEffect(() => {
     const handleTimerUpdate = () => {
       console.log("🔄 MiniTimer: получил событие timer-updated");
+      // Принудительно обновляем данные
       fetchCurrentSession();
       fetchTags();
       loadColorTags();
     };
 
     window.addEventListener("timer-updated", handleTimerUpdate);
-    return () => window.removeEventListener("timer-updated", handleTimerUpdate);
-  }, []);
+
+    // Также обновляем данные каждые 5 секунд для надежности
+    const interval = setInterval(() => {
+      if (isAuthenticated) {
+        fetchCurrentSession();
+      }
+    }, 5000);
+
+    return () => {
+      window.removeEventListener("timer-updated", handleTimerUpdate);
+      clearInterval(interval);
+    };
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const interval = setInterval(() => {
+    const tick = setInterval(() => {
       if (session?.is_active && session.start_time) {
         const start = new Date(session.start_time);
         const now = new Date();
         setElapsed(Math.floor((now.getTime() - start.getTime()) / 1000));
       }
     }, 1000);
-    return () => clearInterval(interval);
+    return () => clearInterval(tick);
   }, [session, isAuthenticated]);
 
-  // Автоматическое изменение высоты textarea
   useEffect(() => {
     if (editingDescription && textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -115,11 +95,30 @@ export default function MiniTimer() {
   const fetchCurrentSession = async () => {
     if (!isAuthenticated) return;
     try {
+      console.log("📡 MiniTimer: запрос текущей сессии...");
       const response = await api.get("/study-timer/current");
+      console.log(
+        "📡 MiniTimer: ответ сервера:",
+        JSON.stringify(response.data, null, 2),
+      );
+
+      const wasActive = session?.is_active;
+      const isNowActive = response.data.is_active;
+
       setSession(response.data);
+
       if (response.data.is_active) {
         setElapsed(response.data.elapsed_seconds || 0);
         setTempDescription(response.data.description || "");
+      }
+
+      if (wasActive !== isNowActive) {
+        console.log(
+          `🔄 MiniTimer: статус изменился с ${wasActive} на ${isNowActive}`,
+        );
+        if (isNowActive) {
+          showToast(`Сессия активна: ${response.data.tag}`, "info");
+        }
       }
     } catch (error) {
       console.error("Failed to fetch current session:", error);
@@ -143,6 +142,7 @@ export default function MiniTimer() {
     }
 
     try {
+      console.log("📡 MiniTimer: отправка запроса на старт...");
       await api.post("/study-timer/start", {
         tag: selectedTag,
         description: description || null,
@@ -167,6 +167,7 @@ export default function MiniTimer() {
     );
     if (confirmed) {
       try {
+        console.log("📡 MiniTimer: отправка запроса на остановку...");
         await api.post("/study-timer/stop");
         await fetchCurrentSession();
         window.dispatchEvent(new Event("timer-updated"));
@@ -190,18 +191,6 @@ export default function MiniTimer() {
     } catch (error) {
       console.error("Failed to update description:", error);
       showToast("Ошибка при обновлении описания", "error");
-    }
-  };
-
-  const createTag = async (name: string, color: string = "yellow") => {
-    try {
-      await api.post("/study-timer/tags", { name, color });
-      await fetchTags();
-      window.dispatchEvent(new Event("timer-updated"));
-      showToast(`Тег "${name}" создан`, "success");
-    } catch (error) {
-      console.error("Failed to create tag:", error);
-      showToast("Ошибка при создании тега", "error");
     }
   };
 
@@ -259,7 +248,6 @@ export default function MiniTimer() {
                 </div>
               </div>
 
-              {/* Многострочное редактируемое описание */}
               <div className="mb-3">
                 {editingDescription ? (
                   <div className="space-y-2">
@@ -334,7 +322,6 @@ export default function MiniTimer() {
         </div>
       </div>
 
-      {/* Модальное окно выбора тега */}
       {showTagModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
@@ -351,7 +338,6 @@ export default function MiniTimer() {
             </div>
 
             <div className="space-y-5">
-              {/* Выбор тега - сетка цветов с тегами */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Выберите предмет/тег
@@ -392,7 +378,6 @@ export default function MiniTimer() {
                 </div>
               </div>
 
-              {/* Описание */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Описание (необязательно)
@@ -400,20 +385,18 @@ export default function MiniTimer() {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none transition"
+                  className="w-full max-w-[600px] p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none transition break-words whitespace-pre-wrap"
                   rows={3}
                   placeholder="Что будешь изучать? Например: глава 3, задачи на циклы..."
-                  style={{ wordBreak: "break-all", whiteSpace: "pre-wrap" }}
                 />
               </div>
 
-              {/* Кнопки действий */}
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={startTimer}
                   disabled={!selectedTag}
                   className={`
-                    flex-1 py-3 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2
+                    flex-1 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2
                     ${
                       selectedTag
                         ? "bg-pink-600 text-white shadow-md hover:bg-pink-700"

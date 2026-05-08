@@ -32,6 +32,7 @@ import { showToast } from "@/components/Toast";
 import { showConfirm } from "@/components/ConfirmDialog";
 import { colors, getColorHex } from "@/lib/colors";
 import { useColorTags } from "@/hooks/useColorTags";
+
 interface Tag {
   id: string;
   name: string;
@@ -82,8 +83,7 @@ export default function StudyTimerPage() {
   } = useColorTags();
   const [editingColorTag, setEditingColorTag] = useState<string | null>(null);
   const [newColorTagName, setNewColorTagName] = useState("");
-  // Добавьте эту строку после других хуков:
-  // Получаем цвет тега
+
   const getTagColor = (tagName: string) => {
     const tag = tags.find((t) => t.name === tagName);
     if (tag && tag.color) {
@@ -123,22 +123,25 @@ export default function StudyTimerPage() {
     }
   }, [isAuthenticated, isLoading]);
 
+  // Подписываемся на события обновления таймера
   useEffect(() => {
     const handleTimerUpdate = () => {
+      console.log("🔄 StudyTimer: получил событие timer-updated");
       fetchCurrentSession();
       fetchStats();
+      fetchTags();
     };
 
     window.addEventListener("timer-updated", handleTimerUpdate);
     return () => window.removeEventListener("timer-updated", handleTimerUpdate);
   }, []);
+
   useEffect(() => {
     if (period === "custom") {
       fetchStats();
     }
   }, [customStart, customEnd]);
 
-  loadColorTags();
   useEffect(() => {
     if (period !== "custom") {
       fetchStats();
@@ -191,7 +194,6 @@ export default function StudyTimerPage() {
     }
   };
 
-  // 1. В startTimer - добавить dispatch
   const startTimer = async () => {
     if (!selectedTag) {
       setShowTagModal(true);
@@ -206,9 +208,9 @@ export default function StudyTimerPage() {
       await loadAll();
       setShowTagModal(false);
       setSelectedTag("");
-      showToast(`Начата сессия: ${selectedTag}`, "success");
       setDescription("");
-      // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
+      showToast(`Начата сессия: ${selectedTag}`, "success");
+      // Отправляем событие для синхронизации с MiniTimer
       window.dispatchEvent(new Event("timer-updated"));
     } catch (error) {
       console.error("Failed to start timer:", error);
@@ -216,7 +218,6 @@ export default function StudyTimerPage() {
     }
   };
 
-  // 2. В stopTimer - добавить dispatch
   const stopTimer = async () => {
     const confirmed = await showConfirm(
       "Завершить сессию?",
@@ -228,7 +229,7 @@ export default function StudyTimerPage() {
         await api.post("/study-timer/stop");
         await loadAll();
         showToast("Сессия успешно завершена", "success");
-        // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
+        // Отправляем событие для синхронизации с MiniTimer
         window.dispatchEvent(new Event("timer-updated"));
       } catch (error) {
         console.error("Failed to stop timer:", error);
@@ -237,7 +238,6 @@ export default function StudyTimerPage() {
     }
   };
 
-  // 3. В updateDescription - добавить dispatch
   const updateDescription = async () => {
     try {
       await api.patch("/study-timer/current/description", {
@@ -246,7 +246,7 @@ export default function StudyTimerPage() {
       await fetchCurrentSession();
       setEditingDescription(false);
       showToast("Описание обновлено", "success");
-      // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
+      // Отправляем событие для синхронизации
       window.dispatchEvent(new Event("timer-updated"));
     } catch (error) {
       console.error("Failed to update description:", error);
@@ -254,12 +254,10 @@ export default function StudyTimerPage() {
     }
   };
 
-  // 4. В createTag - добавить dispatch
   const createTag = async (name: string, color: string = "yellow") => {
     try {
       await api.post("/study-timer/tags", { name, color });
       await fetchTags();
-      // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
       window.dispatchEvent(new Event("timer-updated"));
       showToast(`Тег "${name}" создан`, "success");
     } catch (error) {
@@ -267,7 +265,6 @@ export default function StudyTimerPage() {
     }
   };
 
-  // 5. В deleteTag - добавить dispatch
   const deleteTag = async (id: string, name: string) => {
     const confirmed = await showConfirm(
       "Удалить тег?",
@@ -279,7 +276,6 @@ export default function StudyTimerPage() {
         await api.delete(`/study-timer/tags/${id}`);
         await fetchTags();
         showToast(`Тег "${name}" удален`, "success");
-        // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
         window.dispatchEvent(new Event("timer-updated"));
       } catch (error) {
         console.error("Failed to delete tag:", error);
@@ -288,7 +284,6 @@ export default function StudyTimerPage() {
     }
   };
 
-  // 6. В deleteSession - добавить dispatch
   const deleteSession = async (sessionId: string) => {
     const confirmed = await showConfirm(
       "Удалить сессию?",
@@ -300,7 +295,6 @@ export default function StudyTimerPage() {
         await api.delete(`/study-timer/sessions/${sessionId}`);
         await loadAll();
         showToast("Сессия удалена", "success");
-        // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
         window.dispatchEvent(new Event("timer-updated"));
       } catch (error) {
         console.error("Failed to delete session:", error);
@@ -309,13 +303,11 @@ export default function StudyTimerPage() {
     }
   };
 
-  // 7. В saveColorTag - добавить dispatch
   const saveTagForColor = async (colorName: string, tagName: string) => {
     try {
       await saveColorTag(colorName, tagName);
       loadColorTags();
       await fetchTags();
-      // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
       window.dispatchEvent(new Event("timer-updated"));
       showToast(`Тег для цвета сохранен`, "success");
     } catch (error) {
@@ -323,8 +315,6 @@ export default function StudyTimerPage() {
       showToast("Ошибка при сохранении тега", "error");
     }
   };
-
-  // Также в deleteTag и deleteSession добавьте dispatch события
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -428,7 +418,6 @@ export default function StudyTimerPage() {
                       >
                         {currentSession.description || "Добавить описание..."}
                       </div>
-
                       <Edit2 className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition flex-shrink-0 ml-2" />
                     </div>
                   </div>
@@ -455,7 +444,8 @@ export default function StudyTimerPage() {
             )}
           </div>
         </div>
-        {/* Управление цветными тегами (общие с Planner) */}
+
+        {/* Управление цветными тегами */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
@@ -660,9 +650,10 @@ export default function StudyTimerPage() {
             </>
           )}
         </div>
+
         {/* История сессий */}
         {stats?.sessions && stats.sessions.length > 0 && (
-          <div className="bg-white rounded-xl shadow-md p-6  mb-[30px]">
+          <div className="bg-white rounded-xl shadow-md p-6 mb-[30px]">
             <h2 className="text-xl font-semibold text-pink-900 mb-4">
               История сессий
             </h2>
@@ -720,6 +711,7 @@ export default function StudyTimerPage() {
         )}
       </div>
 
+      {/* Модальное окно выбора тега */}
       {showTagModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
@@ -742,7 +734,6 @@ export default function StudyTimerPage() {
                   Выберите предмет/тег
                 </label>
 
-                {/* Список всех цветов с тегами */}
                 <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto p-1">
                   {colors.map((color) => {
                     const tagName = colorTags[color.name];
@@ -753,13 +744,13 @@ export default function StudyTimerPage() {
                         key={color.name}
                         onClick={() => setSelectedTag(displayName)}
                         className={`
-                    flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-200
-                    ${
-                      selectedTag === displayName
-                        ? `${color.bg} border-${color.name}-500 ring-2 ring-${color.name}-300`
-                        : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
-                    }
-                  `}
+                          flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-200
+                          ${
+                            selectedTag === displayName
+                              ? `${color.bg} border-${color.name}-500 ring-2 ring-${color.name}-300`
+                              : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                          }
+                        `}
                       >
                         <div
                           className={`w-5 h-5 rounded-full ${color.base} shadow-sm`}
@@ -787,7 +778,6 @@ export default function StudyTimerPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Описание (необязательно)
                 </label>
-
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -807,13 +797,13 @@ export default function StudyTimerPage() {
                   onClick={startTimer}
                   disabled={!selectedTag}
                   className={`
-              flex-1 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2
-              ${
-                selectedTag
-                  ? "bg-pink-600 text-white shadow-md hover:bg-pink-700"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-              }
-            `}
+                    flex-1 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2
+                    ${
+                      selectedTag
+                        ? "bg-pink-600 text-white shadow-md hover:bg-pink-700"
+                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    }
+                  `}
                 >
                   <Play className="w-4 h-4" />
                   Начать сессию
