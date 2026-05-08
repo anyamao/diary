@@ -131,7 +131,7 @@ export default function ProfileModal({
 
   return (
     <div className="fixed inset-0 bg-pink-50 flex items-center justify-center z-[20] pt-[100px]">
-      <div className=" max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className=" max-w-2xl w-full max-h-[90vh] px-[20px] overflow-y-auto">
         {/* Header */}
         <div className="sticky top-0">
           <div className="flex justify-between items-center">
