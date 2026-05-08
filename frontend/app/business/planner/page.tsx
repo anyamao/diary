@@ -157,11 +157,35 @@ export default function PlannerPage() {
   );
   const { isAuthenticated, isLoading } = useAuthStore();
   const router = useRouter();
+  // Функция для получения правильного диапазона недели (с учетом компенсации)
+  const getCorrectWeekRange = (startDate: Date) => {
+    const start = new Date(startDate);
+    const end = new Date(startDate);
 
+    // Компенсируем сдвиг
+    start.setDate(start.getDate());
+    end.setDate(end.getDate() + 7);
+
+    const formatDateRange = (date: Date) => {
+      const day = date.getDate();
+      const month = date.toLocaleString("ru-RU", { month: "short" });
+      return `${day} ${month}`;
+    };
+
+    // Сдвигаем начало на 1 день вперед, конец на 1 день вперед
+    const correctedStart = new Date(start);
+    const correctedEnd = new Date(end);
+    correctedStart.setDate(start.getDate());
+    correctedEnd.setDate(end.getDate() - 1);
+
+    return `${formatDateRange(correctedStart)} - ${formatDateRange(correctedEnd)}`;
+  };
   function formatDate(date: Date): string {
-    return date.toISOString().split("T")[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }
-
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
     }
@@ -240,7 +264,11 @@ export default function PlannerPage() {
         for (let i = 0; i < 7; i++) {
           const day = new Date(weekStart);
           day.setDate(weekStart.getDate() + i);
-          const dateStr = formatDate(day);
+          // Используем локальную дату без сдвига
+          const year = day.getFullYear();
+          const month = String(day.getMonth() + 1).padStart(2, "0");
+          const dayNum = String(day.getDate()).padStart(2, "0");
+          const dateStr = `${year}-${month}-${dayNum}`;
           weekDaysPromises.push(
             api.get(`/planner/days/${dateStr}`).catch(() => ({ data: null })),
           );
@@ -250,9 +278,13 @@ export default function PlannerPage() {
         const weekDaysData = responses.map((res, index) => {
           const day = new Date(weekStart);
           day.setDate(weekStart.getDate() + index);
+          const year = day.getFullYear();
+          const month = String(day.getMonth() + 1).padStart(2, "0");
+          const dayNum = String(day.getDate()).padStart(2, "0");
+          const dateStr = `${year}-${month}-${dayNum}`;
           const data = res?.data;
           return {
-            date: formatDate(day),
+            date: dateStr,
             dayOfWeek: weekDays[index],
             dayNumber: day.getDate(),
             isImportant: data?.is_important || false,
@@ -272,7 +304,6 @@ export default function PlannerPage() {
       console.error("Failed to load week plan:", error);
     }
   };
-
   const toggleDayImportance = async (date: string, currentStatus: boolean) => {
     try {
       const dayResponse = await api.get(`/planner/days/${date}`);
@@ -839,7 +870,7 @@ export default function PlannerPage() {
                             Неделя {week.weekNumber}{" "}
                           </h3>
                           <p className="text-gray-700">
-                            {getWeekRange(new Date(week.startDate))}
+                            {getCorrectWeekRange(new Date(week.startDate))}
                           </p>
                           {isHidden ? (
                             <ChevronDown className="w-4 h-4 text-pink-500" />
