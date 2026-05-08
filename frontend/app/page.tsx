@@ -13,20 +13,7 @@ export default function Home() {
     checkAuth();
   }, []);
 
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.push("/personal/diary");
-    }
-  }, [isAuthenticated, isLoading, router]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
-        <div className="text-xl">Загрузка...</div>
-      </div>
-    );
-  }
-
+ router.push("/login");
   return (
     <main className="h-full w-full min-h-[950px] flex items-center pt-[70px] mt-[-40px] flex-col bg-pink-50 ">
       <div className="text-center">
