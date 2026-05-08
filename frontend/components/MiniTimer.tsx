@@ -16,6 +16,7 @@ import Link from "next/link";
 import { colors, getColorHex } from "@/lib/colors";
 import { useColorTags } from "@/hooks/useColorTags";
 import { showToast } from "@/components/Toast";
+import { showConfirm } from "@/components/ConfirmDialog";
 
 interface Tag {
   id: string;
@@ -159,7 +160,12 @@ export default function MiniTimer() {
   };
 
   const stopTimer = async () => {
-    if (confirm("Завершить текущую сессию?")) {
+    const confirmed = await showConfirm(
+      "Завершить сессию?",
+      "Вы уверены, что хотите завершить текущую сессию?",
+      "warning",
+    );
+    if (confirmed) {
       try {
         await api.post("/study-timer/stop");
         await fetchCurrentSession();
@@ -214,7 +220,7 @@ export default function MiniTimer() {
     return (
       <button
         onClick={() => setIsVisible(true)}
-        className="fixed bottom-4 right-4 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition z-50"
+        className="fixed bottom-4 right-4 bg-pink-600 text-white p-3 rounded-full shadow-lg hover:bg-pink-700 transition z-50"
       >
         <Play className="w-5 h-5" />
       </button>
@@ -261,7 +267,7 @@ export default function MiniTimer() {
                       ref={textareaRef}
                       value={tempDescription}
                       onChange={(e) => setTempDescription(e.target.value)}
-                      className="w-full text-sm p-2 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                      className="w-full text-sm p-2 border rounded focus:outline-none focus:ring-1 focus:ring-pink-500 resize-none"
                       placeholder="Описание сессии..."
                       rows={1}
                       style={{ minHeight: "60px", maxHeight: "150px" }}
@@ -270,7 +276,7 @@ export default function MiniTimer() {
                     <div className="flex gap-2 justify-end">
                       <button
                         onClick={updateDescription}
-                        className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                        className="px-3 py-1 bg-pink-500 text-white rounded hover:bg-pink-600 text-sm"
                       >
                         <Check className="w-3 h-3 inline mr-1" /> Сохранить
                       </button>
@@ -294,7 +300,7 @@ export default function MiniTimer() {
                     }}
                   >
                     <div className="flex justify-between items-start">
-                      <div className="whitespace-pre-wrap break-words flex-1 max-w-[240px]">
+                      <div className="whitespace-pre-wrap break-all flex-1 max-w-[240px]">
                         {session.description || "Добавить описание..."}
                       </div>
                       <Edit2 className="w-3 h-3 text-gray-400 opacity-0 group-hover:opacity-100 transition flex-shrink-0 ml-2" />
@@ -304,20 +310,9 @@ export default function MiniTimer() {
               </div>
 
               <div className="flex gap-2 mt-2">
-                <Link
-                  href="/business/study-timer"
-                  className="flex-1 text-center text-sm text-blue-600 hover:text-blue-700"
-                  onClick={() => {
-                    setTimeout(() => {
-                      window.dispatchEvent(new Event("timer-updated"));
-                    }, 100);
-                  }}
-                >
-                  Подробнее
-                </Link>
                 <button
                   onClick={stopTimer}
-                  className="flex-1 bg-red-500 text-white py-1.5 rounded-lg hover:bg-red-600 transition text-sm"
+                  className="flex-1 bg-pink-600 text-white py-1.5 rounded-lg hover:bg-pink-700 transition text-sm"
                 >
                   Остановить
                 </button>
@@ -330,7 +325,7 @@ export default function MiniTimer() {
               </div>
               <button
                 onClick={() => setShowTagModal(true)}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                className="w-full bg-pink-600 text-white py-2 rounded-lg hover:bg-pink-700 transition flex items-center justify-center gap-2"
               >
                 <Play className="w-4 h-4" /> Начать учебу
               </button>
@@ -339,7 +334,7 @@ export default function MiniTimer() {
         </div>
       </div>
 
-      {/* Модальное окно выбора тега - такое же как в study-timer */}
+      {/* Модальное окно выбора тега */}
       {showTagModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
@@ -395,10 +390,6 @@ export default function MiniTimer() {
                     );
                   })}
                 </div>
-
-                <p className="text-xs text-gray-400 mt-2 text-center">
-                  Нажмите на тег, чтобы выбрать его для сессии
-                </p>
               </div>
 
               {/* Описание */}
@@ -409,9 +400,10 @@ export default function MiniTimer() {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition"
+                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none transition"
                   rows={3}
                   placeholder="Что будешь изучать? Например: глава 3, задачи на циклы..."
+                  style={{ wordBreak: "break-all", whiteSpace: "pre-wrap" }}
                 />
               </div>
 
@@ -424,7 +416,7 @@ export default function MiniTimer() {
                     flex-1 py-3 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2
                     ${
                       selectedTag
-                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-blue-800"
+                        ? "bg-pink-600 text-white shadow-md hover:bg-pink-700"
                         : "bg-gray-100 text-gray-400 cursor-not-allowed"
                     }
                   `}
@@ -439,12 +431,6 @@ export default function MiniTimer() {
                   Отмена
                 </button>
               </div>
-
-              {/* Подсказка */}
-              <p className="text-xs text-gray-400 text-center pt-2 border-t border-gray-100">
-                💡 Теги можно изменить в настройках цветных тегов на главной
-                странице Study Timer
-              </p>
             </div>
           </div>
         </div>

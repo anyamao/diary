@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState, useRef } from "react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
@@ -93,24 +92,6 @@ export default function StudyTimerPage() {
     return colors[0].hex;
   };
 
-  const deleteSession = async (sessionId: string) => {
-    const confirmed = await showConfirm(
-      "Удалить сессию?",
-      "Эта сессия будет удалена из истории.",
-      "danger",
-    );
-    if (confirmed) {
-      try {
-        await api.delete(`/study-timer/sessions/${sessionId}`);
-        await loadAll();
-        showToast("Сессия удалена", "success");
-        window.dispatchEvent(new Event("timer-updated"));
-      } catch (error) {
-        console.error("Failed to delete session:", error);
-        showToast("Ошибка при удалении сессии", "error");
-      }
-    }
-  };
   const getTagStyle = (tagName: string) => {
     const tag = tags.find((t) => t.name === tagName);
     if (tag && tag.color) {
@@ -210,6 +191,7 @@ export default function StudyTimerPage() {
     }
   };
 
+  // 1. В startTimer - добавить dispatch
   const startTimer = async () => {
     if (!selectedTag) {
       setShowTagModal(true);
@@ -226,7 +208,7 @@ export default function StudyTimerPage() {
       setSelectedTag("");
       showToast(`Начата сессия: ${selectedTag}`, "success");
       setDescription("");
-      // Добавляем dispatch события
+      // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
       window.dispatchEvent(new Event("timer-updated"));
     } catch (error) {
       console.error("Failed to start timer:", error);
@@ -234,6 +216,7 @@ export default function StudyTimerPage() {
     }
   };
 
+  // 2. В stopTimer - добавить dispatch
   const stopTimer = async () => {
     const confirmed = await showConfirm(
       "Завершить сессию?",
@@ -245,7 +228,7 @@ export default function StudyTimerPage() {
         await api.post("/study-timer/stop");
         await loadAll();
         showToast("Сессия успешно завершена", "success");
-        // Добавляем dispatch события
+        // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
         window.dispatchEvent(new Event("timer-updated"));
       } catch (error) {
         console.error("Failed to stop timer:", error);
@@ -254,6 +237,7 @@ export default function StudyTimerPage() {
     }
   };
 
+  // 3. В updateDescription - добавить dispatch
   const updateDescription = async () => {
     try {
       await api.patch("/study-timer/current/description", {
@@ -262,7 +246,7 @@ export default function StudyTimerPage() {
       await fetchCurrentSession();
       setEditingDescription(false);
       showToast("Описание обновлено", "success");
-      // Добавляем dispatch события
+      // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
       window.dispatchEvent(new Event("timer-updated"));
     } catch (error) {
       console.error("Failed to update description:", error);
@@ -270,16 +254,20 @@ export default function StudyTimerPage() {
     }
   };
 
+  // 4. В createTag - добавить dispatch
   const createTag = async (name: string, color: string = "yellow") => {
     try {
       await api.post("/study-timer/tags", { name, color });
       await fetchTags();
+      // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
       window.dispatchEvent(new Event("timer-updated"));
       showToast(`Тег "${name}" создан`, "success");
     } catch (error) {
       alert("Ошибка создания тега");
     }
   };
+
+  // 5. В deleteTag - добавить dispatch
   const deleteTag = async (id: string, name: string) => {
     const confirmed = await showConfirm(
       "Удалить тег?",
@@ -291,6 +279,7 @@ export default function StudyTimerPage() {
         await api.delete(`/study-timer/tags/${id}`);
         await fetchTags();
         showToast(`Тег "${name}" удален`, "success");
+        // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
         window.dispatchEvent(new Event("timer-updated"));
       } catch (error) {
         console.error("Failed to delete tag:", error);
@@ -298,6 +287,44 @@ export default function StudyTimerPage() {
       }
     }
   };
+
+  // 6. В deleteSession - добавить dispatch
+  const deleteSession = async (sessionId: string) => {
+    const confirmed = await showConfirm(
+      "Удалить сессию?",
+      "Эта сессия будет удалена из истории.",
+      "danger",
+    );
+    if (confirmed) {
+      try {
+        await api.delete(`/study-timer/sessions/${sessionId}`);
+        await loadAll();
+        showToast("Сессия удалена", "success");
+        // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
+        window.dispatchEvent(new Event("timer-updated"));
+      } catch (error) {
+        console.error("Failed to delete session:", error);
+        showToast("Ошибка при удалении сессии", "error");
+      }
+    }
+  };
+
+  // 7. В saveColorTag - добавить dispatch
+  const saveTagForColor = async (colorName: string, tagName: string) => {
+    try {
+      await saveColorTag(colorName, tagName);
+      loadColorTags();
+      await fetchTags();
+      // 👇 ДОБАВИТЬ ЭТУ СТРОКУ
+      window.dispatchEvent(new Event("timer-updated"));
+      showToast(`Тег для цвета сохранен`, "success");
+    } catch (error) {
+      console.error("Failed to save color tag:", error);
+      showToast("Ошибка при сохранении тега", "error");
+    }
+  };
+
+  // Также в deleteTag и deleteSession добавьте dispatch события
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -323,11 +350,11 @@ export default function StudyTimerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-pink-50 p-8">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            <h1 className="text-3xl font-bold text-pink-950 mb-2">
               Study Timer
             </h1>
             <p className="text-gray-600">
@@ -337,7 +364,7 @@ export default function StudyTimerPage() {
         </div>
 
         {/* Основной таймер */}
-        <div className="bg-white rounded-xl shadow-lg p-8 mb-8 text-center">
+        <div className="bg-white rounded-xl shadow-md p-8 mb-8 text-center">
           <div className="text-6xl font-mono font-bold text-gray-800 mb-4">
             {currentSession?.is_active ? formatTime(elapsed) : "00:00:00"}
           </div>
@@ -367,7 +394,7 @@ export default function StudyTimerPage() {
                     <div className="flex gap-2 justify-center">
                       <button
                         onClick={updateDescription}
-                        className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-sm"
+                        className="px-3 py-1 bg-pink-500 text-white rounded hover:bg-pink-600 text-sm"
                       >
                         <Check className="w-4 h-4 inline mr-1" /> Сохранить
                       </button>
@@ -391,9 +418,17 @@ export default function StudyTimerPage() {
                     }}
                   >
                     <div className="flex justify-between items-start">
-                      <div className="whitespace-pre-wrap break-words flex-1">
+                      <div
+                        className="flex-1"
+                        style={{
+                          whiteSpace: "pre-wrap",
+                          wordBreak: "break-all",
+                          overflowWrap: "break-word",
+                        }}
+                      >
                         {currentSession.description || "Добавить описание..."}
                       </div>
+
                       <Edit2 className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition flex-shrink-0 ml-2" />
                     </div>
                   </div>
@@ -406,14 +441,14 @@ export default function StudyTimerPage() {
             {!currentSession?.is_active ? (
               <button
                 onClick={() => setShowTagModal(true)}
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 text-lg"
+                className="bg-pink-500 text-white px-8 py-3 rounded-lg hover:bg-pink-600 transition flex items-center gap-2 text-lg"
               >
                 <Play className="w-5 h-5" /> Начать учебу
               </button>
             ) : (
               <button
                 onClick={stopTimer}
-                className="bg-red-600 text-white px-8 py-3 rounded-lg hover:bg-red-700 transition flex items-center gap-2 text-lg"
+                className="bg-pink-200 text-pink-950 px-8 py-3 rounded-lg hover:bg-pink-300 transition flex items-center gap-2 text-lg"
               >
                 <Square className="w-5 h-5" /> Завершить
               </button>
@@ -421,17 +456,14 @@ export default function StudyTimerPage() {
           </div>
         </div>
         {/* Управление цветными тегами (общие с Planner) */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
               <Tag className="w-5 h-5 text-pink-600" />
-              <h2 className="text-xl font-semibold text-gray-800">
+              <h2 className="text-xl font-semibold text-pink-900">
                 Мои цветные теги
               </h2>
             </div>
-            <p className="text-xs text-gray-500">
-              Синхронизируется с планировщиком
-            </p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -449,7 +481,7 @@ export default function StudyTimerPage() {
                         setEditingColorTag(color.name);
                         setNewColorTagName(colorTags[color.name] || "");
                       }}
-                      className="text-gray-500 hover:text-pink-600"
+                      className="text-pink-500 hover:text-pink-600"
                     >
                       <Pen className="w-4 h-4" />
                     </button>
@@ -512,7 +544,7 @@ export default function StudyTimerPage() {
 
         {/* Статистика */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
+          <h2 className="text-xl font-semibold text-pink-800 mb-4">
             Статистика
           </h2>
 
@@ -523,7 +555,7 @@ export default function StudyTimerPage() {
                 onClick={() => setPeriod(p)}
                 className={`px-4 py-2 rounded-lg transition ${
                   period === p
-                    ? "bg-blue-600 text-white"
+                    ? "bg-pink-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
               >
@@ -564,7 +596,7 @@ export default function StudyTimerPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <p className="text-gray-500 text-sm">Всего времени</p>
-              <p className="text-3xl font-bold text-blue-600">
+              <p className="text-3xl font-bold text-pink-600">
                 {stats?.total_hours || 0} ч
               </p>
               <p className="text-sm text-gray-500">
@@ -573,7 +605,7 @@ export default function StudyTimerPage() {
             </div>
             <div className="text-center p-4 bg-gray-50 rounded-lg">
               <p className="text-gray-500 text-sm">Сессий завершено</p>
-              <p className="text-3xl font-bold text-blue-600">
+              <p className="text-3xl font-bold text-pink-600">
                 {stats?.sessions?.length || 0}
               </p>
             </div>
@@ -603,7 +635,7 @@ export default function StudyTimerPage() {
               </div>
 
               <div className="mt-6">
-                <h3 className="font-medium text-gray-700 mb-3">
+                <h3 className="font-medium text-pink-700 mb-3">
                   Соотношение предметов
                 </h3>
                 <ResponsiveContainer width="100%" height={300}>
@@ -613,9 +645,6 @@ export default function StudyTimerPage() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ name, percent }) =>
-                        `${name}: ${(percent * 100).toFixed(0)}%`
-                      }
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="hours"
@@ -633,8 +662,8 @@ export default function StudyTimerPage() {
         </div>
         {/* История сессий */}
         {stats?.sessions && stats.sessions.length > 0 && (
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+          <div className="bg-white rounded-xl shadow-md p-6  mb-[30px]">
+            <h2 className="text-xl font-semibold text-pink-900 mb-4">
               История сессий
             </h2>
             <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -758,12 +787,17 @@ export default function StudyTimerPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Описание (необязательно)
                 </label>
+
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition"
+                  className="w-full max-w-[600px] p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition break-words whitespace-pre-wrap"
                   rows={3}
                   placeholder="Что будешь изучать? Например: глава 3, задачи на циклы..."
+                  style={{
+                    wordBreak: "break-word",
+                    overflowWrap: "break-word",
+                  }}
                 />
               </div>
 
@@ -773,10 +807,10 @@ export default function StudyTimerPage() {
                   onClick={startTimer}
                   disabled={!selectedTag}
                   className={`
-              flex-1 py-3 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2
+              flex-1 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2
               ${
                 selectedTag
-                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md hover:shadow-lg hover:from-blue-700 hover:to-blue-800"
+                  ? "bg-pink-600 text-white shadow-md hover:bg-pink-700"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"
               }
             `}
@@ -791,11 +825,6 @@ export default function StudyTimerPage() {
                   Отмена
                 </button>
               </div>
-
-              {/* Подсказка */}
-              <p className="text-xs text-gray-400 text-center pt-2 border-t border-gray-100">
-                💡 Теги можно изменить в настройках цветных тегов выше
-              </p>
             </div>
           </div>
         </div>

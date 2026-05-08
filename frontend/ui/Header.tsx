@@ -56,9 +56,9 @@ function Header() {
 
           <Link
             href="/business"
-            className={`flex-1 hover:bg-pink-300 hover:text-pink-700 duration-300 flex cursor-pointer h-full items-center justify-center ${
+            className={`flex-1 hover:bg-pink-300 hover:text-pink-700 hover:rounded-r-lg duration-300 flex cursor-pointer h-full items-center justify-center ${
               pathname.startsWith("/business")
-                ? "bg-pink-300 text-pink-700"
+                ? "bg-pink-300 text-pink-700 rounded-r-lg"
                 : ""
             }`}
           >

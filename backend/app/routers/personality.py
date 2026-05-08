@@ -195,47 +195,6 @@ async def save_mood_items(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Personality test endpoints
-@router.get("/personality-test/result")
-async def get_personality_test_result(
-    current_user: User = Depends(get_current_user),
-    test_type: str = Query(
-        "big5", description="Test type: big5, emotional_intelligence, motivation"
-    ),
-    db: AsyncSession = Depends(get_db),
-):
-    try:
-        print(f"=== GETTING RESULT ===")
-        print(f"test_type: {test_type}")
-        print(f"user_id: {current_user.id}")
-
-        query = text("""
-            SELECT result, scores, created_at
-            FROM personality_test_results
-            WHERE user_id = :user_id AND test_type = :test_type
-            ORDER BY created_at DESC
-            LIMIT 1
-        """)
-        result = await db.execute(
-            query, {"user_id": current_user.id, "test_type": test_type}
-        )
-        row = result.fetchone()
-
-        if row:
-            print(f"✅ Found result for {test_type}")
-            return {
-                "has_result": True,
-                "result": row[0],
-                "scores": row[1],
-                "created_at": row[2].isoformat(),
-            }
-        print(f"❌ No result found for {test_type}")
-        return {"has_result": False}
-    except Exception as e:
-        print(f"Error getting personality test result: {e}")
-        return {"has_result": False}
-
-
 @router.post("/personality-test/result")
 async def save_personality_test_result(
     data: dict,
@@ -295,6 +254,46 @@ async def save_personality_test_result(
     except Exception as e:
         print(f"Error saving personality test result: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/personality-test/result")
+async def get_personality_test_result(
+    current_user: User = Depends(get_current_user),
+    test: str = Query(
+        "big5", description="Test type: big5, emotional_intelligence, motivation"
+    ),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        print(f"=== GETTING RESULT ===")
+        print(f"test parameter: '{test}'")
+        print(f"test type: {type(test)}")
+
+        query = text("""
+            SELECT result, scores, created_at
+            FROM personality_test_results
+            WHERE user_id = :user_id AND test_type = :test_type
+            ORDER BY created_at DESC
+            LIMIT 1
+        """)
+        result = await db.execute(
+            query, {"user_id": current_user.id, "test_type": test}
+        )
+        row = result.fetchone()
+
+        if row:
+            print(f"✅ Found result for {test}")
+            return {
+                "has_result": True,
+                "result": row[0],
+                "scores": row[1],
+                "created_at": row[2].isoformat(),
+            }
+        print(f"❌ No result found for {test}")
+        return {"has_result": False}
+    except Exception as e:
+        print(f"Error: {e}")
+        return {"has_result": False}
 
 
 # Depression test endpoints

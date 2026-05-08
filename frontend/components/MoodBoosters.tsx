@@ -307,22 +307,17 @@ export default function MoodBoosters() {
           {selfNotes.map((note) => (
             <div
               key={note.id}
-              className="bg-white rounded-lg border border-yellow-200 p-4 hover:shadow-md transition"
+              onClick={() => editSelfNote(note)}
+              className="bg-white rounded-lg border border-pink-200 p-4 hover:shadow-md transition"
             >
               <div className="flex justify-between items-start mb-2">
                 <h4 className="font-semibold text-gray-800">{note.title}</h4>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => editSelfNote(note)}
-                    className="text-blue-500 hover:text-blue-700"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
                     onClick={() => deleteSelfNote(note.id)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-500 "
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-6 h-6 hover:bg-pink-200 rounded-lg p-1" />
                   </button>
                 </div>
               </div>
@@ -343,16 +338,7 @@ export default function MoodBoosters() {
         </div>
       </div>
 
-      <div className="mt-8 flex justify-center">
-        <button
-          onClick={saveItems}
-          disabled={saving}
-          className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
-        >
-          <Save className="w-4 h-4" />
-          {saving ? "Сохранение..." : "Сохранить списки"}
-        </button>
-      </div>
+      <div className="mt-8 flex justify-center"></div>
 
       {/* Модальное окно для заметки */}
       {showNoteModal && (

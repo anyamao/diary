@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import api from "@/lib/axios";
 import { showToast } from "@/components/Toast";
+import { showConfirm } from "@/components/ConfirmDialog";
 
 const questions = [
   { text: "Я люблю знакомиться с новыми людьми", trait: "E", reverse: false },
@@ -137,53 +138,56 @@ const options = [
   {
     value: 1,
     color: "border-green-600 hover:bg-green-600",
+    bgColor: "bg-green-600",
     size: "w-[45px] h-[45px]",
     iconSize: "w-6 h-6",
   },
   {
     value: 2,
     color: "border-green-600 hover:bg-green-600",
+    bgColor: "bg-green-600",
     size: "w-[40px] h-[40px]",
     iconSize: "w-5 h-5",
   },
   {
     value: 3,
     color: "border-green-600 hover:bg-green-600",
+    bgColor: "bg-green-600",
     size: "w-[35px] h-[35px]",
     iconSize: "w-4 h-4",
   },
   {
     value: 4,
     color: "border-gray-400 hover:bg-gray-400",
+    bgColor: "bg-gray-400",
     size: "w-[30px] h-[30px]",
     iconSize: "w-3 h-3",
   },
   {
     value: 5,
     color: "border-purple-600 hover:bg-purple-600",
+    bgColor: "bg-purple-600",
     size: "w-[35px] h-[35px]",
     iconSize: "w-4 h-4",
   },
   {
     value: 6,
     color: "border-purple-600 hover:bg-purple-600",
+    bgColor: "bg-purple-600",
     size: "w-[40px] h-[40px]",
     iconSize: "w-5 h-5",
   },
   {
     value: 7,
     color: "border-purple-600 hover:bg-purple-600",
+    bgColor: "bg-purple-600",
     size: "w-[45px] h-[45px]",
     iconSize: "w-6 h-6",
   },
 ];
 
 const getBarColor = (percentage: number) => {
-  if (percentage >= 80) return "bg-green-500";
-  if (percentage >= 60) return "bg-lime-400";
-  if (percentage >= 40) return "bg-gray-400";
-  if (percentage >= 20) return "bg-orange-400";
-  return "bg-red-500";
+  return "bg-pink-400";
 };
 
 export default function PersonalityTest() {
@@ -205,24 +209,20 @@ export default function PersonalityTest() {
   const questionsPerPage = 10;
   const totalPages = Math.ceil(currentQuestions.length / questionsPerPage);
 
-  // Основная функция загрузки результата
   const loadExistingResult = async () => {
     setLoading(true);
     try {
       const timestamp = Date.now();
-      const response = await api.get(`/personality/personality-test/result`, {
-        params: { test: activeTest, _t: timestamp },
-      });
-      console.log("Loaded result for", activeTest, ":", response.data);
-      console.log("has_result:", response.data.has_result);
-      console.log("result object:", response.data.result);
+      const url = `/personality/personality-test/result`;
+      const params = { test: activeTest, _t: timestamp };
+
+      const response = await api.get(url, { params });
 
       if (response.data.has_result && response.data.result) {
         let resultData;
         if (typeof response.data.result === "string") {
           try {
             resultData = JSON.parse(response.data.result);
-            console.log("Parsed result:", resultData);
           } catch (e) {
             console.error("Failed to parse result:", e);
             resultData = response.data.result;
@@ -235,14 +235,11 @@ export default function PersonalityTest() {
           setResult(resultData);
           setHasExistingResult(true);
           setTestStarted(false);
-          console.log("Result loaded successfully for", activeTest);
         } else {
-          console.log("No valid result object for", activeTest);
           setHasExistingResult(false);
           setResult(null);
         }
       } else {
-        console.log("No result found for", activeTest);
         setHasExistingResult(false);
         setResult(null);
       }
@@ -254,6 +251,7 @@ export default function PersonalityTest() {
       setLoading(false);
     }
   };
+
   // Загружаем результат при монтировании и при смене теста
   useEffect(() => {
     loadExistingResult();
@@ -340,7 +338,7 @@ export default function PersonalityTest() {
       });
       setResult(resultData);
       setHasExistingResult(true);
-      setAnswers({}); // ОЧИЩАЕМ ОТВЕТЫ ПОСЛЕ СОХРАНЕНИЯ
+      setAnswers({});
       showToast("Результат сохранён", "success");
     } catch (error) {
       console.error("Failed to save result:", error);
@@ -405,7 +403,8 @@ export default function PersonalityTest() {
       });
       setResult(resultData);
       setHasExistingResult(true);
-      setAnswers({}); // ОЧИЩАЕМ ОТВЕТЫ ПОСЛЕ СОХРАНЕНИЯ
+      setAnswers({});
+      setTestStarted(false);
       showToast("Результат сохранён", "success");
     } catch (error) {
       console.error("Failed to save result:", error);
@@ -428,18 +427,20 @@ export default function PersonalityTest() {
       setSavingResult(false);
     }
   };
-  const switchToTest = (
+
+  const switchToTest = async (
     test: "big5" | "emotional_intelligence" | "motivation",
   ) => {
     if (test === activeTest) return;
 
     // Если есть несохраненные ответы ИЛИ мы не в режиме просмотра результата
     if (Object.keys(answers).length > 0 && !hasExistingResult) {
-      if (
-        !confirm(
-          "Вы уверены, что хотите сменить тест? Весь прогресс будет потерян.",
-        )
-      ) {
+      const confirmed = await showConfirm(
+        "Сменить тест?",
+        "Вы уверены, что хотите сменить тест? Весь прогресс будет потерян.",
+        "warning",
+      );
+      if (!confirmed) {
         return;
       }
     }
@@ -469,6 +470,7 @@ export default function PersonalityTest() {
     a.download = `${activeTest}_result_${new Date().toISOString().split("T")[0]}.txt`;
     a.click();
     URL.revokeObjectURL(url);
+    showToast("Результат сохранён в файл", "success");
   };
 
   const isBigFiveResult = (res: TestResult): res is BigFiveResult => {
@@ -569,7 +571,7 @@ export default function PersonalityTest() {
               <button
                 key={test}
                 onClick={() => switchToTest(test as any)}
-                className={`px-4 py-2 rounded-lg transition ${activeTest === test ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-700"}`}
+                className={`px-4 py-2 rounded-lg transition ${activeTest === test ? "bg-purple-500 text-white" : "bg-gray-200 text-gray-700"}`}
               >
                 {test === "big5"
                   ? "Большая пятёрка"
@@ -693,7 +695,9 @@ export default function PersonalityTest() {
                     key={opt.value}
                     onClick={() => handleAnswer(globalIdx, opt.value)}
                     className={`${opt.size} flex items-center justify-center border-[2px] ${opt.color} rounded-full transition-all duration-200 hover:scale-110 ${
-                      selectedValue === opt.value ? opt.color : "bg-transparent"
+                      selectedValue === opt.value
+                        ? opt.bgColor
+                        : "bg-transparent"
                     }`}
                   >
                     {selectedValue === opt.value && (

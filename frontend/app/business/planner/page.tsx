@@ -215,6 +215,17 @@ export default function PlannerPage() {
 
     return `${formatDate(start)} - ${formatDate(end)}`;
   };
+
+  // Добавьте этот useEffect в компонент PlannerPage
+  useEffect(() => {
+    const handleTagsUpdate = () => {
+      loadTagNames();
+    };
+    window.addEventListener("color-tags-updated", handleTagsUpdate);
+    return () =>
+      window.removeEventListener("color-tags-updated", handleTagsUpdate);
+  }, [loadTagNames]);
+
   const loadWeekPlan = async () => {
     try {
       const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
@@ -357,35 +368,52 @@ export default function PlannerPage() {
     }
   };
 
-  const addQuickTask = async () => {
-    if (!newTaskTitle.trim() || !newTaskDay) return;
+  // Замените существующую функцию addQuickTask на эту:
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [tempTaskDay, setTempTaskDay] = useState("");
+  const [tempTaskTitle, setTempTaskTitle] = useState("");
+  const [tempTaskColor, setTempTaskColor] = useState("yellow");
+  const [tempTaskStart, setTempTaskStart] = useState("09:00");
+  const [tempTaskEnd, setTempTaskEnd] = useState("10:00");
+
+  const openAddTaskModal = (dayDate: string) => {
+    setTempTaskDay(dayDate);
+    setTempTaskTitle("");
+    setTempTaskColor("yellow");
+    setTempTaskStart("09:00");
+    setTempTaskEnd("10:00");
+    setShowAddTaskModal(true);
+  };
+
+  const addTaskFromModal = async () => {
+    if (!tempTaskTitle.trim() || !tempTaskDay) return;
 
     try {
-      const dayResponse = await api.get(`/planner/days/${newTaskDay}`);
+      const dayResponse = await api.get(`/planner/days/${tempTaskDay}`);
       let plannerDayId = dayResponse.data?.id;
 
       if (!plannerDayId) {
         const createResponse = await api.post(
-          `/planner/days/${newTaskDay}`,
+          `/planner/days/${tempTaskDay}`,
           {},
         );
         plannerDayId = createResponse.data?.id;
       }
 
       await api.post("/planner/tasks", {
-        title: newTaskTitle,
+        title: tempTaskTitle,
         description: "",
-        start_time: "09:00",
-        end_time: "10:00",
-        color: newTaskColor,
+        start_time: tempTaskStart,
+        end_time: tempTaskEnd,
+        color: tempTaskColor,
         planner_day_id: plannerDayId,
         position: 0,
       });
 
-      setNewTaskTitle("");
-      setNewTaskColor("yellow");
-      setAddingTaskForDay(null);
-      setNewTaskDay("");
+      setShowAddTaskModal(false);
+      setTempTaskTitle("");
+      setTempTaskColor("yellow");
+      setTempTaskDay("");
       await loadWeekPlan();
       showToast("Задача добавлена", "success");
     } catch (error) {
@@ -684,14 +712,19 @@ export default function PlannerPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={async () => {
-                      await saveTagName(editingTag, newTagName);
-                      setEditingTag(null); // Закрываем модальное окно
-                      setNewTagName(""); // Очищаем поле
+                      if (newTagName.trim()) {
+                        await saveTagName(editingTag, newTagName);
+                        setEditingTag(null);
+                        setNewTagName("");
+                        // Принудительно обновляем отображение
+                        loadTagNames();
+                      }
                     }}
                     className="flex-1 bg-pink-600 text-white py-2 rounded-lg hover:bg-pink-700"
                   >
                     Сохранить
                   </button>
+
                   <button
                     onClick={() => setEditingTag(null)}
                     className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50"
@@ -947,7 +980,7 @@ export default function PlannerPage() {
                                     className="flex items-baseline gap-2 cursor-pointer flex-1"
                                   >
                                     <p
-                                      className={`text-xl font-bold ${day.isImportant ? "text-yellow-600" : "text-pink-950"}`}
+                                      className={`text-xl font-bold text-pink-950`}
                                     >
                                       {day.dayNumber}
                                     </p>
@@ -987,8 +1020,8 @@ export default function PlannerPage() {
                                         key={task.id}
                                         className={`text-md p-2 rounded-lg transition group ${colorInfo?.bg || "bg-gray-50"}`}
                                       >
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex items-center gap-2 flex-1">
+                                        <div className="flex  items-center justify-between">
+                                          <div className="flex  items-center gap-2 flex-1">
                                             <button
                                               onClick={() =>
                                                 toggleTaskCompletion(task.id)
@@ -1004,47 +1037,52 @@ export default function PlannerPage() {
                                               )}
                                             </button>
                                             <div className="flex-1">
-                                              <p
-                                                className={`font-medium text-sm ${task.is_completed && "line-through text-gray-400"}`}
-                                              >
-                                                {task.title}
-                                              </p>
-                                              {(task.start_time ||
-                                                task.end_time) && (
-                                                <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                                                  <Clock className="w-3 h-3" />
-                                                  {task.start_time} -{" "}
-                                                  {task.end_time}
+                                              <div className="flex flex-row justify-between w-full">
+                                                <p
+                                                  className={`font-medium text-sm ${task.is_completed && "line-through text-gray-400"}`}
+                                                >
+                                                  {task.title}
                                                 </p>
-                                              )}
-                                              {displayName !==
-                                                colorInfo?.label && (
-                                                <p className="text-xs text-gray-500 mt-0.5">
-                                                  <span
-                                                    className={`inline-block w-2 h-2 rounded-full ${colorInfo?.base} mr-1`}
-                                                  />
-                                                  {displayName}
-                                                </p>
-                                              )}
+                                                <div className="flex flex-row">
+                                                  {displayName !==
+                                                    colorInfo?.label && (
+                                                    <p className="text-xs text-gray-500 mt-0.5">
+                                                      <span
+                                                        className={`inline-block w-2 h-2 rounded-full mr-1`}
+                                                      />
+                                                      {displayName}
+                                                    </p>
+                                                  )}
+
+                                                  <button
+                                                    onClick={() =>
+                                                      openEditTaskModal(task)
+                                                    }
+                                                    className="opacity-0 group-hover:opacity-100 mx-[10px] transition text-blue-500 hover:text-blue-700"
+                                                  >
+                                                    <Edit className="w-4 h-4" />
+                                                  </button>
+                                                  <button
+                                                    onClick={() =>
+                                                      deleteTask(task.id)
+                                                    }
+                                                    className="opacity-0 group-hover:opacity-100 transition text-red-500 hover:text-red-700"
+                                                  >
+                                                    <Trash2 className="w-4 h-4" />
+                                                  </button>
+                                                </div>
+                                              </div>
+                                              <div className="flex flex-row">
+                                                {(task.start_time ||
+                                                  task.end_time) && (
+                                                  <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                                    <Clock className="w-3 h-3" />
+                                                    {task.start_time} -{" "}
+                                                    {task.end_time}
+                                                  </p>
+                                                )}
+                                              </div>
                                             </div>
-                                          </div>
-                                          <div className="flex gap-1">
-                                            <button
-                                              onClick={() =>
-                                                openEditTaskModal(task)
-                                              }
-                                              className="opacity-0 group-hover:opacity-100 transition text-blue-500 hover:text-blue-700"
-                                            >
-                                              <Edit className="w-3 h-3" />
-                                            </button>
-                                            <button
-                                              onClick={() =>
-                                                deleteTask(task.id)
-                                              }
-                                              className="opacity-0 group-hover:opacity-100 transition text-red-500 hover:text-red-700"
-                                            >
-                                              <Trash2 className="w-3 h-3" />
-                                            </button>
                                           </div>
                                         </div>
                                       </div>
@@ -1066,10 +1104,11 @@ export default function PlannerPage() {
                                           setNewTaskTitle(e.target.value)
                                         }
                                         onKeyPress={(e) =>
-                                          e.key === "Enter" && addQuickTask()
+                                          e.key === "Enter" &&
+                                          openAddTaskModal(day.date)
                                         }
                                         placeholder="Название задачи..."
-                                        className="w-full text-sm p-1.5 border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="w-full text-sm p-1.5 border rounded focus:outline-none focus:ring-1 focus:ring-pink-300"
                                         autoFocus
                                       />
                                       <div className="flex gap-2">
@@ -1082,7 +1121,7 @@ export default function PlannerPage() {
                                               }
                                               className={`w-6 h-6 rounded-full transition ${color.base} ${
                                                 newTaskColor === color.name
-                                                  ? "ring-2 ring-offset-1 ring-gray-600"
+                                                  ? "ring-2 ring-offset-1 ring-gray-400"
                                                   : ""
                                               }`}
                                               title={
@@ -1094,8 +1133,10 @@ export default function PlannerPage() {
                                           ))}
                                         </div>
                                         <button
-                                          onClick={addQuickTask}
-                                          className="p-1.5 bg-green-500 text-white rounded hover:bg-green-600"
+                                          onClick={() =>
+                                            openAddTaskModal(day.date)
+                                          }
+                                          className="p-1.5 bg-pink-500 text-white rounded hover:bg-pink-600"
                                         >
                                           <Check className="w-3 h-3" />
                                         </button>
@@ -1113,13 +1154,8 @@ export default function PlannerPage() {
                                     </div>
                                   ) : (
                                     <button
-                                      onClick={() => {
-                                        setAddingTaskForDay(day.date);
-                                        setNewTaskDay(day.date);
-                                        setNewTaskTitle("");
-                                        setNewTaskColor("yellow");
-                                      }}
-                                      className="w-full mt-2 text-xs text-gray-400 hover:text-blue-500 transition flex items-center justify-center gap-1 py-1"
+                                      onClick={() => openAddTaskModal(day.date)}
+                                      className="w-full mt-2 text-xs text-gray-400 hover:text-pink-600 transition flex items-center justify-center gap-1 py-1"
                                     >
                                       <Plus className="w-3 h-3" /> Добавить
                                       задачу
@@ -1147,7 +1183,91 @@ export default function PlannerPage() {
           )}
         </div>
       </div>
-
+      {/* Модальное окно добавления задачи */}
+      {showAddTaskModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-gray-800">
+                Добавить задачу
+              </h3>
+              <button
+                onClick={() => setShowAddTaskModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <input
+                type="text"
+                value={tempTaskTitle}
+                onChange={(e) => setTempTaskTitle(e.target.value)}
+                placeholder="Название задачи"
+                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-pink-500"
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm text-gray-600 mb-1">
+                    Начало
+                  </label>
+                  <input
+                    type="time"
+                    value={tempTaskStart}
+                    onChange={(e) => setTempTaskStart(e.target.value)}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm text-gray-600 mb-1">
+                    Конец
+                  </label>
+                  <input
+                    type="time"
+                    value={tempTaskEnd}
+                    onChange={(e) => setTempTaskEnd(e.target.value)}
+                    className="w-full p-2 border rounded"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-gray-600 mb-2">Цвет</label>
+                <div className="flex gap-2">
+                  {colors.slice(0, 6).map((color) => (
+                    <button
+                      key={color.name}
+                      onClick={() => setTempTaskColor(color.name)}
+                      className={`w-8 h-8 rounded-full transition ${color.base} ${
+                        tempTaskColor === color.name
+                          ? "ring-2 ring-offset-2 ring-gray-400"
+                          : ""
+                      }`}
+                      title={
+                        tagNames[color.name] ? tagNames[color.name] : color.name
+                      }
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={addTaskFromModal}
+                  className="flex-1 bg-pink-600 text-white py-2 rounded-lg hover:bg-pink-700"
+                >
+                  Добавить
+                </button>
+                <button
+                  onClick={() => setShowAddTaskModal(false)}
+                  className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50"
+                >
+                  Отмена
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Модальное окно редактирования задачи */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1204,7 +1324,7 @@ export default function PlannerPage() {
                       onClick={() => setEditTaskColor(color.name)}
                       className={`w-8 h-8 rounded-full transition ${color.base} ${
                         editTaskColor === color.name
-                          ? "ring-2 ring-offset-2 ring-gray-600"
+                          ? "ring-2 ring-offset-2 ring-gray-400"
                           : ""
                       }`}
                       title={
