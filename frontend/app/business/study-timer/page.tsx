@@ -73,20 +73,6 @@ const colors = [
   },
 ];
 
-// Простая функция для получения цвета на основе имени тега
-const getColorForTag = (tagName: string) => {
-  if (!tagName) return colors[0];
-
-  // Используем хэш от имени тега для выбора цвета
-  let hash = 0;
-  for (let i = 0; i < tagName.length; i++) {
-    hash = (hash << 5) - hash + tagName.charCodeAt(i);
-    hash |= 0;
-  }
-  const colorIndex = Math.abs(hash) % colors.length;
-  return colors[colorIndex];
-};
-
 interface Tag {
   id: string;
   name: string;
@@ -317,6 +303,41 @@ export default function StudyTimerPage() {
       showToast("Ошибка при сохранении тега", "error");
     }
   };
+  // Функция для получения цвета на основе имени тега
+  // Функция для получения цвета на основе имени тега - ПРОСТОЕ ПРЯМОЕ СОПОСТАВЛЕНИЕ
+  // Создаем мапу для быстрого поиска цвета по тегу
+
+  // Функция для получения цвета на основе имени тега - ПРЯМОЕ СОПОСТАВЛЕНИЕ
+  const getColorForTag = (tagName: string) => {
+    if (!tagName) return colors[0];
+
+    // Прямое сопоставление по названию тега
+    if (tagName === "Розовый")
+      return colors.find((c) => c.name === "pink") || colors[0];
+    if (tagName === "Желтый")
+      return colors.find((c) => c.name === "yellow") || colors[0];
+    if (tagName === "Синий")
+      return colors.find((c) => c.name === "blue") || colors[0];
+    if (tagName === "Зеленый")
+      return colors.find((c) => c.name === "green") || colors[0];
+    if (tagName === "Фиолетовый")
+      return colors.find((c) => c.name === "purple") || colors[0];
+    if (tagName === "Оранжевый")
+      return colors.find((c) => c.name === "orange") || colors[0];
+
+    // Поиск по colorTags
+    if (colorTags) {
+      const colorEntry = Object.entries(colorTags).find(
+        ([_, tag]) => tag === tagName,
+      );
+      if (colorEntry) {
+        const foundColor = colors.find((c) => c.name === colorEntry[0]);
+        if (foundColor) return foundColor;
+      }
+    }
+
+    return colors[0];
+  };
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -324,14 +345,25 @@ export default function StudyTimerPage() {
     const secs = seconds % 60;
     return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
-
-  // Данные для графиков с цветами
   const statsData = stats?.by_tag
-    ? Object.entries(stats.by_tag).map(([name, value]) => ({
-        name,
-        hours: value,
-        color: getColorForTag(name).hex,
-      }))
+    ? Object.entries(stats.by_tag).map(([name, value]) => {
+        // Функция получения цвета
+        const getColorHex = (tagName: string) => {
+          if (tagName === "Розовый") return "#ec4899";
+          if (tagName === "Желтый") return "#eab308";
+          if (tagName === "Синий") return "#3b82f6";
+          if (tagName === "Зеленый") return "#22c55e";
+          if (tagName === "Фиолетовый") return "#a855f7";
+          if (tagName === "Оранжевый") return "#f97316";
+          return "#eab308"; // желтый по умолчанию
+        };
+
+        return {
+          name,
+          hours: value,
+          color: getColorHex(name),
+        };
+      })
     : [];
 
   if (isLoading) {
@@ -650,8 +682,6 @@ export default function StudyTimerPage() {
             </>
           )}
         </div>
-
-        {/* История сессий */}
         {stats?.sessions && stats.sessions.length > 0 && (
           <div className="bg-white rounded-xl shadow-md p-6 mb-[30px]">
             <h2 className="text-xl font-semibold text-pink-900 mb-4">
@@ -659,17 +689,57 @@ export default function StudyTimerPage() {
             </h2>
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {stats.sessions.map((session: any) => {
-                const colorInfo = getColorForTag(session.tag);
+                // Прямое сопоставление названий тегов с цветами
+                const getTagColor = (tagName: string) => {
+                  if (!tagName) return colors[0];
+
+                  // Прямые сопоставления
+                  if (tagName === "Розовый")
+                    return colors.find((c) => c.name === "pink") || colors[0];
+                  if (tagName === "Желтый")
+                    return colors.find((c) => c.name === "yellow") || colors[0];
+                  if (tagName === "Синий")
+                    return colors.find((c) => c.name === "blue") || colors[0];
+                  if (tagName === "Зеленый")
+                    return colors.find((c) => c.name === "green") || colors[0];
+                  if (tagName === "Фиолетовый")
+                    return colors.find((c) => c.name === "purple") || colors[0];
+                  if (tagName === "Оранжевый")
+                    return colors.find((c) => c.name === "orange") || colors[0];
+
+                  // Поиск по colorTags
+                  if (colorTags) {
+                    const colorEntry = Object.entries(colorTags).find(
+                      ([_, tag]) => tag === tagName,
+                    );
+                    if (colorEntry) {
+                      const foundColor = colors.find(
+                        (c) => c.name === colorEntry[0],
+                      );
+                      if (foundColor) return foundColor;
+                    }
+                  }
+
+                  return colors[0];
+                };
+
+                const colorInfo = getTagColor(session.tag);
+
                 return (
                   <div
                     key={session.id}
-                    className={`border-l-4 rounded-lg p-3 mb-2 ${colorInfo.border} ${colorInfo.bg} group`}
+                    className="rounded-lg p-3 mb-2 transition-all duration-200 hover:shadow-md"
+                    style={{
+                      backgroundColor: `${colorInfo.hex}15`,
+                      borderLeft: `4px solid ${colorInfo.hex}`,
+                    }}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <div
-                            className={`w-2 h-2 rounded-full ${colorInfo.base}`}
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: colorInfo.hex }}
                           />
                           <span className="font-medium text-gray-800">
                             {session.tag}
@@ -688,12 +758,12 @@ export default function StudyTimerPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-blue-600 font-medium">
+                        <span className="text-pink-600 font-medium">
                           {session.duration_hours} ч
                         </span>
                         <button
                           onClick={() => deleteSession(session.id)}
-                          className="opacity-0 group-hover:opacity-100 transition text-red-500 hover:text-red-700"
+                          className=" group-hover:opacity-100 transition text-red-500 hover:text-red-700"
                           title="Удалить сессию"
                         >
                           <Trash2 className="w-4 h-4" />

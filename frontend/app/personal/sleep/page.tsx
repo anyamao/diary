@@ -63,6 +63,7 @@ const dreamTypes = {
   sad: { name: "Грустный", image: "/sad.png", color: "#3b82f6" },
   romantic: { name: "Любовный", image: "/romantic.png", color: "#ec4899" },
   nightmare: { name: "Кошмар", image: "/nightmare.png", color: "#ef4444" },
+  love: { name: "Любовный сон", image: "/romantic.png", color: "#ec4899" },
   good: { name: "Хороший", image: "/gooddream.png", color: "#10b981" },
 };
 

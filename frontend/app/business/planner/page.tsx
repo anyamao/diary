@@ -666,17 +666,17 @@ export default function PlannerPage() {
                   className={`flex items-center gap-2 p-2 rounded-lg ${color.bg}`}
                 >
                   <div className={`w-4 h-4 rounded-full ${color.base}`} />
-                  <span className="text-sm">
-                    {tagNames[color.name] ? tagNames[color.name] : color.name}
+                  <span className="text-sm font-medium">
+                    {tagNames[color.name] ? tagNames[color.name] : color.label}
                   </span>
                   <button
                     onClick={() => {
                       setEditingTag(color.name);
                       setNewTagName(tagNames[color.name] || "");
                     }}
-                    className="ml-auto text-xs text-pink-500 hover:text-pink-700"
+                    className="ml-auto text-pink-500 hover:text-pink-700"
                   >
-                    <Pen className="w-5 h-5"></Pen>
+                    <Pen className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -788,7 +788,7 @@ export default function PlannerPage() {
                     <textarea
                       value={monthlyGoal}
                       onChange={(e) => setMonthlyGoal(e.target.value)}
-                      className="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="flex-1 p-2 outline-none bg-pink-100"
                       rows={2}
                       placeholder="Какая у тебя цель на этот месяц?"
                       autoFocus
@@ -796,13 +796,13 @@ export default function PlannerPage() {
                     <div className="flex flex-row gap-3">
                       <button
                         onClick={saveMonthlyGoal}
-                        className="px-4 py-2 bg-pink-600 text-white rounded hover:bg-pink-700"
+                        className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700"
                       >
                         Сохранить
                       </button>
                       <button
                         onClick={() => setEditingMonthlyGoal(false)}
-                        className="px-4 py-2 bg-pink-50 border border-pink-300 rounded hover:bg-gray-100"
+                        className="px-4 py-2 bg-pink-50 border border-pink-300 rounded-lg hover:bg-gray-100"
                       >
                         Отмена
                       </button>
@@ -869,7 +869,7 @@ export default function PlannerPage() {
                                       [week.weekNumber]: e.target.value,
                                     })
                                   }
-                                  className="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="flex-1 p-2 outline-none bg-pink-100"
                                   placeholder="Цель на эту неделю..."
                                   autoFocus
                                 />
@@ -878,13 +878,13 @@ export default function PlannerPage() {
                                     onClick={() =>
                                       saveWeeklyGoal(week.weekNumber)
                                     }
-                                    className="px-4 py-2 bg-pink-600 text-white rounded hover:bg-pink-700"
+                                    className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700"
                                   >
                                     Сохранить
                                   </button>
                                   <button
                                     onClick={() => setEditingWeeklyGoal(null)}
-                                    className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                                    className="px-4 py-2 bg-pink-50 rounded-lg hover:bg-gray-50 border-[1px] border-pink-300"
                                   >
                                     Отмена
                                   </button>
@@ -915,7 +915,7 @@ export default function PlannerPage() {
                               </span>
                             </div>
                             {editingWeeklyNote === week.weekNumber ? (
-                              <div className="flex gap-2 mt-2">
+                              <div className="flex gap-2 mt-2 flex flex-col">
                                 <textarea
                                   value={weeklyNotes[week.weekNumber] || ""}
                                   onChange={(e) =>
@@ -924,7 +924,7 @@ export default function PlannerPage() {
                                       [week.weekNumber]: e.target.value,
                                     })
                                   }
-                                  className="flex-1 p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  className="flex-1 p-2 outline-none bg-pink-100 text-gray-700"
                                   rows={2}
                                   placeholder="Что важно помнить на этой неделе?"
                                   autoFocus
@@ -934,13 +934,13 @@ export default function PlannerPage() {
                                     onClick={() =>
                                       saveWeeklyNote(week.weekNumber)
                                     }
-                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                    className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700"
                                   >
                                     Сохранить
                                   </button>
                                   <button
                                     onClick={() => setEditingWeeklyNote(null)}
-                                    className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+                                    className="px-4 py-2 bg-pink-50 rounded-lg hover:bg-gray-50 border-[1px] border-pink-300"
                                   >
                                     Отмена
                                   </button>
@@ -1020,8 +1020,8 @@ export default function PlannerPage() {
                                         key={task.id}
                                         className={`text-md p-2 rounded-lg transition group ${colorInfo?.bg || "bg-gray-50"}`}
                                       >
-                                        <div className="flex  items-center justify-between">
-                                          <div className="flex  items-center gap-2 flex-1">
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex items-center gap-2 flex-1">
                                             <button
                                               onClick={() =>
                                                 toggleTaskCompletion(task.id)
@@ -1043,17 +1043,13 @@ export default function PlannerPage() {
                                                 >
                                                   {task.title}
                                                 </p>
-                                                <div className="flex flex-row">
+                                                <div className="flex flex-row items-center">
                                                   {displayName !==
                                                     colorInfo?.label && (
-                                                    <p className="text-xs text-gray-500 mt-0.5">
-                                                      <span
-                                                        className={`inline-block w-2 h-2 rounded-full mr-1`}
-                                                      />
+                                                    <p className="text-xs text-gray-500">
                                                       {displayName}
                                                     </p>
                                                   )}
-
                                                   <button
                                                     onClick={() =>
                                                       openEditTaskModal(task)
@@ -1072,23 +1068,20 @@ export default function PlannerPage() {
                                                   </button>
                                                 </div>
                                               </div>
-                                              <div className="flex flex-row">
-                                                {(task.start_time ||
-                                                  task.end_time) && (
-                                                  <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
-                                                    <Clock className="w-3 h-3" />
-                                                    {task.start_time} -{" "}
-                                                    {task.end_time}
-                                                  </p>
-                                                )}
-                                              </div>
+                                              {(task.start_time ||
+                                                task.end_time) && (
+                                                <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                                                  <Clock className="w-3 h-3" />
+                                                  {task.start_time} -{" "}
+                                                  {task.end_time}
+                                                </p>
+                                              )}
                                             </div>
                                           </div>
                                         </div>
                                       </div>
                                     );
                                   })}
-
                                   {day.tasks.length === 0 && (
                                     <p className="text-xs text-gray-400 text-center py-3">
                                       Нет задач
@@ -1117,17 +1110,17 @@ export default function PlannerPage() {
                                             <button
                                               key={color.name}
                                               onClick={() =>
-                                                setNewTaskColor(color.name)
+                                                setTempTaskColor(color.name)
                                               }
-                                              className={`w-6 h-6 rounded-full transition ${color.base} ${
-                                                newTaskColor === color.name
-                                                  ? "ring-2 ring-offset-1 ring-gray-400"
+                                              className={`w-8 h-8 rounded-full transition ${color.base} ${
+                                                tempTaskColor === color.name
+                                                  ? "ring-2 ring-offset-2 ring-gray-400"
                                                   : ""
                                               }`}
                                               title={
                                                 tagNames[color.name]
                                                   ? tagNames[color.name]
-                                                  : color.name
+                                                  : color.label
                                               }
                                             />
                                           ))}
@@ -1237,14 +1230,16 @@ export default function PlannerPage() {
                   {colors.slice(0, 6).map((color) => (
                     <button
                       key={color.name}
-                      onClick={() => setTempTaskColor(color.name)}
+                      onClick={() => setEditTaskColor(color.name)}
                       className={`w-8 h-8 rounded-full transition ${color.base} ${
-                        tempTaskColor === color.name
+                        editTaskColor === color.name
                           ? "ring-2 ring-offset-2 ring-gray-400"
                           : ""
                       }`}
                       title={
-                        tagNames[color.name] ? tagNames[color.name] : color.name
+                        tagNames[color.name]
+                          ? tagNames[color.name]
+                          : color.label
                       }
                     />
                   ))}

@@ -3,23 +3,16 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import api from "@/lib/axios";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  LogIn,
-  LogOut,
-  Sparkles,
-  Star,
-  User,
-  UserPenIcon,
-  Settings,
-  Bell,
-} from "lucide-react";
+import { LogIn, LogOut, Star, User, Settings, Bell } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import ProfileModal from "@/components/ProfileModal";
 
 function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { isAuthenticated, user, logout } = useAuthStore();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [currentAvatar, setCurrentAvatar] = useState("icon1.jpg");
 
   const handleLogout = async () => {
@@ -43,12 +36,28 @@ function Header() {
     }
   };
 
+  const handleAvatarUpdate = (newAvatar: string) => {
+    setCurrentAvatar(newAvatar);
+  };
+
   const toggleProfileMenu = () => {
     setIsProfileMenuOpen(!isProfileMenuOpen);
   };
 
+  const openProfileModal = () => {
+    setIsProfileMenuOpen(false);
+    setIsProfileModalOpen(true);
+  };
+
   return (
     <div className="w-full flex flex-col">
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        onAvatarUpdate={handleAvatarUpdate}
+      />
+
       {/* Main Header */}
       <div className="w-full bg-white shadow-xs border-b-[1px] border-pink-200 fixed p-[20px] top-0 left-0 min-h-[60px] max-h-[60px] flex items-center justify-between z-40">
         <Link
@@ -72,9 +81,9 @@ function Header() {
 
           <Link
             href="/business"
-            className={`flex-1 hover:bg-pink-300 hover:text-pink-700 duration-300 flex cursor-pointer h-full items-center justify-center ${
+            className={`flex-1  hover:text-pink-700 duration-300 flex cursor-pointer h-full items-center justify-center ${
               pathname.startsWith("/business")
-                ? "bg-pink-300 text-pink-700"
+                ? "bg-pink-300 text-pink-700 rounded-r-lg"
                 : ""
             }`}
           >
@@ -83,8 +92,6 @@ function Header() {
         </div>
 
         <div className="flex items-center gap-3 relative">
-          <Bell className="text-yellow-600 w-5 h-5 cursor-pointer" />
-
           {isAuthenticated ? (
             <>
               <button
@@ -135,14 +142,13 @@ function Header() {
             </div>
 
             <div className="py-2">
-              <Link
-                href="/profile"
-                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 transition"
-                onClick={() => setIsProfileMenuOpen(false)}
+              <button
+                onClick={openProfileModal}
+                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 transition"
               >
                 <User className="w-4 h-4 text-pink-500" />
                 Мой профиль
-              </Link>
+              </button>
 
               <button
                 onClick={handleLogout}

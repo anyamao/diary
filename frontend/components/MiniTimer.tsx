@@ -117,7 +117,6 @@ export default function MiniTimer() {
           `🔄 MiniTimer: статус изменился с ${wasActive} на ${isNowActive}`,
         );
         if (isNowActive) {
-          showToast(`Сессия активна: ${response.data.tag}`, "info");
         }
       }
     } catch (error) {

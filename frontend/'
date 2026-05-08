@@ -43,7 +43,7 @@ export default function DreamTypePicker({
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="cursor-pointer hover:scale-110 transition-transform min-w-10 mr-[10px] min-h-10"
+        className="cursor-pointer hover:scale-110 transition-transform min-w-10 min-h-10"
       >
         <img src={getCurrentImage()} alt="dream type" className="w-10 h-10" />
       </button>

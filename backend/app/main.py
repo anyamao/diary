@@ -9,18 +9,33 @@ from app.routers import (
     planner,
     notes,
     study_timer,
-    notifications,
-    color_tags,
 )
-from app.middleware import RateLimitMiddleware, SecurityHeadersMiddleware
+import os
 
 app = FastAPI(title="Diary API", version="1.0.0")
 
-# CORS настройки для cookie-based аутентификации
+# Определяем окружение
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+IS_DEVELOPMENT = ENVIRONMENT == "development"
 
-# Добавляем middleware безопасности
-app.add_middleware(RateLimitMiddleware)
-app.add_middleware(SecurityHeadersMiddleware)
+# CORS настройки - только для разработки (localhost)
+if IS_DEVELOPMENT:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://localhost:3011",
+            "http://127.0.0.1:3011",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+        ],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+    print("🔧 CORS enabled for development (localhost)")
+else:
+    print("🔒 CORS disabled for production (handled by Nginx)")
 
 # Подключаем роутеры
 app.include_router(auth.router)
@@ -31,8 +46,6 @@ app.include_router(personality.router)
 app.include_router(planner.router)
 app.include_router(notes.router)
 app.include_router(study_timer.router)
-app.include_router(notifications.router)
-app.include_router(color_tags.router)
 
 
 @app.get("/")
