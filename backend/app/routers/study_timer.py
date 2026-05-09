@@ -59,6 +59,51 @@ async def delete_session(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.put("/sessions/{session_id}")
+async def update_session(
+    session_id: UUID,
+    data: dict,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Обновить существующую сессию (тег и описание)"""
+    try:
+        # Проверяем, что сессия принадлежит пользователю
+        query = text("""
+            SELECT id, user_id FROM study_timer_sessions
+            WHERE id = :session_id AND user_id = :user_id
+        """)
+        result = await db.execute(
+            query, {"session_id": session_id, "user_id": current_user.id}
+        )
+        session = result.fetchone()
+
+        if not session:
+            raise HTTPException(status_code=404, detail="Session not found")
+
+        # Обновляем сессию
+        update_query = text("""
+            UPDATE study_timer_sessions
+            SET tag = :tag, description = :description, updated_at = NOW()
+            WHERE id = :session_id AND user_id = :user_id
+        """)
+        await db.execute(
+            update_query,
+            {
+                "session_id": session_id,
+                "user_id": current_user.id,
+                "tag": data.get("tag"),
+                "description": data.get("description"),
+            },
+        )
+        await db.commit()
+
+        return {"message": "Session updated successfully"}
+    except Exception as e:
+        print(f"Error updating session: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/start", response_model=schemas.StudyTimerSessionResponse)
 async def start_session(
     data: schemas.StudyTimerSessionCreate,
