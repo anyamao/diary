@@ -67,7 +67,7 @@ function Header() {
           VibeNote
         </Link>
 
-        <div className="flex flex-row justify-center w-full md:ml-[-30px] font-semibold bg-pink-200 h-[30px] rounded-lg max-w-[270px] md:max-w-[400px] text-xs text-pink-950 items-center">
+        <div className="flex flex-row justify-center w-full md:ml-[-30px] font-semibold bg-pink-200 md:h-[30px] h-[25px] rounded-lg max-w-[230px] md:max-w-[400px] text-xs text-pink-950 items-center">
           <Link
             href="/personal"
             className={`flex-1 cursor-pointer hover:text-pink-700 duration-300 flex items-center h-full rounded-l-lg justify-center ${
@@ -140,7 +140,6 @@ function Header() {
                 </div>
               </div>
             </div>
-
             <div className="py-2">
               <button
                 onClick={openProfileModal}
@@ -164,30 +163,34 @@ function Header() {
 
       {/* Navigation bars */}
       {pathname.startsWith("/personal") && (
-        <div className="w-full border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-30">
-          <div className="flex flex-row font-semibold text-pink-950 text-xs items-center justify-between">
-            <Star className="text-yellow-600 h-4 w-4 -rotate-90" />
-            <div className="flex items-center flex-row mx-[10px] justify-center">
-              <Link
-                href="/personal/diary"
-                className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
-                  pathname.startsWith("/personal/diary")
-                    ? "text-pink-600 underline"
-                    : ""
-                }`}
-              >
-                Дневник
-              </Link>
-              <Link
-                href="/personal/mood-tracker"
-                className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
-                  pathname.startsWith("/personal/mood-tracker")
-                    ? "text-pink-600 underline"
-                    : ""
-                }`}
-              >
-                Трекер настроения
-              </Link>
+        <div className="w-full border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed  top-0 left-0 min-h-[40px] max-h-[60px] sm:max-h-[40px] flex items-center justify-center z-30">
+          <div className="flex flex-row whitespace-nowrap pb-[10px] sm:pb-[0px]  max-w-[340px] sm:max-w-[1200px] overflow-x-auto font-semibold text-pink-950 text-xs items-center justify-between">
+            <div className="flex flex-row   ">
+              <Star className="text-yellow-600 h-4 w-4 -rotate-90" />
+              <div className="flex items-center flex-row mx-[10px] justify-center">
+                <Link
+                  href="/personal/diary"
+                  className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
+                    pathname.startsWith("/personal/diary")
+                      ? "text-pink-600 underline"
+                      : ""
+                  }`}
+                >
+                  Дневник
+                </Link>
+                <Link
+                  href="/personal/mood-tracker"
+                  className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
+                    pathname.startsWith("/personal/mood-tracker")
+                      ? "text-pink-600 underline"
+                      : ""
+                  }`}
+                >
+                  Трекер настроения
+                </Link>
+              </div>
+            </div>
+            <div className="flex flex-row mt-[10px] sm:mt-[0px]  ">
               <Link
                 href="/personal/sleep"
                 className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
@@ -204,17 +207,17 @@ function Header() {
               >
                 Моя личность
               </Link>
+              <Star className="text-yellow-600 h-4 w-4 rotate-90" />
             </div>
-            <Star className="text-yellow-600 h-4 w-4 rotate-90" />
           </div>
         </div>
       )}
 
       {pathname.startsWith("/business") && (
         <div className="w-full bg-white border-b-[1px] border-pink-300 shadow-sm mt-[60px] fixed py-[20px] top-0 left-0 min-h-[40px] max-h-[40px] flex items-center justify-center z-30">
-          <div className="flex flex-row font-semibold text-pink-950 text-xs items-center justify-between">
+          <div className="flex flex-row font-semibold whitespace-nowrap text-pink-950 text-xs items-center justify-between">
             <Star className="text-yellow-600 h-4 w-4 -rotate-90" />
-            <div className="flex items-center flex-row mx-[10px] justify-center">
+            <div className="flex items-center whitespace-nowrap flex-row mx-[10px] justify-center">
               <Link
                 href="/business/planner"
                 className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
@@ -227,7 +230,7 @@ function Header() {
               </Link>
               <Link
                 href="/business/notes"
-                className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
+                className={`pr-[10px] hover:underline whitespace-nowrap hover:text-pink-600 duration-300 cursor-pointer ${
                   pathname.startsWith("/business/notes")
                     ? "text-pink-600 underline"
                     : ""

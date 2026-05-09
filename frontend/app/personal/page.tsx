@@ -1,3 +1,5 @@
+import Loading from "@/components/Loading";
+
 function page() {
   return (
     <div className=" w-full h-full min-h-[950px] flex flex-row items-start justify-center pt-[120px] bg-pink-100 ">

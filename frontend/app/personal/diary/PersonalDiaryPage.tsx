@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
+import Loading from "@/components/Loading";
 import api from "@/lib/axios";
 import Link from "next/link";
 import MarkdownPreview from "@/components/MarkdownPreview";
@@ -258,12 +259,8 @@ export default function PersonalDiaryPage() {
     showToast("Фильтры сброшены", "info");
   };
 
-  if (isLoading || loading) {
-    return (
-      <div className="flex items-center bg-pink-100 justify-center min-h-[60vh]">
-        <div className="text-xl">Загрузка...</div>
-      </div>
-    );
+  if (loading || isLoading) {
+    return <Loading />;
   }
 
   if (!isAuthenticated) {
@@ -275,13 +272,13 @@ export default function PersonalDiaryPage() {
       <div className="flex flex-col w-full h-full max-w-[1000px]">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Мой дневник</h1>
-          <div className="flex flex-row w-full justify-between items-center">
+          <div className="flex md:flex-row flex-col w-full justify-between items-center">
             <p className="text-gray-600 mt-2">
               С возвращением, {user?.full_name || user?.username}!
             </p>
             <Link
               href="/personal/diary/new"
-              className="bg-pink-500 text-white px-6 py-2 rounded-lg hover:bg-pink-600 transition inline-block"
+              className="bg-pink-500 text-white mt-[10px] md:mt-[0px] px-6 py-2 rounded-lg hover:bg-pink-600 transition inline-block"
             >
               Создать новую запись
             </Link>

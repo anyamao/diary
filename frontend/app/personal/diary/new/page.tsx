@@ -1,5 +1,5 @@
 "use client";
-
+import Loading from "@/components/Loading";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
@@ -50,6 +50,9 @@ export default function NewEntryPage() {
     return null;
   }
 
+  if (isLoading) {
+    return <Loading></Loading>;
+  }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);

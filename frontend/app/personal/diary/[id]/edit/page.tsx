@@ -1,5 +1,5 @@
 "use client";
-
+import Loading from "@/components/Loading";
 import { eventBus } from "@/lib/eventBus";
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
@@ -135,11 +135,7 @@ export default function EditEntryPage({ params }: PageProps) {
   const date = formData.created_at ? formatDate(formData.created_at) : null;
 
   if (loading) {
-    return (
-      <div className="h-full w-full min-h-[1200px] bg-pink-50 flex items-center justify-center">
-        <div className="text-xl">Загрузка...</div>
-      </div>
-    );
+    return <Loading></Loading>;
   }
 
   return (

@@ -1,5 +1,5 @@
 "use client";
-
+import Loading from "@/components/Loading";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
@@ -373,11 +373,7 @@ export default function SleepPage() {
   };
 
   if (isLoading || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-xl">Загрузка...</div>
-      </div>
-    );
+    return <Loading></Loading>;
   }
 
   const stats = getSleepStats();
@@ -386,10 +382,10 @@ export default function SleepPage() {
   const dreamTypeStats = getDreamTypeStats();
 
   return (
-    <div className="h-full w-full min-h-[1200px] flex flex-col items-center bg-pink-50 p-8">
+    <div className="h-full w-full min-h-[1200px] flex flex-col items-center bg-pink-50 sm:p-8 p-4">
       <div className="max-w-[1100px]">
-        <div className="flex justify-between items-center   mb-8">
-          <div>
+        <div className="flex flex-col sm:flex-row justify-between items-center   mb-8">
+          <div className="w-full">
             <h1 className="text-3xl font-bold text-pink-950 mb-2">
               Трекер сна
             </h1>
@@ -397,7 +393,7 @@ export default function SleepPage() {
           </div>
           <Link
             href="/personal/sleep/add"
-            className="bg-pink-500 text-white px-4 py-2 rounded-lg hover:bg-pink-600 transition"
+            className="bg-pink-500 text-white px-4 py-2 min-w-[190px] rounded-lg hover:bg-pink-600 transition"
           >
             + Добавить запись
           </Link>
@@ -640,7 +636,7 @@ export default function SleepPage() {
         {/* График динамики сна */}
 
         {trendData.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 text-xs sm:text-sm  mb-8">
             <h2 className="text-xl font-semibold text-pink-800 mb-4">
               Динамика сна
             </h2>

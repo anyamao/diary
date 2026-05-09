@@ -1,5 +1,6 @@
 "use client";
 
+import Loading from "@/components/Loading";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { useRouter, useParams } from "next/navigation";
@@ -32,11 +33,7 @@ export default function EditSleepPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-pink-50 flex items-center justify-center">
-        <div className="text-xl">Загрузка...</div>
-      </div>
-    );
+    return <Loading></Loading>;
   }
 
   return (

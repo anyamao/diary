@@ -1,4 +1,5 @@
 "use client";
+import Loading from "@/components/Loading";
 import { CalendarDays } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
@@ -186,22 +187,13 @@ export default function PlannerPage() {
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-    }
-    if (isAuthenticated) {
-      loadMonths();
-      loadWeekPlan();
-      loadGoalsAndNotes();
-    }
-  }, [isAuthenticated, isLoading, currentDate, selectedMonth, selectedYear]);
-
   const loadMonths = async () => {
     setLoading(true);
     const monthsData = [];
     const startMonth = new Date(currentDate);
     startMonth.setMonth(currentDate.getMonth() - 1);
 
+    // Загружаем данные для всех трех месяцев
     for (let i = 0; i < 3; i++) {
       const month = new Date(startMonth);
       month.setMonth(startMonth.getMonth() + i);
@@ -209,12 +201,35 @@ export default function PlannerPage() {
       const monthNum = month.getMonth() + 1;
 
       try {
+        // Загружаем данные месяца
         const response = await api.get(`/planner/months/${year}/${monthNum}`);
+
+        // Получаем все даты месяца для批量 запроса
+        const dates = response.data.map((day: any) => day.date);
+
+        // Загружаем важность для всех дней месяца одним запросом (если есть эндпоинт)
+        // Или используем кэш из weekPlan
+        const daysWithImportance = response.data.map((day: any) => {
+          // Ищем важность в weekPlan
+          let isImportant = false;
+          for (const week of weekPlan) {
+            const foundDay = week.days.find((d: any) => d.date === day.date);
+            if (foundDay && foundDay.isImportant) {
+              isImportant = true;
+              break;
+            }
+          }
+          return {
+            ...day,
+            is_important: isImportant,
+          };
+        });
+
         monthsData.push({
           year,
           month: monthNum,
           name: monthNames[monthNum - 1],
-          days: response.data,
+          days: daysWithImportance,
         });
       } catch (error) {
         console.error("Failed to load month:", error);
@@ -223,6 +238,7 @@ export default function PlannerPage() {
     setMonths(monthsData);
     setLoading(false);
   };
+
   const getWeekRange = (startDate: Date) => {
     const start = new Date(startDate);
     const end = new Date(startDate);
@@ -239,7 +255,56 @@ export default function PlannerPage() {
 
     return `${formatDate(start)} - ${formatDate(end)}`;
   };
+  // Добавьте состояние для кэша важности
+  const [importanceCache, setImportanceCache] = useState<
+    Record<string, boolean>
+  >({});
 
+  // При загрузке weekPlan обновляем кэш
+  useEffect(() => {
+    if (weekPlan.length > 0) {
+      const newCache: Record<string, boolean> = {};
+      weekPlan.forEach((week) => {
+        week.days.forEach((day: any) => {
+          newCache[day.date] = day.isImportant;
+        });
+      });
+      setImportanceCache(newCache);
+    }
+  }, [weekPlan]);
+
+  // В рендере используем кэш
+  const updateMonths = async () => {
+    // Просто перезагружаем месяцы из недельного плана
+    setMonths((prevMonths) => {
+      const newMonths = [...prevMonths];
+      for (let i = 0; i < newMonths.length; i++) {
+        const month = newMonths[i];
+        if (month && month.days) {
+          const updatedDays = month.days.map((day: any) => {
+            // Ищем важность в weekPlan
+            let isImportant = false;
+            for (const week of weekPlan) {
+              const foundDay = week.days.find((d: any) => d.date === day.date);
+              if (foundDay && foundDay.isImportant) {
+                isImportant = true;
+                break;
+              }
+            }
+            return {
+              ...day,
+              is_important: isImportant,
+            };
+          });
+          newMonths[i] = {
+            ...month,
+            days: updatedDays,
+          };
+        }
+      }
+      return newMonths;
+    });
+  };
   // Добавьте этот useEffect в компонент PlannerPage
   useEffect(() => {
     const handleTagsUpdate = () => {
@@ -317,7 +382,13 @@ export default function PlannerPage() {
       await api.put(`/planner/days/${date}`, {
         is_important: !currentStatus,
       });
+
+      // Обновляем недельный план
       await loadWeekPlan();
+
+      // Обновляем все три месяца
+      await updateMonths();
+
       showToast(
         !currentStatus ? "День отмечен как важный" : "Важность дня снята",
         "success",
@@ -327,7 +398,16 @@ export default function PlannerPage() {
       showToast("Ошибка", "error");
     }
   };
-
+  // Загружаем данные при изменении currentDate или выбранного месяца внизу
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadMonths();
+      loadWeekPlan();
+      loadGoalsAndNotes();
+    }
+  }, [currentDate, selectedMonth, selectedYear, isAuthenticated]);
+  // Функция для обновления только месяцев (без полной перезагрузки)
+  // Синхронизируем данные между недельным планом и месяцами
   const loadGoalsAndNotes = async () => {
     try {
       const response = await api.get(
@@ -436,7 +516,7 @@ export default function PlannerPage() {
         description: "",
         start_time: tempTaskStart,
         end_time: tempTaskEnd,
-        color: tempTaskColor,
+        color: tempTaskColor, // Убедитесь что используется tempTaskColor
         planner_day_id: plannerDayId,
         position: 0,
       });
@@ -452,7 +532,6 @@ export default function PlannerPage() {
       showToast("Ошибка добавления", "error");
     }
   };
-
   const updateTask = async () => {
     if (!editTaskTitle.trim() || !editingTask) return;
 
@@ -517,19 +596,19 @@ export default function PlannerPage() {
     d.setHours(0, 0, 0, 0);
     return d;
   }
-
   const prevMonthPeriod = () => {
     const newDate = new Date(currentDate);
     newDate.setMonth(currentDate.getMonth() - 3);
     setCurrentDate(newDate);
+    // useEffect сработает автоматически
   };
 
   const nextMonthPeriod = () => {
     const newDate = new Date(currentDate);
     newDate.setMonth(currentDate.getMonth() + 3);
     setCurrentDate(newDate);
+    // useEffect сработает автоматически
   };
-
   const prevMonthForWeek = () => {
     if (selectedMonth === 0) {
       setSelectedMonth(11);
@@ -561,15 +640,11 @@ export default function PlannerPage() {
   };
 
   if (isLoading || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-xl">Загрузка...</div>
-      </div>
-    );
+    return <Loading></Loading>;
   }
 
   return (
-    <div className="min-h-screen bg-pink-50 p-8">
+    <div className="min-h-screen bg-pink-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -641,7 +716,9 @@ export default function PlannerPage() {
                     const dayInfo = weekPlan
                       .find((w) => w.days.some((d: any) => d.date === day.date))
                       ?.days.find((d: any) => d.date === day.date);
-                    const isImportant = dayInfo?.isImportant || false;
+
+                    const isImportant =
+                      day.is_important || importanceCache[day.date] || false;
                     const hasTasks = day.has_tasks;
                     const isToday =
                       date.toDateString() === new Date().toDateString();
@@ -690,7 +767,7 @@ export default function PlannerPage() {
               Настройка тегов для цветов
             </h3>
           </div>
-          <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {colors.map((color) => (
               <div key={color.name} className="flex flex-col gap-1">
                 <div
@@ -1208,6 +1285,7 @@ export default function PlannerPage() {
         </div>
       </div>
       {/* Модальное окно добавления задачи */}
+      {/* Модальное окно добавления задачи */}
       {showAddTaskModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-md w-full">
@@ -1261,9 +1339,9 @@ export default function PlannerPage() {
                   {colors.slice(0, 6).map((color) => (
                     <button
                       key={color.name}
-                      onClick={() => setEditTaskColor(color.name)}
+                      onClick={() => setTempTaskColor(color.name)} // ИСПРАВЛЕНО: было setEditTaskColor
                       className={`w-8 h-8 rounded-full transition ${color.base} ${
-                        editTaskColor === color.name
+                        tempTaskColor === color.name // ИСПРАВЛЕНО: было editTaskColor
                           ? "ring-2 ring-offset-2 ring-gray-400"
                           : ""
                       }`}
@@ -1294,6 +1372,7 @@ export default function PlannerPage() {
           </div>
         </div>
       )}
+
       {/* Модальное окно редактирования задачи */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

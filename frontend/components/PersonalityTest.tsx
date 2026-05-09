@@ -494,7 +494,7 @@ export default function PersonalityTest() {
               <button
                 key={test}
                 onClick={() => switchToTest(test as any)}
-                className={`px-4 py-2 rounded-lg transition ${activeTest === test ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-700"}`}
+                className={`px-4 py-2 text-xs rounded-lg transition ${activeTest === test ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-700"}`}
               >
                 {test === "big5"
                   ? "Большая пятёрка"
@@ -640,22 +640,24 @@ export default function PersonalityTest() {
 
   return (
     <div>
-      <div className="flex gap-3 mb-6">
-        <button
-          onClick={() => switchToTest("big5")}
-          className={`px-4 py-2 rounded-lg transition ${activeTest === "big5" ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-700"}`}
-        >
-          Большая пятёрка
-        </button>
-        <button
-          onClick={() => switchToTest("emotional_intelligence")}
-          className={`px-4 py-2 rounded-lg transition ${activeTest === "emotional_intelligence" ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-700"}`}
-        >
-          Эмоциональный интеллект
-        </button>
+      <div className="flex text-xs flex-col md:flex-row md:text-sm gap-3 mb-6">
+        <div className="flex flex-row">
+          <button
+            onClick={() => switchToTest("big5")}
+            className={`px-4 py-2 rounded-lg transition ${activeTest === "big5" ? "bg-purple-600 text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-700"}`}
+          >
+            Большая пятёрка
+          </button>
+          <button
+            onClick={() => switchToTest("emotional_intelligence")}
+            className={`px-4 ml-[10px] py-2 rounded-lg transition ${activeTest === "emotional_intelligence" ? "bg-purple-600 text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-700"}`}
+          >
+            Эмоциональный интеллект
+          </button>
+        </div>
         <button
           onClick={() => switchToTest("motivation")}
-          className={`px-4 py-2 rounded-lg transition ${activeTest === "motivation" ? "bg-purple-600 text-white" : "bg-gray-200 text-gray-700"}`}
+          className={`px-4 py-2 rounded-lg w-[120px] transition ${activeTest === "motivation" ? "bg-purple-600 text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-700"}`}
         >
           Мотивация
         </button>
@@ -718,18 +720,18 @@ export default function PersonalityTest() {
         <button
           onClick={() => setCurrentPage((p) => Math.max(0, p - 1))}
           disabled={currentPage === 0}
-          className="flex items-center gap-1 px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50"
+          className="flex items-center gap-1 text-xs px-4 py-2 bg-gray-200 rounded-lg disabled:opacity-50"
         >
           <ChevronLeft className="w-4 h-4" /> Назад
         </button>
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-gray-500 text-xs">
           Страница {currentPage + 1} из {totalPages}
         </span>
         {currentPage === totalPages - 1 ? (
           <button
             onClick={calculateAndSaveResult}
             disabled={answeredCount < currentQuestions.length || savingResult}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+            className="px-6 py-2 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 disabled:opacity-50"
           >
             {savingResult ? "Сохранение..." : "Получить результат"}
           </button>
@@ -739,7 +741,7 @@ export default function PersonalityTest() {
               setCurrentPage((p) => Math.min(totalPages - 1, p + 1))
             }
             disabled={!isPageComplete}
-            className="flex items-center gap-1 px-4 py-2 bg-purple-600 text-white rounded-lg disabled:opacity-50"
+            className="flex items-center gap-1 px-4 text-xs py-2 bg-purple-600 text-white rounded-lg disabled:opacity-50"
           >
             Далее <ChevronRight className="w-4 h-4" />
           </button>

@@ -1,5 +1,5 @@
 "use client";
-
+import Loading from "@/components/Loading";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
@@ -324,11 +324,7 @@ export default function MoodTrackerPage() {
     return moodImages[mood] || "/noemotions.png";
   };
   if (isLoading || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-xl">Загрузка...</div>
-      </div>
-    );
+    return <Loading></Loading>;
   }
 
   const calendar = generateMonthCalendar();
@@ -348,7 +344,7 @@ export default function MoodTrackerPage() {
   const currentMonthName = monthNames[currentDate.getUTCMonth()];
 
   return (
-    <div className="min-h-screen bg-pink-100 p-8">
+    <div className="min-h-screen bg-pink-100 py-8 px-4 sm:px-8">
       <div className="max-w-[1100px] flex flex-col mx-auto">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">
           Трекер настроения
@@ -449,12 +445,12 @@ export default function MoodTrackerPage() {
             </div>
 
             <div className="flex flex-col items-center w-full">
-              <div className="bg-white rounded-lg w-[500px] shadow-md p-6 mb-8">
+              <div className="bg-white rounded-lg sm:w-[500px] w-[350px] shadow-md p-4 mb-8">
                 <div className="grid grid-cols-7 gap-2 mb-2">
                   {weekDays.map((day) => (
                     <div
                       key={day}
-                      className="text-center w-[58px] h-[58px] font-medium text-gray-600 py-2"
+                      className="text-center sm:w-[58px] sm:h-[58px] w-[40px] h-[40px] font-medium text-gray-600 py-2"
                     >
                       {day}
                     </div>
@@ -467,7 +463,7 @@ export default function MoodTrackerPage() {
                       return (
                         <div
                           key={idx}
-                          className="aspect-square w-[60px] h-[60px] rounded-lg "
+                          className="aspect-square sm:w-[60px] sm:h-[60px] w-[40px] h-[40px] rounded-lg "
                         />
                       );
                     }
@@ -482,7 +478,7 @@ export default function MoodTrackerPage() {
                       <button
                         key={idx}
                         onClick={() => handleDateClick(day.date)}
-                        className={`aspect-square rounded-lg w-[58px] h-[58px] flex flex-col items-center justify-center p-0 transition hover:scale-105 ${
+                        className={`aspect-square rounded-lg sm:w-[58px] sm:h-[58px] w-[40px] h-[40px] flex flex-col items-center justify-center p-0 transition hover:scale-105 ${
                           hasEntry
                             ? "bg-pink-100 hover:bg-pink-200"
                             : " hover:bg-pink-100"
@@ -521,7 +517,7 @@ export default function MoodTrackerPage() {
           <div className="grid grid-cols-1 gap-8 mb-8 lg:ml-[30px] lg:w-full"></div>
         </div>
 
-        <div className="bg-white rounded-lg w-full shadow-md my-[30px] p-6">
+        <div className="bg-white rounded-lg w-full text-xs shadow-md my-[30px] p-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
             Распределение настроений
           </h2>
@@ -548,11 +544,14 @@ export default function MoodTrackerPage() {
           </ResponsiveContainer>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
+        <div className="bg-white rounded-lg shadow-md text-xs p-1 sm:p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-800 p-6 sm:p-0 mb-4">
             Статистика настроений по типам
           </h2>
-          <ResponsiveContainer width="100%" height={400}>
+          <ResponsiveContainer
+            className="ml-[-40px] w-full w-[110%]"
+            height={400}
+          >
             <BarChart data={moodDistributionStats}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
@@ -606,7 +605,7 @@ export default function MoodTrackerPage() {
           </ResponsiveContainer>
         </div>
         <div className="flex flex-col">
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          <div className="bg-white rounded-lg text-xs shadow-md p-6 mb-8">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
               Настроение по дням недели
             </h2>
@@ -629,7 +628,7 @@ export default function MoodTrackerPage() {
             </ResponsiveContainer>
           </div>
         </div>
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-lg text-xs shadow-md p-6">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">
             Активность по дням недели
           </h2>

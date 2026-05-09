@@ -1,5 +1,5 @@
 "use client";
-
+import Loading from "@/components/Loading";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
@@ -124,11 +124,7 @@ export default function EditBusinessNotePage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-pink-50">
-        <div className="text-xl">Загрузка...</div>
-      </div>
-    );
+    return <Loading></Loading>;
   }
 
   return (

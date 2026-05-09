@@ -42,7 +42,7 @@ export default function RootLayout({
           {showSidepanel ? (
             <div className="flex  flex-row  ">
               <div
-                className={`flex ${isOpen ? "  w-[280px]" : "  w-[10px]"} bg-pink-50 min-h-full`}
+                className={`flex ${isOpen ? "  w-[280px]" : "  w-[10px]"} hidden sm:flex bg-pink-50 min-h-full`}
               >
                 <Sidepanel />
               </div>

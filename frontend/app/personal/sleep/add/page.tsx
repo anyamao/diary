@@ -1,5 +1,5 @@
 "use client";
-
+import Loading from "@/components/Loading";
 import { useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { useRouter } from "next/navigation";

@@ -1,5 +1,5 @@
 "use client";
-
+import Loading from "@/components/Loading";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
@@ -244,11 +244,7 @@ export default function PlannerDayPage() {
   };
 
   if (isLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Загрузка...</div>
-      </div>
-    );
+    return <Loading></Loading>;
   }
 
   if (!isAuthenticated) {
@@ -256,7 +252,7 @@ export default function PlannerDayPage() {
   }
 
   return (
-    <div className="min-h-screen bg-pink-50 p-8">
+    <div className="min-h-screen bg-pink-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6">
           <Link

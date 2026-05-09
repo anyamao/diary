@@ -534,8 +534,8 @@ export default function SleepInDiary({
   const totalDuration = calculateTotalDuration();
 
   return (
-    <div className="mb-6">
-      <div className="flex flex-col bg-white border-[1px] border-pink-300 shadow-sm hover:shadow-md rounded-lg p-[20px]">
+    <div className="mb-6 flex flex-col items-center justify-center">
+      <div className="flex flex-col max-w-[400px] sm:max-w-[1200px] bg-white border-[1px] flex-1 w-full border-pink-300 shadow-sm hover:shadow-md rounded-lg p-[20px]">
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             <Moon className="w-5 h-5 text-pink-600" />
@@ -640,7 +640,7 @@ export default function SleepInDiary({
       </div>
 
       {/* Общая заметка о сне */}
-      <div className="mt-4 bg-white rounded-lg border-[1px] border-pink-300 shadow-sm p-4">
+      <div className="mt-4 bg-white rounded-lg max-w-[400px] sm:max-w-[1200px] border-[1px] flex-1 w-full border-pink-300 shadow-sm p-4">
         <div className="flex justify-between items-center mb-2">
           <label className="text-sm font-semibold text-pink-800">
             Общая заметка о сне
@@ -730,11 +730,11 @@ export default function SleepInDiary({
         )}
       </div>
 
-      <p className="font-semibold text-sm text-pink-800 mt-[10px]">
+      <p className="font-semibold text-sm flex-1 w-full max-w-[400px] sm:max-w-[1200px] text-pink-800 mt-[10px]">
         Какие сны вам сегодня снились?
       </p>
 
-      <div className="mt-3 space-y-2">
+      <div className="mt-3  flex-1 max-w-[400px] sm:max-w-[1200px]   w-full">
         {sleepNotes.map((note) => (
           <div
             key={note.id}
@@ -742,7 +742,7 @@ export default function SleepInDiary({
               e.stopPropagation();
               startEditNote(note, e);
             }}
-            className="bg-white rounded-lg text-sm border-[1px] p-[20px] border-pink-300 shadow-sm hover:shadow-md"
+            className="bg-white rounded-lg flex-1 w-full text-sm border-[1px] p-[20px] border-pink-300 shadow-sm hover:shadow-md"
           >
             {editingNoteId === note.id ? (
               <div className="space-y-2">
@@ -885,7 +885,7 @@ export default function SleepInDiary({
       </div>
 
       {addingNote ? (
-        <div className="mt-3 bg-white rounded-lg border-pink-300 shadow-sm hover:shadow-md duration-300 border">
+        <div className="mt-3 bg-white flex-1 w-full rounded-lg border-pink-300 shadow-sm hover:shadow-md duration-300 border">
           <div className="space-y-2 p-[20px]">
             <div className="flex flex-row">
               <DreamTypePicker
@@ -971,7 +971,7 @@ export default function SleepInDiary({
         <button
           type="button"
           onClick={startAddNote}
-          className="mt-3 text-xs text-pink-500 flex items-center gap-1 hover:text-pink-600"
+          className="mt-3 text-xs text-pink-500 flex-1 w-full max-w-[400px] sm:max-w-[1200px] flex items-center gap-1 hover:text-pink-600"
         >
           <Plus className="w-3 h-3" /> Добавить сон
         </button>

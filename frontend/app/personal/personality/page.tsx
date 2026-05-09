@@ -1,5 +1,5 @@
 "use client";
-
+import Loading from "@/components/Loading";
 import { useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { useRouter } from "next/navigation";
@@ -34,11 +34,7 @@ export default function PersonalityPage() {
   }, [isAuthenticated, isLoading]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-xl">Загрузка...</div>
-      </div>
-    );
+    return <Loading></Loading>;
   }
 
   return (
@@ -49,37 +45,41 @@ export default function PersonalityPage() {
         <p className="text-gray-600 mb-8">
           Узнай себя лучше через тесты и самонаблюдение
         </p>
-        <div className="flex gap-3 mb-3">
-          <button
-            onClick={() => setActiveTab("personality")}
-            className={`px-4 py-2 rounded-lg transition ${
-              activeTab === "personality"
-                ? "bg-pink-500 text-white"
-                : "bg-white text-gray-700 hover:bg-pink-100"
-            }`}
-          >
-            Тип личности
-          </button>
-          <button
-            onClick={() => setActiveTab("depression")}
-            className={`px-4 py-2 rounded-lg transition ${
-              activeTab === "depression"
-                ? "bg-pink-500 text-white"
-                : "bg-white text-gray-700 hover:bg-pink-100"
-            }`}
-          >
-            Психологическое состояние
-          </button>
-          <button
-            onClick={() => setActiveTab("mood")}
-            className={`px-4 py-2 rounded-lg transition ${
-              activeTab === "mood"
-                ? "bg-pink-500 text-white"
-                : "bg-white text-gray-700 hover:bg-pink-100"
-            }`}
-          >
-            Настроение и ресурсы
-          </button>
+        <div className="flex md:flex-row flex-col md:items-center  ">
+          <div className="flex text-xs sm:text-sm">
+            <button
+              onClick={() => setActiveTab("personality")}
+              className={`px-4 py-2 h-[35px] rounded-lg transition ${
+                activeTab === "personality"
+                  ? "bg-pink-500 text-white"
+                  : "bg-white text-gray-700 hover:bg-pink-100"
+              }`}
+            >
+              Тип личности
+            </button>
+            <button
+              onClick={() => setActiveTab("depression")}
+              className={`px-4 py-2 h-[35px] rounded-lg ml-[20px] transition ${
+                activeTab === "depression"
+                  ? "bg-pink-500 text-white"
+                  : "bg-white text-gray-700 hover:bg-pink-100"
+              }`}
+            >
+              Психологическое состояние
+            </button>
+          </div>
+          <div className="flex">
+            <button
+              onClick={() => setActiveTab("mood")}
+              className={`px-4 py-2 text-xs h-[35px] mt-[10px] md:ml-[20px] md:mt-[0px]  rounded-lg transition ${
+                activeTab === "mood"
+                  ? "bg-pink-500 text-white"
+                  : "bg-white text-gray-700 hover:bg-pink-100"
+              }`}
+            >
+              Настроение и ресурсы
+            </button>
+          </div>
         </div>
 
         {/* Навигация */}

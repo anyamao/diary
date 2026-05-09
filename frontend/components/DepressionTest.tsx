@@ -311,7 +311,7 @@ ${recommendation}
                 {globalIdx + 1}. {q}
               </p>
               <div className="flex flex-col  px-[100px] ">
-                <div className="flex justify-between w-full max-w-[60%] items-center max-w-md mx-auto">
+                <div className="flex justify-between w-full max-w-[1200px] md:max-w-[60%] items-center   mx-auto">
                   {options.map((opt) => (
                     <button
                       key={opt.value}

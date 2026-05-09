@@ -1,5 +1,5 @@
 "use client";
-
+import { Lightbulb } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { showToast } from "@/components/Toast";
 import { showConfirm } from "@/components/ConfirmDialog";
-
+import Loading from "@/components/Loading";
 interface BusinessNote {
   id: string;
   title: string;
@@ -167,11 +167,7 @@ export default function BusinessNotesPage() {
   };
 
   if (isLoading || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-xl">Загрузка...</div>
-      </div>
-    );
+    return <Loading></Loading>;
   }
 
   return (

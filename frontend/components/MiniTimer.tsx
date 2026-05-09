@@ -217,7 +217,7 @@ export default function MiniTimer() {
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-xl border border-gray-200 z-50 w-[320px] max-w-[calc(100vw-2rem)]">
+      <div className="fixed bottom-4 right-4 bg-white max-w-[180px] md:max-w-[250px] rounded-lg shadow-xl border border-gray-200 z-30 w-[320px] max-w-[calc(100vw-2rem)]">
         <div className="flex justify-between items-center p-3 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <div

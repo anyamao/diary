@@ -30,7 +30,7 @@ export default function ProfileModal({
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentAvatar, setCurrentAvatar] = useState("icon1.jpg");
-  const { user, logout } = useAuthStore();
+  const { user, logout, setUser } = useAuthStore();
   const router = useRouter();
   useEffect(() => {
     if (isOpen && user) {
@@ -64,11 +64,16 @@ export default function ProfileModal({
     try {
       await api.put("/auth/update-username", { username: newUsername });
       showToast("Имя пользователя обновлено", "success");
+
+      // Получаем свежие данные пользователя
+      const response = await api.get("/auth/me");
+      const updatedUser = response.data;
+
+      // Обновляем store через setUser
+      useAuthStore.getState().setUser(updatedUser);
+
       setUsername(newUsername);
       setIsEditing(false);
-      if (user) {
-        user.username = newUsername;
-      }
     } catch (error: any) {
       console.error("Failed to update username:", error);
       showToast(
@@ -79,7 +84,6 @@ export default function ProfileModal({
       setIsLoading(false);
     }
   };
-
   const handleAvatarChange = async (avatarId: string) => {
     try {
       await api.put("/auth/update-avatar", { avatar: avatarId });
