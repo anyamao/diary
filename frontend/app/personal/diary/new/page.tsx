@@ -113,7 +113,7 @@ export default function NewEntryPage() {
 
   return (
     <div className="h-full w-full min-h-screen bg-pink-50 py-8  flex justify-center">
-      <div className="w-full h-full max-w-[1100px] flex flex-col flex-1 ">
+      <div className="w-full h-full sm:max-w-[1100px] max-w-[500px] ml-[-20px] md:ml-[-0px] flex flex-col flex-1 ">
         <div className="flex flex-row justify-between items-center text-pink-900">
           <Link href="/personal/diary" className="text-pink-900">
             <ArrowLeft className="w-5 h-5 ml-[40px]" />
@@ -131,9 +131,6 @@ export default function NewEntryPage() {
                 className={`w-5 h-5 ${formData.is_favorite ? "fill-yellow-500 text-yellow-500" : "text-pink-900"}`}
               />
             </button>
-            <p className="mr-[15px] text-sm border-pink-900 hover:bg-pink-200 duration-300 cursor-pointer border-[1px] px-[10px] py-[5px] rounded-lg">
-              Вопросы
-            </p>
             <button
               onClick={handleSave}
               disabled={saving}
@@ -150,7 +147,7 @@ export default function NewEntryPage() {
           </div>
         )}
 
-        <div className="rounded-lg p-8 text-pink-950">
+        <div className="rounded-lg md:p-8 p-5 text-pink-950">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex flex-row items-center justify-between">
               <div className="flex flex-row items-center gap-2">

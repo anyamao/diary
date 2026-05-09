@@ -265,7 +265,7 @@ export default function PersonalDiaryPage() {
 
   return (
     <div className="p-3 pt-8 sm:p-8 w-full h-full flex-1 bg-pink-50 flex justify-center min-h-screen">
-      <div className="flex flex-col w-full h-full max-w-[1000px]">
+      <div className="flex flex-col w-full h-full max-w-[1000px] ">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Мой дневник</h1>
           <div className="flex md:flex-row flex-col w-full justify-between items-center">

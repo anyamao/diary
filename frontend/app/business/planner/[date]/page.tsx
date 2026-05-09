@@ -609,9 +609,10 @@ export default function PlannerDayPage() {
                   />
                 </div>
               </div>
+
               <div>
                 <label className="block text-sm text-gray-600 mb-2">Цвет</label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-5 gap-2 md:flex md:flex-nowrap">
                   {colors.slice(0, 9).map((color) => (
                     <button
                       key={color.name}
@@ -630,6 +631,7 @@ export default function PlannerDayPage() {
                   ))}
                 </div>
               </div>
+
               <div>
                 <label className="block text-sm text-gray-600 mb-1">
                   Описание

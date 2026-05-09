@@ -175,50 +175,50 @@ function Header() {
       {pathname.startsWith("/personal") && (
         <div className="w-full border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed  top-0 left-0 min-h-[40px] max-h-[60px] sm:max-h-[40px] flex items-center justify-center z-30">
           <div className="flex flex-row whitespace-nowrap pb-[10px] sm:pb-[0px]  max-w-[340px] sm:max-w-[1200px] overflow-x-auto font-semibold text-pink-950 text-xs items-center justify-between">
-            <div className="flex flex-row   ">
-              <Star className="text-yellow-600 h-4 w-4 -rotate-90" />
-              <div className="flex items-center flex-row mx-[10px] justify-center">
-                <Link
-                  href="/personal/diary"
-                  className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
-                    pathname.startsWith("/personal/diary")
-                      ? "text-pink-600 underline"
-                      : ""
-                  }`}
-                >
-                  Дневник
-                </Link>
-                <Link
-                  href="/personal/mood-tracker"
-                  className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
-                    pathname.startsWith("/personal/mood-tracker")
-                      ? "text-pink-600 underline"
-                      : ""
-                  }`}
-                >
-                  Трекер настроения
-                </Link>
-              </div>
-            </div>
-            <div className="flex flex-row mt-[10px] sm:mt-[0px]  ">
+            <Star className="text-yellow-600 h-4 w-4 -rotate-90" />
+            <div className="flex items-center flex-row mx-[10px] justify-center">
               <Link
-                href="/personal/sleep"
+                href="/personal/diary"
                 className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
-                  pathname.startsWith("/personal/sleep")
+                  pathname.startsWith("/personal/diary")
                     ? "text-pink-600 underline"
                     : ""
                 }`}
               >
-                Мой сон
+                Дневник
               </Link>
               <Link
-                href="/personal/personality"
-                className="px-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer"
+                href="/personal/mood-tracker"
+                className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
+                  pathname.startsWith("/personal/mood-tracker")
+                    ? "text-pink-600 underline"
+                    : ""
+                }`}
               >
-                Моя личность
+                Трекер настроения
               </Link>
-              <Star className="text-yellow-600 h-4 w-4 rotate-90" />
             </div>
+            <Link
+              href="/personal/sleep"
+              className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
+                pathname.startsWith("/personal/sleep")
+                  ? "text-pink-600 underline"
+                  : ""
+              }`}
+            >
+              Мой сон
+            </Link>
+            <Link
+              href="/personal/personality"
+              className={`pr-[10px] hover:underline hover:text-pink-600 duration-300 cursor-pointer ${
+                pathname.startsWith("/personal/personality")
+                  ? "text-pink-600 underline"
+                  : ""
+              }`}
+            >
+              Моя личность
+            </Link>
+            <Star className="text-yellow-600 h-4 w-4 rotate-90" />
           </div>
         </div>
       )}

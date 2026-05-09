@@ -129,7 +129,7 @@ export default function EditBusinessNotePage() {
       <div className="w-full h-full max-w-[1100px] flex flex-col flex-1">
         <div className="flex flex-row justify-between items-center text-pink-900">
           <Link href="/business/notes" className="text-pink-900">
-            <ArrowLeft className="w-5 h-5 ml-[40px]" />
+            <ArrowLeft className="w-5 h-5 md:ml-[40px] ml-[10px]" />
           </Link>
           <div className="flex flex-row mr-[10px] items-center">
             <button
@@ -166,7 +166,7 @@ export default function EditBusinessNotePage() {
           </div>
         )}
 
-        <div className="rounded-lg p-8 text-pink-950">
+        <div className="rounded-lg p-2  md:p-8 text-pink-950">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <input

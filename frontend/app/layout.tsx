@@ -38,7 +38,9 @@ export default function RootLayout({
         {!isAuthPage && <MiniTimer />}
         {!isAuthPage && <ToastContainer />}
         {!isAuthPage && <ConfirmDialogContainer />}
-        <div className={!isAuthPage ? "mt-[100px]  pb-[260px]" : ""}>
+        <div
+          className={!isAuthPage ? "mt-[100px]  pb-[730px] md:pb-[260px]" : ""}
+        >
           {showSidepanel ? (
             <div className="flex  flex-row  ">
               <div

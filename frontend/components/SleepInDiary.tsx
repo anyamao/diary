@@ -541,8 +541,8 @@ export default function SleepInDiary({
   const totalDuration = calculateTotalDuration();
 
   return (
-    <div className="mb-6 flex flex-col items-center justify-center">
-      <div className="flex flex-col max-w-[400px] sm:max-w-[1200px] bg-white border-[1px] flex-1 w-full border-pink-300 shadow-sm hover:shadow-md rounded-lg p-[20px]">
+    <div className="mb-6 flex flex-col items-center justify-center w-full">
+      <div className="flex flex-col max-w-[430px] sm:max-w-[1200px] bg-white border-[1px] flex-1 w-full border-pink-300 shadow-sm hover:shadow-md rounded-lg p-[20px]">
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
             <Moon className="w-5 h-5 text-pink-600" />
@@ -646,7 +646,7 @@ export default function SleepInDiary({
         )}
       </div>
 
-      <div className="mt-4 bg-white rounded-lg max-w-[400px] sm:max-w-[1200px] border-[1px] flex-1 w-full border-pink-300 shadow-sm p-4">
+      <div className="mt-4 bg-white rounded-lg max-w-[430px] sm:max-w-[1200px] border-[1px] flex-1 w-full border-pink-300 shadow-sm p-4">
         <div className="flex justify-between items-center mb-2">
           <label className="text-sm font-semibold text-pink-800">
             Общая заметка о сне
@@ -736,11 +736,11 @@ export default function SleepInDiary({
         )}
       </div>
 
-      <p className="font-semibold text-sm flex-1 w-full max-w-[400px] sm:max-w-[1200px] text-pink-800 mt-[10px]">
+      <p className="font-semibold text-sm flex-1 w-full max-w-[430px] sm:max-w-[1200px] text-pink-800 mt-[10px]">
         Какие сны вам сегодня снились?
       </p>
 
-      <div className="mt-3  flex-1 max-w-[400px] sm:max-w-[1200px]   w-full">
+      <div className="mt-3  flex-1 max-w-[430px] sm:max-w-[1200px]   w-full">
         {sleepNotes.map((note) => (
           <div
             key={note.id}

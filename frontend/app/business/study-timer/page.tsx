@@ -218,7 +218,15 @@ export default function StudyTimerPage() {
     setEditSessionDescription(session.description || "");
     setShowEditDaySessionModal(true);
   };
+  useEffect(() => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
+    setSelectedDate(todayStr);
+    fetchSessionsByDay(todayStr);
+
+    setCurrentViewDate(today);
+  }, []);
   const updateDaySession = async () => {
     if (!editingDaySession) return;
 
@@ -595,7 +603,6 @@ export default function StudyTimerPage() {
             </p>
           </div>
         </div>
-
         <div className="bg-white rounded-xl shadow-md p-8 mb-8 text-center">
           <div className="md:text-6xl text-4xl font-mono font-bold text-gray-800 mb-4">
             {currentSession?.is_active ? formatTime(elapsed) : "00:00:00"}
@@ -679,7 +686,6 @@ export default function StudyTimerPage() {
             )}
           </div>
         </div>
-
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
@@ -718,9 +724,9 @@ export default function StudyTimerPage() {
               );
             })}
           </div>
-        </div>
+        </div>{" "}
         <div className=" w-full  flex flex-col items-center p-6 mb-8">
-          <div className="flex justify-between w-full items-center mb-4 ">
+          <div className="flex justify-between flex-col md:flex-row w-full items-center mb-4 ">
             <h2 className="text-xl font-semibold text-pink-900">
               Календарь активности
             </h2>
@@ -745,7 +751,7 @@ export default function StudyTimerPage() {
               </button>
             </div>
           </div>
-          <div className="flex flex-row w-full justify-between ">
+          <div className="flex md:flex-row  items-center md:items-start flex-col w-full justify-between ">
             <div className="flex flex-col  ">
               <div className="flex flex-col w-full bg-white p-8 bg-blue-200 rounded-lg shadow-sm  max-w-[500px]">
                 <div className="grid grid-cols-7 gap-2 mb-2">
@@ -805,7 +811,7 @@ export default function StudyTimerPage() {
                           className={`aspect-square rounded-lg flex flex-col items-center justify-center p-1 transition hover:scale-105 ${bgClass} ${selectedClass} ${isToday ? "ring-2 ring-pink-400" : ""}`}
                         >
                           <span
-                            className={`text-sm font-medium ${hours > 0 ? "text-green-800" : "text-gray-700"}`}
+                            className={`text-sm font-medium ${hours > 0 ? "text-green-800 hidden md:block" : "text-gray-700"}`}
                           >
                             {day}
                           </span>
@@ -930,7 +936,7 @@ export default function StudyTimerPage() {
             </div>
 
             {showDaySessions && (
-              <div className="bg-white w-full ml-[30px] flex-1 max-h-[900px] overflow-y-auto rounded-xl shadow-md p-6 mb-8">
+              <div className="bg-white w-full md:ml-[30px] flex-1 max-h-[900px] max-w-[600px] overflow-y-auto rounded-xl shadow-md p-6 mb-8">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold text-pink-900">
                     Сессии за{" "}
@@ -1157,7 +1163,6 @@ export default function StudyTimerPage() {
             )}
           </div>
         </div>
-
         {showAllTimeStats && allTimeStats && (
           <div className="bg-white rounded-xl shadow-md p-6 mb-8">
             <h2 className="text-xl font-semibold text-pink-900 mb-4">
@@ -1264,7 +1269,6 @@ export default function StudyTimerPage() {
             )}
           </div>
         )}
-
         {showEditDaySessionModal && editingDaySession && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
@@ -1498,7 +1502,6 @@ export default function StudyTimerPage() {
             </div>
           </div>
         )}
-
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <h2 className="text-xl font-semibold text-pink-800 mb-4">
             Статистика
@@ -1618,7 +1621,6 @@ export default function StudyTimerPage() {
             </>
           )}
         </div>
-
         {stats?.sessions && stats.sessions.length > 0 && (
           <div className="bg-white rounded-xl shadow-md p-6 mb-[30px]">
             <h2 className="text-xl font-semibold text-pink-900 mb-4">

@@ -5,7 +5,7 @@ import { Heart, Mail, Globe, Coffee, Star } from "lucide-react";
 import { SiGithub } from "@icons-pack/react-simple-icons";
 function Footer() {
   return (
-    <footer className="w-full bg-pink-100 border-t border-pink-200 absolute bottom-0 mt-auto">
+    <footer className="w-full bg-pink-100 border-t-[2px] border-pink-200 shadow-sm absolute bottom-0 mt-auto">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>

@@ -1519,15 +1519,16 @@ export default function PlannerPage() {
                   />
                 </div>
               </div>
+
               <div>
                 <label className="block text-sm text-gray-600 mb-2">Цвет</label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-6 gap-2 md:flex md:flex-nowrap">
                   {colors.slice(0, 12).map((color) => (
                     <button
                       key={color.name}
-                      onClick={() => setTempTaskColor(color.name)} // ИСПРАВЛЕНО: было setEditTaskColor
+                      onClick={() => setTempTaskColor(color.name)}
                       className={`w-8 h-8 rounded-full transition ${color.base} ${
-                        tempTaskColor === color.name // ИСПРАВЛЕНО: было editTaskColor
+                        tempTaskColor === color.name
                           ? "ring-2 ring-offset-2 ring-gray-400"
                           : ""
                       }`}
@@ -1606,25 +1607,29 @@ export default function PlannerPage() {
                   />
                 </div>
               </div>
+
               <div>
                 <label className="block text-sm text-gray-600 mb-2">Цвет</label>
-                <div className="flex gap-2">
+                <div className="grid grid-cols-6 gap-2 md:flex md:flex-nowrap">
                   {colors.slice(0, 12).map((color) => (
                     <button
                       key={color.name}
-                      onClick={() => setEditTaskColor(color.name)}
+                      onClick={() => setTempTaskColor(color.name)}
                       className={`w-8 h-8 rounded-full transition ${color.base} ${
-                        editTaskColor === color.name
+                        tempTaskColor === color.name
                           ? "ring-2 ring-offset-2 ring-gray-400"
                           : ""
                       }`}
                       title={
-                        tagNames[color.name] ? tagNames[color.name] : color.name
+                        tagNames[color.name]
+                          ? tagNames[color.name]
+                          : color.label
                       }
                     />
                   ))}
                 </div>
               </div>
+
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={updateTask}
