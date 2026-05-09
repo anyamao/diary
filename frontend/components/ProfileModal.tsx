@@ -251,7 +251,6 @@ export default function ProfileModal({
           </div>
 
           <div className="border-t border-gray-200 pt-4">
-            <h3 className="font-semibold text-gray-800 mb-2">О аккаунте</h3>
             <p className="text-sm text-gray-600">
               Дата регистрации:{" "}
               {user?.created_at
@@ -266,12 +265,6 @@ export default function ProfileModal({
             </h3>
             <div className="bg-red-50 rounded-lg p-4">
               <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium text-red-800">Удалить аккаунт</p>
-                  <p className="text-sm text-red-600">
-                    Все данные будут безвозвратно удалены
-                  </p>
-                </div>
                 <button
                   onClick={handleDeleteAccount}
                   disabled={isLoading}

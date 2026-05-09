@@ -336,7 +336,7 @@ export default function BusinessNotesPage() {
           ))}
 
           {filteredNotes.length === 0 && (
-            <div className="col-span-full text-center py-16 bg-white rounded-lg shadow-md">
+            <div className="col-span-full text-center py-16 px-3 bg-white rounded-lg shadow-md">
               <div className="text-6xl mb-4">💡</div>
               <h2 className="text-2xl text-gray-600 mb-4">
                 {searchQuery || selectedTag

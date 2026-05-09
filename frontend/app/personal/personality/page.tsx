@@ -49,7 +49,7 @@ export default function PersonalityPage() {
           <div className="flex text-xs sm:text-sm">
             <button
               onClick={() => setActiveTab("personality")}
-              className={`px-4 py-2 h-[35px] rounded-lg transition ${
+              className={`px-4 py-2 rounded-lg transition ${
                 activeTab === "personality"
                   ? "bg-pink-500 text-white"
                   : "bg-white text-gray-700 hover:bg-pink-100"
@@ -59,7 +59,7 @@ export default function PersonalityPage() {
             </button>
             <button
               onClick={() => setActiveTab("depression")}
-              className={`px-4 py-2 h-[35px] rounded-lg ml-[20px] transition ${
+              className={`px-4 py-2  rounded-lg ml-[20px] transition ${
                 activeTab === "depression"
                   ? "bg-pink-500 text-white"
                   : "bg-white text-gray-700 hover:bg-pink-100"

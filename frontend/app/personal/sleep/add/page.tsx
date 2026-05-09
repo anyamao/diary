@@ -42,7 +42,7 @@ export default function AddSleepPage() {
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-lg shadow-md p-3 md:p-6">
           <h1 className="text-2xl font-bold text-gray-800 mb-6">
             Добавить запись о сне
           </h1>

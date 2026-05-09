@@ -52,7 +52,7 @@ export default function EditSleepPage() {
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-lg shadow-md ,md:p-6 p-3">
           <h1 className="text-2xl font-bold text-gray-800 mb-6">
             Редактировать запись о сне
           </h1>
