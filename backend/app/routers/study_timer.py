@@ -55,7 +55,6 @@ async def delete_session(
 
         return {"message": "Session deleted successfully"}
     except Exception as e:
-        print(f"Error deleting session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -110,7 +109,6 @@ async def get_monthly_stats(
     )
     row = result.fetchone()
 
-    # Получаем статистику по тегам
     tags_query = text("""
         SELECT 
             tag,
@@ -134,7 +132,7 @@ async def get_monthly_stats(
         "total_hours": round(row[1] or 0, 1),
         "avg_session_hours": round(row[2] or 0, 1),
         "days_with_study": row[3] or 0,
-        "total_days_in_month": 31,  # Можно вычислить динамически
+        "total_days_in_month": 31,
         "max_duration": round(row[4] or 0, 1),
         "best_day": row[5].isoformat() if row[5] else None,
         "best_day_hours": round(row[6] or 0, 1),
@@ -222,7 +220,6 @@ async def update_session(
 ):
     """Обновить существующую сессию (тег и описание)"""
     try:
-        # Проверяем, что сессия принадлежит пользователю
         query = text("""
             SELECT id, user_id FROM study_timer_sessions
             WHERE id = :session_id AND user_id = :user_id
@@ -235,7 +232,6 @@ async def update_session(
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
 
-        # Обновляем сессию
         update_query = text("""
             UPDATE study_timer_sessions
             SET tag = :tag, description = :description, updated_at = NOW()
@@ -254,7 +250,6 @@ async def update_session(
 
         return {"message": "Session updated successfully"}
     except Exception as e:
-        print(f"Error updating session: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -396,7 +391,6 @@ async def get_sessions_by_day(
     from datetime import date
 
     try:
-        # Преобразуем строку в объект date
         target_date = date.fromisoformat(date_str)
 
         query = text("""
@@ -429,7 +423,6 @@ async def get_sessions_by_day(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format")
     except Exception as e:
-        print(f"Error fetching day sessions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

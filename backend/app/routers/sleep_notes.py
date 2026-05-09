@@ -10,7 +10,6 @@ from app.models import User
 router = APIRouter(prefix="/sleep-notes", tags=["sleep-notes"])
 
 
-# Сначала объявляем статические маршруты
 @router.get("/all", response_model=List[schemas.SleepNoteResponse])
 async def get_all_sleep_notes(
     current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
@@ -19,7 +18,6 @@ async def get_all_sleep_notes(
     return await crud.get_all_sleep_notes(db, current_user.id)
 
 
-# Затем динамические с параметрами
 @router.post(
     "/", response_model=schemas.SleepNoteResponse, status_code=status.HTTP_201_CREATED
 )

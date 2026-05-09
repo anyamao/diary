@@ -45,7 +45,6 @@ from uuid import UUID
 from typing import Optional, List
 
 
-# User CRUD
 async def create_user(db: AsyncSession, user: UserCreate) -> User:
     hashed_password = get_password_hash(user.password)
     db_user = User(
@@ -96,7 +95,6 @@ async def update_last_login(db: AsyncSession, user_id: UUID) -> None:
     await db.commit()
 
 
-# Refresh Token CRUD
 async def create_refresh_token(
     db: AsyncSession, user_id: UUID, token: str, expires_at: datetime
 ) -> RefreshToken:
@@ -114,7 +112,6 @@ async def start_timer_session(
     description: Optional[str],
     start_time: datetime,
 ) -> StudyTimerSession:
-    # Закрываем все активные сессии
     await db.execute(
         update(StudyTimerSession)
         .where(
@@ -192,7 +189,6 @@ async def get_timer_stats(
     return result.scalars().all()
 
 
-# Timer Tags CRUD
 async def get_timer_tags(db: AsyncSession, user_id: UUID) -> List[TimerTag]:
     result = await db.execute(
         select(TimerTag).where(TimerTag.user_id == user_id).order_by(TimerTag.name)
@@ -318,7 +314,6 @@ async def revoke_all_user_tokens(db: AsyncSession, user_id: UUID) -> None:
     await db.commit()
 
 
-# Diary Entry CRUD
 async def create_diary_entry(
     db: AsyncSession, user_id: UUID, entry: DiaryEntryCreate
 ) -> DiaryEntry:
@@ -373,7 +368,6 @@ async def update_diary_entry(
     for key, value in update_data.items():
         setattr(db_entry, key, value)
 
-    # Если дата была передана, обновляем её
     if "created_at" in update_data and update_data["created_at"]:
         db_entry.created_at = update_data["created_at"]
 
@@ -392,7 +386,6 @@ async def delete_diary_entry(db: AsyncSession, entry_id: UUID, user_id: UUID) ->
     return True
 
 
-# Shopping Item CRUD
 async def create_shopping_item(
     db: AsyncSession, user_id: UUID, item: ShoppingItemCreate
 ) -> ShoppingItem:
@@ -449,7 +442,6 @@ async def delete_shopping_item(db: AsyncSession, item_id: UUID, user_id: UUID) -
     return True
 
 
-# Sleep Record CRUD
 async def create_sleep_record(
     db: AsyncSession, user_id: UUID, record: SleepRecordCreate
 ) -> SleepRecord:
@@ -530,7 +522,6 @@ async def delete_sleep_record(db: AsyncSession, record_id: UUID, user_id: UUID) 
     return True
 
 
-# Sleep Note CRUD
 async def create_sleep_note(
     db: AsyncSession, user_id: UUID, note: SleepNoteCreate
 ) -> SleepNote:
@@ -605,7 +596,6 @@ async def delete_sleep_note(db: AsyncSession, note_id: UUID, user_id: UUID) -> b
     return True
 
 
-# Planner Day CRUD
 async def get_or_create_planner_day(
     db: AsyncSession, user_id: UUID, day_date: date
 ) -> PlannerDay:
@@ -672,7 +662,6 @@ async def get_user_planner_days(
     return result.scalars().all()
 
 
-# Planner Task CRUD
 async def create_planner_task(
     db: AsyncSession, user_id: UUID, task: PlannerTaskCreate
 ) -> PlannerTask:
@@ -772,7 +761,6 @@ async def get_filtered_diary_entries(
 ):
     from sqlalchemy import text
 
-    # Базовый запрос
     query = """
         SELECT id, title, content, mood, tags, is_favorite, created_at
         FROM diary_entries
@@ -781,22 +769,18 @@ async def get_filtered_diary_entries(
 
     params: dict = {"user_id": user_id}
 
-    # 1. Поиск по заголовку или содержанию
     if search:
         query += " AND (title ILIKE :search OR content ILIKE :search)"
         params["search"] = f"%{search}%"
 
-    # 2. Фильтр по настроению
     if mood:
         query += " AND mood = :mood"
         params["mood"] = mood
 
-    # 3. Фильтр по избранному
     if is_favorite is not None:
         query += " AND is_favorite = :is_favorite"
         params["is_favorite"] = is_favorite
 
-    # 4. Фильтр по датам
     if date_from:
         query += " AND DATE(created_at) >= :date_from"
         params["date_from"] = date_from
@@ -805,7 +789,6 @@ async def get_filtered_diary_entries(
         query += " AND DATE(created_at) <= :date_to"
         params["date_to"] = date_to
 
-    # 5. Сортировка
     sort_field = "created_at"
     if sort_by == "title":
         sort_field = "title"
@@ -815,7 +798,6 @@ async def get_filtered_diary_entries(
     sort_direction = "DESC" if sort_order == "desc" else "ASC"
     query += f" ORDER BY {sort_field} {sort_direction}"
 
-    # 6. Пагинация
     query += " OFFSET :skip LIMIT :limit"
     params["skip"] = skip
     params["limit"] = limit
@@ -837,7 +819,4 @@ async def get_filtered_diary_entries(
             for row in rows
         ]
     except Exception as e:
-        print(f"Error in get_filtered_diary_entries: {e}")
-        print(f"Query: {query}")
-        print(f"Params: {params}")
         return []

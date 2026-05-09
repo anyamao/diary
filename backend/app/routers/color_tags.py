@@ -32,7 +32,6 @@ async def get_all_tags(
 
         return tags
     except Exception as e:
-        print(f"Error getting tags: {e}")
         return {}
 
 
@@ -49,7 +48,6 @@ async def save_tag(
         if not tag_name:
             raise HTTPException(status_code=400, detail="Tag name is required")
 
-        # Удаляем старый тег для этого цвета
         delete_query = text("""
             DELETE FROM color_tags
             WHERE user_id = :user_id AND color_name = :color_name
@@ -58,7 +56,6 @@ async def save_tag(
             delete_query, {"user_id": current_user.id, "color_name": color_name}
         )
 
-        # Добавляем новый
         insert_query = text("""
             INSERT INTO color_tags (id, user_id, color_name, tag_name)
             VALUES (gen_random_uuid(), :user_id, :color_name, :tag_name)
@@ -75,7 +72,6 @@ async def save_tag(
 
         return {"message": "Tag saved successfully", "tag_name": tag_name}
     except Exception as e:
-        print(f"Error saving tag: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -101,5 +97,4 @@ async def delete_tag(
 
         return {"message": "Tag deleted successfully"}
     except Exception as e:
-        print(f"Error deleting tag: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -74,7 +74,6 @@ async def get_monthly_goals(
             }
         return {"monthly_goal": "", "weekly_goals": {}, "weekly_notes": {}}
     except Exception as e:
-        print(f"Error getting monthly goals: {e}")
         return {"monthly_goal": "", "weekly_goals": {}, "weekly_notes": {}}
 
 
@@ -87,7 +86,6 @@ async def save_monthly_goals(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        # Проверяем существует ли запись
         check_query = text("""
             SELECT id FROM monthly_plans
             WHERE user_id = :user_id AND year = :year AND month = :month
@@ -126,7 +124,6 @@ async def save_monthly_goals(
         await db.commit()
         return {"message": "Saved successfully"}
     except Exception as e:
-        print(f"Error saving monthly goals: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -210,7 +207,6 @@ async def get_tags(
 
         return [{"color": row[0], "tag_name": row[1]} for row in rows]
     except Exception as e:
-        print(f"Error getting tags: {e}")
         return []
 
 
@@ -221,7 +217,6 @@ async def save_tag(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        # Удаляем старый тег для этого цвета
         delete_query = text("""
             DELETE FROM planner_tags
             WHERE user_id = :user_id AND color = :color
@@ -230,7 +225,6 @@ async def save_tag(
             delete_query, {"user_id": current_user.id, "color": data.get("color")}
         )
 
-        # Добавляем новый
         insert_query = text("""
             INSERT INTO planner_tags (id, user_id, color, tag_name)
             VALUES (gen_random_uuid(), :user_id, :color, :tag_name)
@@ -246,7 +240,6 @@ async def save_tag(
         await db.commit()
         return {"message": "Tag saved successfully"}
     except Exception as e:
-        print(f"Error saving tag: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

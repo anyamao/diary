@@ -12,7 +12,6 @@ from datetime import datetime, date
 from typing import Optional, List
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/diary", tags=["diary"])
 
@@ -27,37 +26,25 @@ async def create_entry(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    logger.info("=" * 50)
-    logger.info(f"📝 Creating new diary entry for user {current_user.id}")
-    logger.info(f"Entry mood: {entry.mood}")
 
-    # Создаем запись
     db_entry = await crud.create_diary_entry(db, current_user.id, entry)
-    logger.info(f"✅ Entry created with id {db_entry.id}")
 
-    # Проверяем и создаем уведомления
     try:
-        logger.info("🔔 Checking for notifications...")
         notifications = await NotificationService.check_and_create_notifications(
             db, current_user.id
         )
-        logger.info(f"📊 Found {len(notifications)} notifications")
 
         for notification in notifications:
             db.add(notification)
-            logger.info(f"💾 Adding notification: {notification.title}")
 
         await db.commit()
-        logger.info(f"✅ Saved {len(notifications)} notifications to database")
 
     except Exception as e:
-        logger.error(f"❌ Error creating notifications: {e}")
         import traceback
 
         traceback.print_exc()
         await db.rollback()
 
-    logger.info("=" * 50)
     return db_entry
 
 
@@ -124,10 +111,6 @@ async def get_filtered_entries(
     """
     Получение записей дневника с фильтрацией на бэкенде
     """
-    print(
-        f"Received params: search={search}, mood={mood}, is_favorite={is_favorite}, date_from={date_from}, date_to={date_to}, sort_by={sort_by}, sort_order={sort_order}"
-    )
-    # Преобразуем пустые строки в None
     search = search if search and search.strip() else None
     mood = mood if mood and mood.strip() else None
     date_from = date_from if date_from and date_from.strip() else None

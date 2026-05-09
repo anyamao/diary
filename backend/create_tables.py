@@ -1,5 +1,21 @@
 import psycopg2
-from sqlalchemy import create_engine, MetaData, Table, Column, String, Integer, Float, Boolean, DateTime, Text, JSONB, UUID, Date, ForeignKey, Index
+from sqlalchemy import (
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    String,
+    Integer,
+    Float,
+    Boolean,
+    DateTime,
+    Text,
+    JSONB,
+    UUID,
+    Date,
+    ForeignKey,
+    Index,
+)
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.sql import func
 import uuid
@@ -8,12 +24,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres123@localhost:5432/diary")
-# Используем синхронный движок
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql://postgres:postgres123@localhost:5432/diary"
+)
 sync_url = DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
 engine = create_engine(sync_url)
 
-# SQL для создания таблиц
 sql_statements = [
     """
     CREATE TABLE IF NOT EXISTS users (
@@ -180,5 +196,4 @@ with engine.connect() as conn:
         except Exception as e:
             print(f"⚠️ Ошибка (игнорируем если таблица уже есть): {e}")
 
-print("✅ Таблицы созданы!")
 engine.dispose()

@@ -14,7 +14,6 @@ router = APIRouter(prefix="/auth", tags=["authentication"])
     status_code=status.HTTP_201_CREATED,
 )
 async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
-    # Check if user exists
     existing_user = (
         db.query(models.User)
         .filter(
@@ -30,7 +29,6 @@ async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db))
             detail="User with this email or username already exists",
         )
 
-    # Create new user
     hashed_password = auth.get_password_hash(user_data.password)
     db_user = models.User(
         email=user_data.email,
@@ -50,7 +48,6 @@ async def register(user_data: schemas.UserCreate, db: Session = Depends(get_db))
 
 @router.post("/login", response_model=schemas.Token)
 async def login(login_data: schemas.LoginRequest, db: Session = Depends(get_db)):
-    # Find user by email
     user = db.query(models.User).filter(models.User.email == login_data.email).first()
 
     if not user or not auth.verify_password(login_data.password, user.hashed_password):
@@ -65,11 +62,9 @@ async def login(login_data: schemas.LoginRequest, db: Session = Depends(get_db))
             status_code=status.HTTP_403_FORBIDDEN, detail="User account is inactive"
         )
 
-    # Create tokens
     access_token = auth.create_access_token(data={"sub": str(user.id)})
     refresh_token = auth.create_refresh_token(data={"sub": str(user.id)})
 
-    # Store refresh token in database
     db_refresh_token = models.RefreshToken(
         user_id=user.id,
         token=refresh_token,
@@ -90,7 +85,6 @@ async def login(login_data: schemas.LoginRequest, db: Session = Depends(get_db))
 async def refresh_token(
     refresh_data: schemas.TokenRefresh, db: Session = Depends(get_db)
 ):
-    # Verify refresh token
     try:
         payload = auth.jwt.decode(
             refresh_data.refresh_token,
@@ -110,7 +104,6 @@ async def refresh_token(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
 
-    # Check if token exists in database and not revoked
     db_token = (
         db.query(models.RefreshToken)
         .filter(
@@ -126,14 +119,11 @@ async def refresh_token(
             detail="Refresh token expired or revoked",
         )
 
-    # Create new tokens
     new_access_token = auth.create_access_token(data={"sub": str(user_id)})
     new_refresh_token = auth.create_refresh_token(data={"sub": str(user_id)})
 
-    # Revoke old refresh token
     db_token.revoked = True
 
-    # Store new refresh token
     new_db_token = models.RefreshToken(
         user_id=user_id,
         token=new_refresh_token,
@@ -156,7 +146,6 @@ async def logout(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    # Revoke refresh token
     db_token = (
         db.query(models.RefreshToken)
         .filter(

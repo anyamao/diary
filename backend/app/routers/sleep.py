@@ -19,18 +19,12 @@ async def update_sleep_record(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    print(f"=== UPDATE SLEEP RECORD ===")
-    print(f"day_date: {day_date}")
-    print(f"user_id: {current_user.id}")
-    print(f"data: {data}")
 
     try:
         record_date = date.fromisoformat(day_date)
         segments = data.get("segments", [])
         notes = data.get("notes", "")
-        print(f"Notes to save: '{notes}'")
 
-        # Проверяем существует ли запись
         check_query = text("""
             SELECT id FROM sleep_records
             WHERE user_id = :user_id AND date = :date
@@ -39,10 +33,8 @@ async def update_sleep_record(
             check_query, {"user_id": current_user.id, "date": record_date}
         )
         row = result.fetchone()
-        print(f"Existing record found: {row is not None}")
 
         if row:
-            # Обновляем существующую
             update_query = text("""
                 UPDATE sleep_records
                 SET segments = :segments, notes = :notes, updated_at = NOW()
@@ -57,9 +49,7 @@ async def update_sleep_record(
                     "notes": notes,
                 },
             )
-            print("Record updated")
         else:
-            # Создаем новую (хотя по логике не должно сюда попасть)
             insert_query = text("""
                 INSERT INTO sleep_records (id, user_id, date, segments, notes)
                 VALUES (gen_random_uuid(), :user_id, :date, :segments, :notes)
@@ -73,13 +63,10 @@ async def update_sleep_record(
                     "notes": notes,
                 },
             )
-            print("Record created")
 
         await db.commit()
-        print("Transaction committed")
         return {"message": "Sleep record saved successfully"}
     except Exception as e:
-        print(f"Error saving sleep record: {e}")
         import traceback
 
         traceback.print_exc()
@@ -108,7 +95,6 @@ async def check_sleep_record_exists(
             return {"exists": True, "record_id": str(row[0])}
         return {"exists": False}
     except Exception as e:
-        print(f"Error checking sleep record: {e}")
         return {"exists": False}
 
 
@@ -141,7 +127,6 @@ async def get_sleep_record(
             }
         return None
     except Exception as e:
-        print(f"Error fetching sleep record: {e}")
         return None
 
 
@@ -158,12 +143,9 @@ async def save_sleep_record(
         segments = data.get("segments", [])
         notes = data.get("notes", "")
 
-        # Сохраняем сегменты как есть, без нормализации
-        # Просто убеждаемся что это список
         if not isinstance(segments, list):
             segments = []
 
-        # Проверяем существует ли запись
         check_query = text("""
             SELECT id FROM sleep_records
             WHERE user_id = :user_id AND date = :date
@@ -174,7 +156,6 @@ async def save_sleep_record(
         existing_row = existing.fetchone()
 
         if existing_row:
-            # Обновляем существующую запись
             query = text("""
                 UPDATE sleep_records
                 SET segments = :segments, notes = :notes, updated_at = NOW()
@@ -182,7 +163,6 @@ async def save_sleep_record(
                 RETURNING id, date, segments, notes, created_at, updated_at
             """)
         else:
-            # Создаем новую запись
             query = text("""
                 INSERT INTO sleep_records (id, user_id, date, segments, notes)
                 VALUES (gen_random_uuid(), :user_id, :date, :segments, :notes)
@@ -210,7 +190,6 @@ async def save_sleep_record(
             "updated_at": row[5].isoformat() if row[5] else None,
         }
     except Exception as e:
-        print(f"Error saving sleep record: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -260,7 +239,6 @@ async def get_sleep_records(
             )
         return records
     except Exception as e:
-        print(f"Error fetching sleep records: {e}")
         return []
 
 
@@ -288,5 +266,4 @@ async def delete_sleep_record(
         else:
             raise HTTPException(status_code=404, detail="Record not found")
     except Exception as e:
-        print(f"Error deleting sleep record: {e}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -14,11 +14,9 @@ import os
 
 app = FastAPI(title="Diary API", version="1.0.0")
 
-# Определяем окружение
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 IS_DEVELOPMENT = ENVIRONMENT == "development"
 
-# CORS настройки - только для разработки (localhost)
 if IS_DEVELOPMENT:
     app.add_middleware(
         CORSMiddleware,
@@ -37,7 +35,6 @@ if IS_DEVELOPMENT:
 else:
     print("🔒 CORS disabled for production (handled by Nginx)")
 
-# Подключаем роутеры
 app.include_router(auth.router)
 app.include_router(diary.router)
 app.include_router(sleep.router)

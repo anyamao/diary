@@ -125,7 +125,6 @@ const colors = [
     base: "bg-orange-500",
   },
 ];
-// Массив цветов
 
 interface Tag {
   id: string;
@@ -193,7 +192,6 @@ export default function StudyTimerPage() {
   const [monthlyStats, setMonthlyStats] = useState<any>(null);
   const [allTimeStats, setAllTimeStats] = useState<any>(null);
   const [showAllTimeStats, setShowAllTimeStats] = useState(false);
-  // Добавьте функцию для загрузки активности по дням
   const fetchActivityByMonth = async (date: Date) => {
     try {
       const year = date.getFullYear();
@@ -203,7 +201,6 @@ export default function StudyTimerPage() {
     } catch (error) {}
   };
 
-  // Добавьте функцию для получения сессий за день
   const fetchSessionsByDay = async (date: string) => {
     try {
       const response = await api.get(`/study-timer/sessions/day/${date}`);
@@ -231,7 +228,6 @@ export default function StudyTimerPage() {
         description: editSessionDescription,
       });
       await loadAll();
-      // Обновляем отображаемые сессии
       await fetchSessionsByDay(selectedDate);
       setShowEditDaySessionModal(false);
       setEditingDaySession(null);
@@ -257,8 +253,14 @@ export default function StudyTimerPage() {
       setAllTimeStats(response.data);
     } catch (error) {}
   };
+  useEffect(() => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-  // Добавьте useEffect для загрузки статистики при смене месяца
+    setSelectedDate(todayStr);
+    fetchSessionsByDay(todayStr);
+    setCurrentViewDate(today);
+  }, []);
   useEffect(() => {
     if (isAuthenticated) {
       fetchMonthlyStats(currentViewDate);
@@ -282,14 +284,12 @@ export default function StudyTimerPage() {
       }
     }
   };
-  // Добавьте useEffect для загрузки календаря
   useEffect(() => {
     if (isAuthenticated) {
       fetchActivityByMonth(currentViewDate);
     }
   }, [isAuthenticated, currentViewDate]);
 
-  // Функции для навигации по месяцам
   const prevMonth = () => {
     const newDate = new Date(currentViewDate);
     newDate.setMonth(currentViewDate.getMonth() - 1);
@@ -302,28 +302,24 @@ export default function StudyTimerPage() {
     setCurrentViewDate(newDate);
   };
 
-  // Функция для получения дней в месяце
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
     return new Date(year, month + 1, 0).getDate();
   };
 
-  // Функция для получения первого дня месяца (0 = воскресенье)
   const getFirstDayOfMonth = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
     return new Date(year, month, 1).getDay();
   };
 
-  // Получение часов для отображения
   const getDisplayHours = (hours: number) => {
     if (hours === 0) return "";
     if (hours < 1) return `${Math.round(hours * 60)}м`;
     return `${hours.toFixed(1)}ч`;
   };
 
-  // Форматирование времени
   const formatTimeFromSeconds = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -600,7 +596,6 @@ export default function StudyTimerPage() {
           </div>
         </div>
 
-        {/* Основной таймер */}
         <div className="bg-white rounded-xl shadow-md p-8 mb-8 text-center">
           <div className="md:text-6xl text-4xl font-mono font-bold text-gray-800 mb-4">
             {currentSession?.is_active ? formatTime(elapsed) : "00:00:00"}
@@ -1162,8 +1157,6 @@ export default function StudyTimerPage() {
             )}
           </div>
         </div>
-
-        {/* Статистика месяца */}
 
         {showAllTimeStats && allTimeStats && (
           <div className="bg-white rounded-xl shadow-md p-6 mb-8">

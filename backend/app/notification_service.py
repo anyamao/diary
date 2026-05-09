@@ -12,42 +12,18 @@ logger = logging.getLogger(__name__)
 class NotificationService:
     @staticmethod
     async def check_and_create_notifications(db: AsyncSession, user_id: UUID):
-        print("=" * 50)
-        print(f"🔔 NOTIFICATION SERVICE CALLED for user {user_id}")
-        print("=" * 50)
 
         notifications = []
 
-        # 1. Проверка на 3 грустных записи подряд
         print("Checking sad streak...")
         sad_notification = await NotificationService._check_sad_streak(db, user_id)
-        if sad_notification:
-            print(f"✅ Sad streak notification created")
-            notifications.append(sad_notification)
-        else:
-            print("❌ No sad streak")
-
-        # 2. Проверка на 10 дней подряд записей
-        print("Checking writing streak...")
         streak_notification = await NotificationService._check_writing_streak(
             db, user_id
         )
-        if streak_notification:
-            print(f"✅ Writing streak notification created")
-            notifications.append(streak_notification)
-        else:
-            print("❌ No writing streak")
 
-        # 3. Проверка на 5 записей за неделю
-        print("Checking weekly activity...")
         weekly_notification = await NotificationService._check_weekly_activity(
             db, user_id
         )
-        if weekly_notification:
-            print(f"✅ Weekly activity notification created")
-            notifications.append(weekly_notification)
-        else:
-            print("❌ No weekly activity")
 
         print(f"📊 Total notifications: {len(notifications)}")
         return notifications

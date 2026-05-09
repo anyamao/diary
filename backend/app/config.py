@@ -26,9 +26,7 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> List[str]:
-        # Split by comma and strip whitespace, then remove duplicates
         origins = [origin.strip() for origin in self.cors_origins.split(",")]
-        # Remove duplicates while preserving order
         seen = set()
         unique_origins = []
         for origin in origins:

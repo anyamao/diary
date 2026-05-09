@@ -15,7 +15,6 @@ class UserCreate(UserBase):
     password: str = Field(..., min_length=8, max_length=100)
 
 
-# Planner Schemas
 class PlannerTaskBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=500)
     description: Optional[str] = None
@@ -182,9 +181,6 @@ class MessageResponse(BaseModel):
     success: bool
 
 
-# Diary Entry Schemas
-
-
 class DiaryEntryUpdate(DiaryEntryBase):
     title: Optional[str] = None
     created_at: Optional[datetime] = None
@@ -203,7 +199,6 @@ class DiaryEntryResponse(DiaryEntryBase):
     model_config = ConfigDict(from_attributes=True)
 
 
-# Shopping Item Schemas
 class ShoppingItemBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     quantity: int = Field(default=1, ge=1)

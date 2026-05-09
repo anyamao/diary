@@ -6,7 +6,6 @@ from app.config import settings
 from app.schemas import TokenPayload
 from uuid import UUID
 
-# Используем pbkdf2_sha256 (работает без дополнительных пакетов)
 pwd_context = CryptContext(
     schemes=["pbkdf2_sha256"],
     deprecated="auto",

@@ -38,7 +38,6 @@ async def get_self_notes(
             )
         return notes
     except Exception as e:
-        print(f"Error getting self notes: {e}")
         return []
 
 
@@ -64,7 +63,6 @@ async def create_self_note(
         await db.commit()
         return {"message": "Note created successfully"}
     except Exception as e:
-        print(f"Error creating self note: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -95,7 +93,6 @@ async def update_self_note(
             raise HTTPException(status_code=404, detail="Note not found")
         return {"message": "Note updated successfully"}
     except Exception as e:
-        print(f"Error updating self note: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -118,11 +115,9 @@ async def delete_self_note(
             raise HTTPException(status_code=404, detail="Note not found")
         return {"message": "Note deleted successfully"}
     except Exception as e:
-        print(f"Error deleting self note: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Mood items endpoints
 @router.get("/mood-items")
 async def get_mood_items(
     current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
@@ -153,7 +148,6 @@ async def get_mood_items(
 
         return {"boosters": boosters, "drainers": drainers}
     except Exception as e:
-        print(f"Error getting mood items: {e}")
         return {"boosters": [], "drainers": []}
 
 
@@ -191,7 +185,6 @@ async def save_mood_items(
         await db.commit()
         return {"message": "Saved successfully"}
     except Exception as e:
-        print(f"Error saving mood items: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -206,12 +199,6 @@ async def save_personality_test_result(
         result_data = data.get("result")
         scores_data = data.get("scores")
 
-        print(f"=== SAVING RESULT ===")
-        print(f"test_type: {test_type}")
-        print(f"result: {result_data[:100] if result_data else None}...")
-        print(f"scores: {scores_data}")
-
-        # Удаляем старый результат для этого типа теста
         delete_query = text(
             "DELETE FROM personality_test_results WHERE user_id = :user_id AND test_type = :test_type"
         )
@@ -219,7 +206,6 @@ async def save_personality_test_result(
             delete_query, {"user_id": current_user.id, "test_type": test_type}
         )
 
-        # Сохраняем новый
         insert_query = text("""
             INSERT INTO personality_test_results (id, user_id, result, scores, test_type)
             VALUES (gen_random_uuid(), :user_id, :result, :scores, :test_type)
@@ -235,7 +221,6 @@ async def save_personality_test_result(
         )
         await db.commit()
 
-        # Проверяем, что сохранилось
         check_query = text("""
             SELECT id, test_type, result, scores 
             FROM personality_test_results 
@@ -245,14 +230,9 @@ async def save_personality_test_result(
             check_query, {"user_id": current_user.id, "test_type": test_type}
         )
         row = check_result.fetchone()
-        if row:
-            print(f"✅ Successfully saved! ID: {row[0]}, test_type: {row[1]}")
-        else:
-            print(f"❌ Failed to verify save!")
 
         return {"message": "Saved successfully"}
     except Exception as e:
-        print(f"Error saving personality test result: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -265,10 +245,6 @@ async def get_personality_test_result(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        print(f"=== GETTING RESULT ===")
-        print(f"test parameter: '{test}'")
-        print(f"test type: {type(test)}")
-
         query = text("""
             SELECT result, scores, created_at
             FROM personality_test_results
@@ -282,21 +258,17 @@ async def get_personality_test_result(
         row = result.fetchone()
 
         if row:
-            print(f"✅ Found result for {test}")
             return {
                 "has_result": True,
                 "result": row[0],
                 "scores": row[1],
                 "created_at": row[2].isoformat(),
             }
-        print(f"❌ No result found for {test}")
         return {"has_result": False}
     except Exception as e:
-        print(f"Error: {e}")
         return {"has_result": False}
 
 
-# Depression test endpoints
 @router.get("/depression-test/result")
 async def get_depression_test_result(
     current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
@@ -322,7 +294,6 @@ async def get_depression_test_result(
             }
         return {"has_result": False}
     except Exception as e:
-        print(f"Error getting depression test result: {e}")
         return {"has_result": False}
 
 
@@ -333,13 +304,11 @@ async def save_depression_test_result(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        # Удаляем старый результат
         delete_query = text(
             "DELETE FROM depression_test_results WHERE user_id = :user_id"
         )
         await db.execute(delete_query, {"user_id": current_user.id})
 
-        # Сохраняем новый
         insert_query = text("""
             INSERT INTO depression_test_results (id, user_id, total_score, severity, result)
             VALUES (gen_random_uuid(), :user_id, :total_score, :severity, :result)
@@ -356,5 +325,4 @@ async def save_depression_test_result(
         await db.commit()
         return {"message": "Saved successfully"}
     except Exception as e:
-        print(f"Error saving depression test result: {e}")
         raise HTTPException(status_code=500, detail=str(e))
