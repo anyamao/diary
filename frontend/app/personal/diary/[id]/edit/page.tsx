@@ -138,7 +138,7 @@ export default function EditEntryPage({ params }: PageProps) {
 
   return (
     <div className="h-full w-full flex flex-col items-center min-h-[1200px] bg-pink-50 py-8">
-      <div className="flex flex-col w-full md:max-w-[1100px] max-w-[400px] ">
+      <div className="flex flex-col w-full md:max-w-[1100px] max-w-[380px] ">
         <div className="flex flex-row justify-between w-full items-center text-pink-900 ">
           <Link href="/personal/diary" className="text-pink-900 ml-[30px]">
             <ArrowLeft className="w-5 h-5" />
