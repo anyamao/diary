@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
@@ -42,74 +43,10 @@ export default function PersonalDiaryPage() {
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-
+  const [authChecked, setAuthChecked] = useState(false);
   const { isAuthenticated, isLoading, user, checkAuth } = useAuthStore();
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const dateParam = searchParams.get("date");
-    if (dateParam) {
-      setDateFilter("custom");
-      setCustomStartDate(dateParam);
-      setCustomEndDate(dateParam);
-      setShowFilters(true);
-      showToast(`Показаны записи за ${dateParam}`, "info");
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  useEffect(() => {
-    const handleUpdate = () => {
-      fetchEntries();
-    };
-
-    eventBus.on("diary-entry-created", handleUpdate);
-    eventBus.on("diary-entry-updated", handleUpdate);
-    eventBus.on("diary-entry-deleted", handleUpdate);
-
-    return () => {
-      eventBus.off("diary-entry-created", handleUpdate);
-      eventBus.off("diary-entry-updated", handleUpdate);
-      eventBus.off("diary-entry-deleted", handleUpdate);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login");
-      return;
-    }
-    if (isAuthenticated) {
-      fetchEntries();
-    }
-  }, [isAuthenticated, isLoading]);
-
-  useEffect(() => {
-    filterAndSortEntries();
-  }, [
-    entries,
-    searchQuery,
-    sortOrder,
-    dateFilter,
-    customStartDate,
-    customEndDate,
-  ]);
-
-  const fetchEntries = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get("/diary/entries");
-      setEntries(response.data);
-    } catch (error) {
-      showToast("Не удалось загрузить записи", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filterAndSortEntries = () => {
     let filtered = [...entries];
@@ -176,6 +113,18 @@ export default function PersonalDiaryPage() {
     });
 
     setFilteredEntries(filtered);
+  };
+
+  const fetchEntries = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get("/diary/entries");
+      setEntries(response.data);
+    } catch (error) {
+      showToast("Не удалось загрузить записи", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const deleteEntry = async (id: string, e: React.MouseEvent) => {
@@ -255,16 +204,72 @@ export default function PersonalDiaryPage() {
     showToast("Фильтры сброшены", "info");
   };
 
-  if (loading || isLoading) {
+  useEffect(() => {
+    const dateParam = searchParams.get("date");
+    if (dateParam) {
+      setDateFilter("custom");
+      setCustomStartDate(dateParam);
+      setCustomEndDate(dateParam);
+      setShowFilters(true);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      await checkAuth();
+      setAuthChecked(true);
+    };
+    initAuth();
+  }, []);
+
+  useEffect(() => {
+    if (authChecked && isAuthenticated && !isLoading) {
+      fetchEntries();
+    }
+  }, [authChecked, isAuthenticated, isLoading]);
+
+  useEffect(() => {
+    if (authChecked && isAuthenticated && !isLoading && entries.length > 0) {
+      filterAndSortEntries();
+    }
+  }, [
+    entries,
+    searchQuery,
+    sortOrder,
+    dateFilter,
+    customStartDate,
+    customEndDate,
+    authChecked,
+    isAuthenticated,
+    isLoading,
+  ]);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      fetchEntries();
+    };
+
+    eventBus.on("diary-entry-created", handleUpdate);
+    eventBus.on("diary-entry-updated", handleUpdate);
+    eventBus.on("diary-entry-deleted", handleUpdate);
+
+    return () => {
+      eventBus.off("diary-entry-created", handleUpdate);
+      eventBus.off("diary-entry-updated", handleUpdate);
+      eventBus.off("diary-entry-deleted", handleUpdate);
+    };
+  }, [authChecked, isAuthenticated]);
+
+  if (!authChecked || isLoading) {
     return <Loading />;
   }
 
   if (!isAuthenticated) {
-    return null;
+    return <Loading />;
   }
 
   return (
-    <div className="p-3 pt-8 sm:p-8 w-full h-full flex-1 bg-pink-50 flex justify-center min-h-screen">
+    <div className="p-3 pt-8 sm:p-8 w-full h-full flex-1 bg-pink-50 flex justify-center min-h-[960px]">
       <div className="flex flex-col w-full h-full max-w-[1000px] ">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Мой дневник</h1>
