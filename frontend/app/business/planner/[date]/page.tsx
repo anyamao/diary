@@ -79,6 +79,34 @@ const colors = [
     base: "bg-pink-500",
   },
   {
+    name: "teal",
+    label: "Бирюзовый",
+    bg: "bg-teal-100",
+    border: "border-teal-400",
+    text: "text-teal-800",
+    tagBg: "bg-teal-200",
+    base: "bg-teal-500",
+  },
+  {
+    name: "indigo",
+    label: "Индиго",
+    bg: "bg-indigo-100",
+    border: "border-indigo-400",
+    text: "text-indigo-800",
+    tagBg: "bg-indigo-200",
+    base: "bg-indigo-500",
+  },
+  {
+    name: "fuchsia",
+    label: "Фукция",
+    bg: "bg-fuchsia-100",
+    border: "border-fuchsia-400",
+    text: "text-fuchsia-800",
+    tagBg: "bg-fuchsia-200",
+    base: "bg-fuchsia-500",
+  },
+
+  {
     name: "orange",
     label: "Оранжевый",
     bg: "bg-orange-100",
@@ -88,7 +116,6 @@ const colors = [
     base: "bg-orange-500",
   },
 ];
-
 const hours = Array.from(
   { length: 24 },
   (_, i) => `${i.toString().padStart(2, "0")}:00`,
@@ -111,7 +138,6 @@ export default function PlannerDayPage() {
     color: "yellow",
   });
 
-  // Используем хук для синхронизации тегов цветов
   const { tags: colorTags, loadTags: loadColorTags } = useColorTags();
   const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
   const router = useRouter();
@@ -141,7 +167,6 @@ export default function PlannerDayPage() {
       setIsImportant(response.data.is_important || false);
       setNotes(response.data.notes || "");
     } catch (error) {
-      console.error("Failed to fetch day data:", error);
     } finally {
       setLoading(false);
     }
@@ -156,7 +181,6 @@ export default function PlannerDayPage() {
       });
       showToast("Настройки дня сохранены", "success");
     } catch (error) {
-      console.error("Failed to save:", error);
       showToast("Ошибка сохранения", "error");
     } finally {
       setSaving(false);
@@ -192,7 +216,6 @@ export default function PlannerDayPage() {
       });
       fetchDayData();
     } catch (error) {
-      console.error("Failed to save task:", error);
       showToast("Ошибка сохранения", "error");
     }
   };
@@ -209,7 +232,6 @@ export default function PlannerDayPage() {
         fetchDayData();
         showToast("Задача удалена", "success");
       } catch (error) {
-        console.error("Failed to delete task:", error);
         showToast("Ошибка удаления", "error");
       }
     }
@@ -221,7 +243,6 @@ export default function PlannerDayPage() {
       fetchDayData();
       showToast("Статус задачи обновлен", "success");
     } catch (error) {
-      console.error("Failed to toggle task:", error);
       showToast("Ошибка", "error");
     }
   };
@@ -264,7 +285,6 @@ export default function PlannerDayPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Левая колонка - задачи и заметки */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex justify-between items-center mb-4">
@@ -536,7 +556,6 @@ export default function PlannerDayPage() {
         </div>
       </div>
 
-      {/* Модальное окно для задачи - ТОЧНО ТАКОЕ ЖЕ КАК В planner/page.tsx */}
       {showTaskModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-md w-full">
@@ -593,7 +612,7 @@ export default function PlannerDayPage() {
               <div>
                 <label className="block text-sm text-gray-600 mb-2">Цвет</label>
                 <div className="flex gap-2">
-                  {colors.slice(0, 6).map((color) => (
+                  {colors.slice(0, 9).map((color) => (
                     <button
                       key={color.name}
                       onClick={() =>

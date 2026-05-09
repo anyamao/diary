@@ -44,26 +44,22 @@ export interface User {
 
 export const authService = {
   async login(data: LoginInput) {
-    console.log("🔐 authService.login called");
     const response = await api.post("/auth/login", data);
     return response.data;
   },
 
   async register(data: RegisterInput) {
-    console.log("🔐 authService.register called");
     const { confirmPassword, ...registerData } = data;
     const response = await api.post("/auth/register", registerData);
     return response.data;
   },
 
   async getCurrentUser(): Promise<User> {
-    console.log("🔐 authService.getCurrentUser called");
     const response = await api.get("/auth/me");
     return response.data;
   },
 
   async logout() {
-    console.log("🔐 authService.logout called");
     await api.post("/auth/logout");
   },
 };

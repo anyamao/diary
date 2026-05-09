@@ -57,7 +57,6 @@ export default function MoodBoosters() {
         setDrainers(response.data.drainers || []);
       }
     } catch (error) {
-      console.error("Failed to load mood items:", error);
     } finally {
       setLoading(false);
     }
@@ -69,9 +68,7 @@ export default function MoodBoosters() {
       if (response.data) {
         setSelfNotes(response.data);
       }
-    } catch (error) {
-      console.error("Failed to load self notes:", error);
-    }
+    } catch (error) {}
   };
 
   const addBooster = () => {
@@ -133,7 +130,6 @@ export default function MoodBoosters() {
       });
       showToast("Сохранено!", "success");
     } catch (error: any) {
-      console.error("Failed to save:", error);
       if (error.response?.status === 401) {
         showToast("Ошибка авторизации. Пожалуйста, войдите заново.", "error");
       } else {
@@ -144,7 +140,6 @@ export default function MoodBoosters() {
     }
   };
 
-  // Функции для работы с заметками о себе
   const saveSelfNote = async () => {
     if (!noteForm.title.trim()) {
       showToast("Введите название заметки", "warning");
@@ -164,7 +159,6 @@ export default function MoodBoosters() {
       setNoteForm({ title: "", content: "" });
       loadSelfNotes();
     } catch (error) {
-      console.error("Failed to save note:", error);
       showToast("Ошибка сохранения", "error");
     }
   };
@@ -181,7 +175,6 @@ export default function MoodBoosters() {
         loadSelfNotes();
         showToast("Заметка удалена", "success");
       } catch (error) {
-        console.error("Failed to delete note:", error);
         showToast("Ошибка удаления", "error");
       }
     }
@@ -257,7 +250,6 @@ export default function MoodBoosters() {
           </div>
         </div>
 
-        {/* Понижающие факторы */}
         <div className="bg-gray-200 rounded-xl p-6">
           <div className="flex items-center gap-2 mb-4">
             <h3 className="text-md font-semibold text-gray-800">
@@ -316,7 +308,6 @@ export default function MoodBoosters() {
         </button>
       </div>
 
-      {/* Заметки о себе */}
       <div className="bg-pink-50 rounded-lg p-6 mb-8">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
@@ -379,7 +370,6 @@ export default function MoodBoosters() {
         </div>
       </div>
 
-      {/* Модальное окно для заметки */}
       {showNoteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">

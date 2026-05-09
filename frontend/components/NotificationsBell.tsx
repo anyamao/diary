@@ -33,9 +33,7 @@ export default function NotificationsBell() {
       const response = await api.get("/notifications");
       setNotifications(response.data);
       setUnreadCount(response.data.length);
-    } catch (error) {
-      console.error("Failed to fetch notifications:", error);
-    }
+    } catch (error) {}
   };
 
   const markAsRead = async (id: string) => {
@@ -43,9 +41,7 @@ export default function NotificationsBell() {
       await api.post(`/notifications/${id}/read`);
       setNotifications(notifications.filter((n) => n.id !== id));
       setUnreadCount((prev) => prev - 1);
-    } catch (error) {
-      console.error("Failed to mark as read:", error);
-    }
+    } catch (error) {}
   };
 
   const markAllAsRead = async () => {

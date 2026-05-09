@@ -14,26 +14,40 @@ function Header() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [currentAvatar, setCurrentAvatar] = useState("icon1.jpg");
-
+  const [currentUsername, setCurrentUsername] = useState("");
   const handleLogout = async () => {
     await logout();
     setIsProfileMenuOpen(false);
     router.push("/login");
   };
-
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await api.get("/auth/me");
+      setCurrentUsername(response.data.username);
+    } catch (error) {}
+  };
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchCurrentUser();
+    }
+  }, [isAuthenticated]);
   useEffect(() => {
     if (isAuthenticated && user) {
       fetchCurrentAvatar();
     }
   }, [isAuthenticated, user]);
-
+  useEffect(() => {
+    const handleUserUpdate = () => {
+      fetchCurrentUser();
+    };
+    window.addEventListener("user-updated", handleUserUpdate);
+    return () => window.removeEventListener("user-updated", handleUserUpdate);
+  }, []);
   const fetchCurrentAvatar = async () => {
     try {
       const response = await api.get("/auth/avatar");
       setCurrentAvatar(response.data.avatar);
-    } catch (error) {
-      console.error("Failed to fetch avatar:", error);
-    }
+    } catch (error) {}
   };
 
   const handleAvatarUpdate = (newAvatar: string) => {
@@ -51,14 +65,12 @@ function Header() {
 
   return (
     <div className="w-full flex flex-col">
-      {/* Profile Modal */}
       <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         onAvatarUpdate={handleAvatarUpdate}
       />
 
-      {/* Main Header */}
       <div className="w-full bg-white shadow-xs border-b-[1px] border-pink-200 fixed p-[20px] top-0 left-0 min-h-[60px] max-h-[60px] flex items-center justify-between z-40">
         <Link
           href="/"
@@ -117,7 +129,6 @@ function Header() {
         </div>
       </div>
 
-      {/* Profile dropdown menu */}
       {isProfileMenuOpen && isAuthenticated && (
         <>
           <div
@@ -134,7 +145,7 @@ function Header() {
                 />
                 <div>
                   <p className="text-sm font-semibold text-pink-900">
-                    {user?.full_name || user?.username}
+                    {currentUsername || user?.full_name || user?.username}
                   </p>
                   <p className="text-xs text-gray-500">{user?.email}</p>
                 </div>
@@ -161,7 +172,6 @@ function Header() {
         </>
       )}
 
-      {/* Navigation bars */}
       {pathname.startsWith("/personal") && (
         <div className="w-full border-b-[1px] border-pink-300 shadow-sm bg-white mt-[60px] fixed  top-0 left-0 min-h-[40px] max-h-[60px] sm:max-h-[40px] flex items-center justify-center z-30">
           <div className="flex flex-row whitespace-nowrap pb-[10px] sm:pb-[0px]  max-w-[340px] sm:max-w-[1200px] overflow-x-auto font-semibold text-pink-950 text-xs items-center justify-between">

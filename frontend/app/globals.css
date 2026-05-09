@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Используем системные шрифты вместо Google Fonts */
 body {
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
@@ -50,7 +49,6 @@ body {
     transform: rotate(0deg);
   }
 }
-/* Разные скорости вращения */
 @keyframes spin-fast {
   from {
     transform: rotate(0deg);
@@ -106,7 +104,6 @@ body {
     transform: rotate(0deg);
   }
 }
-/* По часовой стрелке */
 @keyframes spin-cw {
   from {
     transform: rotate(0deg);
@@ -116,7 +113,6 @@ body {
   }
 }
 
-/* Против часовой стрелки */
 @keyframes spin-ccw {
   from {
     transform: rotate(360deg);
@@ -151,7 +147,6 @@ body {
 .animate-spin-slower {
   animation: spin-slower 4s linear infinite;
 }
-/* Markdown Preview Styles */
 .markdown-preview {
   @apply text-gray-800;
 }
@@ -216,7 +211,6 @@ body {
   @apply border border-gray-300 px-3 py-1;
 }
 
-/* Toast анимации */
 @keyframes slide-in-right {
   from {
     transform: translateX(100%);

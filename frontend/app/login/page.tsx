@@ -9,6 +9,22 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const translateError = (detail: string): string => {
+    const errorMap: { [key: string]: string } = {
+      "Invalid email or password": "Неправильный email или пароль",
+      "Email not found": "Email не найден",
+      "Account is deactivated": "Аккаунт деактивирован",
+      "Password is incorrect": "Неверный пароль",
+      "User not found": "Пользователь не найден",
+      "Email already registered": "Email уже зарегистрирован",
+      "Username already taken": "Имя пользователя уже занято",
+      "Password must be 8+ chars with uppercase, lowercase and numbers":
+        "Пароль должен содержать минимум 8 символов, включая заглавные и строчные буквы и цифры",
+    };
+
+    return errorMap[detail] || detail || "Неверный email или пароль";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -18,16 +34,15 @@ export default function LoginPage() {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // Важно для cookie
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
       if (res.ok) {
-        // Токены автоматически сохраняются в cookie
         window.location.href = "/personal/diary";
       } else {
         const data = await res.json();
-        setError(data.detail || "Неверный email или пароль");
+        setError(translateError(data.detail));
         setLoading(false);
       }
     } catch (err) {

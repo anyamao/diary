@@ -1,4 +1,3 @@
-// app/personal/diary/page.tsx
 import { Suspense } from "react";
 import DiaryContent from "./PersonalDiaryPage";
 

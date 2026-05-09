@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
@@ -106,7 +105,6 @@ export default function PersonalDiaryPage() {
       const response = await api.get("/diary/entries");
       setEntries(response.data);
     } catch (error) {
-      console.error("Failed to fetch entries:", error);
       showToast("Не удалось загрузить записи", "error");
     } finally {
       setLoading(false);
@@ -196,7 +194,6 @@ export default function PersonalDiaryPage() {
         eventBus.emit("diary-entry-deleted");
         showToast("Запись удалена", "success");
       } catch (error) {
-        console.error("Failed to delete entry:", error);
         showToast("Не удалось удалить запись", "error");
       }
     }
@@ -217,7 +214,6 @@ export default function PersonalDiaryPage() {
         "success",
       );
     } catch (error) {
-      console.error("Failed to toggle favorite:", error);
       showToast("Не удалось изменить статус избранного", "error");
     }
   };

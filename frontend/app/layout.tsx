@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import MiniTimer from "@/components/MiniTimer";
 import ToastContainer from "@/components/Toast";
+import Footer from "@/ui/Footer";
 import { ConfirmDialogContainer } from "@/components/ConfirmDialog";
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,11 +22,9 @@ export default function RootLayout({
   const router = useRouter();
   const { toggle, isOpen } = useSidepanelStore();
 
-  // Не показываем хедер на страницах авторизации
   const isAuthPage =
     pathname === "/login" || pathname === "/register" || pathname === "/";
   const { checkAuth, isAuthenticated, isLoading } = useAuthStore();
-  // Показываем сайдпанель только на /personal/diary и его дочерних страницах
   const showSidepanel = pathname?.startsWith("/personal/diary");
   useEffect(() => {
     checkAuth();
@@ -33,12 +32,13 @@ export default function RootLayout({
 
   return (
     <html lang="ru">
-      <body className={inter.className}>
+      <body className={`${inter.className} relative`}>
         {!isAuthPage && <Header />}
+        {!isAuthPage && <Footer />}
         {!isAuthPage && <MiniTimer />}
         {!isAuthPage && <ToastContainer />}
         {!isAuthPage && <ConfirmDialogContainer />}
-        <div className={!isAuthPage ? "mt-[100px]" : ""}>
+        <div className={!isAuthPage ? "mt-[100px]  pb-[260px]" : ""}>
           {showSidepanel ? (
             <div className="flex  flex-row  ">
               <div

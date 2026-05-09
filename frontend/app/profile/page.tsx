@@ -47,9 +47,7 @@ export default function ProfilePage() {
       const response = await api.get("/auth/avatar");
       setCurrentAvatar(response.data.avatar);
       setSelectedAvatar(response.data.avatar);
-    } catch (error) {
-      console.error("Failed to fetch avatar:", error);
-    }
+    } catch (error) {}
   };
 
   const handleUpdateUsername = async () => {
@@ -75,7 +73,6 @@ export default function ProfilePage() {
         user.username = newUsername;
       }
     } catch (error: any) {
-      console.error("Failed to update username:", error);
       showToast(
         error.response?.data?.detail || "Ошибка при обновлении имени",
         "error",
@@ -92,7 +89,6 @@ export default function ProfilePage() {
       setCurrentAvatar(avatarId);
       showToast("Аватар обновлён", "success");
     } catch (error) {
-      console.error("Failed to update avatar:", error);
       showToast("Ошибка при обновлении аватара", "error");
     }
   };
@@ -121,7 +117,6 @@ export default function ProfilePage() {
       await logout();
       router.push("/");
     } catch (error: any) {
-      console.error("Failed to delete account:", error);
       showToast(
         error.response?.data?.detail || "Ошибка при удалении аккаунта",
         "error",
@@ -147,7 +142,6 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-pink-50 mt-[-60px] p-8 pt-[70px]">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* Header */}
           <div className="bg-pink-500 px-6 py-8">
             <div className="flex items-center gap-4">
               <div className="relative">
@@ -166,9 +160,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Content */}
           <div className="p-6 space-y-6">
-            {/* Email (неизменяемый) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Email
@@ -181,7 +173,6 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            {/* Username */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Имя пользователя
@@ -229,7 +220,6 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Avatar selection */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Аватар
@@ -263,7 +253,6 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            {/* Additional info */}
             <div className="border-t border-gray-200 pt-4">
               <h3 className="font-semibold text-gray-800 mb-2">О аккаунте</h3>
               <p className="text-sm text-gray-600">
@@ -274,7 +263,6 @@ export default function ProfilePage() {
               </p>
             </div>
 
-            {/* Dangerous zone */}
             <div className="border-t-2 border-red-200 pt-4 mt-4">
               <h3 className="text-lg font-semibold text-red-600 mb-3">
                 Опасная зона

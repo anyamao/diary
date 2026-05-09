@@ -224,7 +224,6 @@ export default function PersonalityTest() {
           try {
             resultData = JSON.parse(response.data.result);
           } catch (e) {
-            console.error("Failed to parse result:", e);
             resultData = response.data.result;
           }
         } else {
@@ -244,7 +243,6 @@ export default function PersonalityTest() {
         setResult(null);
       }
     } catch (error) {
-      console.error("Failed to load existing result:", error);
       setHasExistingResult(false);
       setResult(null);
     } finally {
@@ -252,7 +250,6 @@ export default function PersonalityTest() {
     }
   };
 
-  // Загружаем результат при монтировании и при смене теста
   useEffect(() => {
     loadExistingResult();
   }, [activeTest]);
@@ -340,7 +337,6 @@ export default function PersonalityTest() {
       setAnswers({});
       showToast("Результат сохранён", "success");
     } catch (error) {
-      console.error("Failed to save result:", error);
       showToast("Ошибка сохранения результата", "error");
     }
   };
@@ -406,7 +402,6 @@ export default function PersonalityTest() {
       setTestStarted(false);
       showToast("Результат сохранён", "success");
     } catch (error) {
-      console.error("Failed to save result:", error);
       showToast("Ошибка сохранения результата", "error");
     }
   };
@@ -420,7 +415,6 @@ export default function PersonalityTest() {
         await calculateSimpleResult();
       }
     } catch (error) {
-      console.error("Error calculating result:", error);
       showToast("Ошибка при расчете результата", "error");
     } finally {
       setSavingResult(false);
@@ -432,7 +426,6 @@ export default function PersonalityTest() {
   ) => {
     if (test === activeTest) return;
 
-    // Если есть несохраненные ответы ИЛИ мы не в режиме просмотра результата
     if (Object.keys(answers).length > 0 && !hasExistingResult) {
       const confirmed = await showConfirm(
         "Сменить тест?",
@@ -484,7 +477,6 @@ export default function PersonalityTest() {
     return <div className="text-center py-8">Загрузка...</div>;
   }
 
-  // Показываем результат, если он есть и тест не был начат заново
   if (hasExistingResult && result && !testStarted) {
     if (isBigFiveResult(result)) {
       return (

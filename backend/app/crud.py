@@ -755,3 +755,89 @@ async def toggle_planner_task(
         await db.commit()
         await db.refresh(db_task)
     return db_task
+
+
+async def get_filtered_diary_entries(
+    db: AsyncSession,
+    user_id: UUID,
+    search: Optional[str] = None,
+    mood: Optional[str] = None,
+    is_favorite: Optional[bool] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
+    skip: int = 0,
+    limit: int = 100,
+):
+    from sqlalchemy import text
+
+    # Базовый запрос
+    query = """
+        SELECT id, title, content, mood, tags, is_favorite, created_at
+        FROM diary_entries
+        WHERE user_id = :user_id
+    """
+
+    params: dict = {"user_id": user_id}
+
+    # 1. Поиск по заголовку или содержанию
+    if search:
+        query += " AND (title ILIKE :search OR content ILIKE :search)"
+        params["search"] = f"%{search}%"
+
+    # 2. Фильтр по настроению
+    if mood:
+        query += " AND mood = :mood"
+        params["mood"] = mood
+
+    # 3. Фильтр по избранному
+    if is_favorite is not None:
+        query += " AND is_favorite = :is_favorite"
+        params["is_favorite"] = is_favorite
+
+    # 4. Фильтр по датам
+    if date_from:
+        query += " AND DATE(created_at) >= :date_from"
+        params["date_from"] = date_from
+
+    if date_to:
+        query += " AND DATE(created_at) <= :date_to"
+        params["date_to"] = date_to
+
+    # 5. Сортировка
+    sort_field = "created_at"
+    if sort_by == "title":
+        sort_field = "title"
+    elif sort_by == "mood":
+        sort_field = "mood"
+
+    sort_direction = "DESC" if sort_order == "desc" else "ASC"
+    query += f" ORDER BY {sort_field} {sort_direction}"
+
+    # 6. Пагинация
+    query += " OFFSET :skip LIMIT :limit"
+    params["skip"] = skip
+    params["limit"] = limit
+
+    try:
+        result = await db.execute(text(query), params)
+        rows = result.fetchall()
+
+        return [
+            {
+                "id": row[0],
+                "title": row[1],
+                "content": row[2],
+                "mood": row[3],
+                "tags": row[4],
+                "is_favorite": row[5],
+                "created_at": row[6],
+            }
+            for row in rows
+        ]
+    except Exception as e:
+        print(f"Error in get_filtered_diary_entries: {e}")
+        print(f"Query: {query}")
+        print(f"Params: {params}")
+        return []

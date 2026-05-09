@@ -38,7 +38,6 @@ export default function Sidepanel() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // Проверяем ширину экрана
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768); // md breakpoint в Tailwind это 768px
@@ -60,10 +59,8 @@ export default function Sidepanel() {
     }
   }, [isAuthenticated, pathname]);
 
-  // Подписываемся на события обновления
   useEffect(() => {
     const handleUpdate = () => {
-      console.log("🔄 Sidepanel: получил событие обновления");
       fetchEntries();
     };
 
@@ -84,7 +81,6 @@ export default function Sidepanel() {
       const response = await api.get("/diary/entries");
       setEntries(response.data);
     } catch (error) {
-      console.error("Failed to fetch entries:", error);
     } finally {
       setLoading(false);
     }
@@ -107,7 +103,6 @@ export default function Sidepanel() {
         showToast("Удалено успешно!", "success");
         setOpenMenuId(null);
       } catch (error) {
-        console.error("Failed to delete:", error);
         showToast("Не удалось удалить", "error");
       }
     }
@@ -124,7 +119,6 @@ export default function Sidepanel() {
       eventBus.emit("diary-entry-updated");
       setOpenMenuId(null);
     } catch (error) {
-      console.error("Failed to toggle favorite:", error);
       alert("Не удалось изменить статус избранного");
     }
   };
@@ -155,7 +149,6 @@ export default function Sidepanel() {
   const favoriteEntries = entries.filter((entry) => entry.is_favorite);
   const normalEntries = entries.filter((entry) => !entry.is_favorite);
 
-  // На мобильных устройствах ничего не возвращаем
   if (isMobile) {
     return null;
   }

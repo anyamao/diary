@@ -20,7 +20,6 @@ export const useSidepanelStore = create<SidepanelState>()(
     }),
     {
       name: "sidepanel-storage", // optional: persist to localStorage
-      // getStorage: () => localStorage, // this is default
     },
   ),
 );

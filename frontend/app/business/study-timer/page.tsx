@@ -4,7 +4,18 @@ import { useEffect, useState, useRef } from "react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
 import { useRouter } from "next/navigation";
-import { Play, Square, Trash2, Edit2, Check, X, Tag, Pen } from "lucide-react";
+import {
+  Play,
+  Square,
+  Trash2,
+  Edit2,
+  Check,
+  X,
+  Tag,
+  Pen,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -20,58 +31,101 @@ import {
 import { showToast } from "@/components/Toast";
 import { showConfirm } from "@/components/ConfirmDialog";
 import { useColorTags } from "@/hooks/useColorTags";
-
-// Массив цветов
 const colors = [
   {
     name: "yellow",
+    label: "Желтый",
     bg: "bg-yellow-100",
     border: "border-yellow-400",
+    text: "text-yellow-800",
+    tagBg: "bg-yellow-200",
     base: "bg-yellow-500",
-    hex: "#eab308",
-    label: "Желтый",
   },
   {
     name: "blue",
+    label: "Синий",
     bg: "bg-blue-100",
     border: "border-blue-400",
+    text: "text-blue-800",
+    tagBg: "bg-blue-200",
     base: "bg-blue-500",
-    hex: "#3b82f6",
-    label: "Синий",
   },
   {
     name: "green",
+    label: "Зеленый",
     bg: "bg-green-100",
     border: "border-green-400",
+    text: "text-green-800",
+    tagBg: "bg-green-200",
     base: "bg-green-500",
-    hex: "#22c55e",
-    label: "Зеленый",
   },
   {
     name: "purple",
+    label: "Фиолетовый",
     bg: "bg-purple-100",
     border: "border-purple-400",
+    text: "text-purple-800",
+    tagBg: "bg-purple-200",
     base: "bg-purple-500",
-    hex: "#a855f7",
-    label: "Фиолетовый",
   },
   {
     name: "pink",
+    label: "Розовый",
     bg: "bg-pink-100",
     border: "border-pink-400",
+    text: "text-pink-800",
+    tagBg: "bg-pink-200",
     base: "bg-pink-500",
-    hex: "#ec4899",
-    label: "Розовый",
   },
   {
+    name: "dark-pink",
+    label: "Темно-розовый",
+    bg: "bg-pink-200",
+    border: "border-pink-400",
+    text: "text-pink-800",
+    tagBg: "bg-pink-300",
+    base: "bg-pink-600",
+  },
+
+  {
+    name: "teal",
+    label: "Бирюзовый",
+    bg: "bg-teal-100",
+    border: "border-teal-400",
+    text: "text-teal-800",
+    tagBg: "bg-teal-200",
+    base: "bg-teal-500",
+  },
+  {
+    name: "indigo",
+    label: "Индиго",
+    bg: "bg-indigo-200",
+    border: "border-indigo-400",
+    text: "text-indigo-800",
+    tagBg: "bg-indigo-200",
+    base: "bg-indigo-600",
+  },
+  {
+    name: "fuchsia",
+    label: "Фукция",
+    bg: "bg-fuchsia-200",
+    border: "border-fuchsia-400",
+    text: "text-fuchsia-800",
+    tagBg: "bg-fuchsia-200",
+    base: "bg-fuchsia-600",
+  },
+
+  {
     name: "orange",
+    label: "Оранжевый",
     bg: "bg-orange-100",
     border: "border-orange-400",
+    text: "text-orange-800",
+    tagBg: "bg-orange-200",
     base: "bg-orange-500",
-    hex: "#f97316",
-    label: "Оранжевый",
   },
 ];
+// Массив цветов
 
 interface Tag {
   id: string;
@@ -117,7 +171,12 @@ export default function StudyTimerPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { isAuthenticated, isLoading } = useAuthStore();
   const router = useRouter();
-
+  const [showDaySessions, setShowDaySessions] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [editingDaySession, setEditingDaySession] = useState<any>(null);
+  const [showEditDaySessionModal, setShowEditDaySessionModal] = useState(false);
+  const [editSessionTag, setEditSessionTag] = useState("");
+  const [editSessionDescription, setEditSessionDescription] = useState("");
   const {
     tags: colorTags,
     saveTag: saveColorTag,
@@ -125,7 +184,152 @@ export default function StudyTimerPage() {
   } = useColorTags();
   const [editingColorTag, setEditingColorTag] = useState<string | null>(null);
   const [newColorTagName, setNewColorTagName] = useState("");
+  const [activityData, setActivityData] = useState<{ [key: string]: number }>(
+    {},
+  );
+  const [selectedDaySessions, setSelectedDaySessions] = useState<any[]>([]);
+  const [showDayModal, setShowDayModal] = useState(false);
+  const [currentViewDate, setCurrentViewDate] = useState(new Date());
+  const [monthlyStats, setMonthlyStats] = useState<any>(null);
+  const [allTimeStats, setAllTimeStats] = useState<any>(null);
+  const [showAllTimeStats, setShowAllTimeStats] = useState(false);
+  // Добавьте функцию для загрузки активности по дням
+  const fetchActivityByMonth = async (date: Date) => {
+    try {
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const response = await api.get(`/study-timer/activity/${year}/${month}`);
+      setActivityData(response.data);
+    } catch (error) {}
+  };
 
+  // Добавьте функцию для получения сессий за день
+  const fetchSessionsByDay = async (date: string) => {
+    try {
+      const response = await api.get(`/study-timer/sessions/day/${date}`);
+      setSelectedDaySessions(response.data);
+      setSelectedDate(date);
+      setShowDaySessions(true);
+    } catch (error) {
+      showToast("Ошибка загрузки сессий", "error");
+    }
+  };
+
+  const openEditDaySessionModal = (session: any) => {
+    setEditingDaySession(session);
+    setEditSessionTag(session.tag);
+    setEditSessionDescription(session.description || "");
+    setShowEditDaySessionModal(true);
+  };
+
+  const updateDaySession = async () => {
+    if (!editingDaySession) return;
+
+    try {
+      await api.put(`/study-timer/sessions/${editingDaySession.id}`, {
+        tag: editSessionTag,
+        description: editSessionDescription,
+      });
+      await loadAll();
+      // Обновляем отображаемые сессии
+      await fetchSessionsByDay(selectedDate);
+      setShowEditDaySessionModal(false);
+      setEditingDaySession(null);
+      showToast("Сессия обновлена", "success");
+    } catch (error) {
+      showToast("Ошибка обновления", "error");
+    }
+  };
+  const fetchMonthlyStats = async (date: Date) => {
+    try {
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const response = await api.get(
+        `/study-timer/stats/monthly/${year}/${month}`,
+      );
+      setMonthlyStats(response.data);
+    } catch (error) {}
+  };
+
+  const fetchAllTimeStats = async () => {
+    try {
+      const response = await api.get(`/study-timer/stats/all`);
+      setAllTimeStats(response.data);
+    } catch (error) {}
+  };
+
+  // Добавьте useEffect для загрузки статистики при смене месяца
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchMonthlyStats(currentViewDate);
+      fetchAllTimeStats();
+    }
+  }, [isAuthenticated, currentViewDate]);
+  const deleteDaySession = async (sessionId: string) => {
+    const confirmed = await showConfirm(
+      "Удалить сессию?",
+      "Эта сессия будет удалена из истории.",
+      "danger",
+    );
+    if (confirmed) {
+      try {
+        await api.delete(`/study-timer/sessions/${sessionId}`);
+        await loadAll();
+        await fetchSessionsByDay(selectedDate);
+        showToast("Сессия удалена", "success");
+      } catch (error) {
+        showToast("Ошибка удаления", "error");
+      }
+    }
+  };
+  // Добавьте useEffect для загрузки календаря
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchActivityByMonth(currentViewDate);
+    }
+  }, [isAuthenticated, currentViewDate]);
+
+  // Функции для навигации по месяцам
+  const prevMonth = () => {
+    const newDate = new Date(currentViewDate);
+    newDate.setMonth(currentViewDate.getMonth() - 1);
+    setCurrentViewDate(newDate);
+  };
+
+  const nextMonth = () => {
+    const newDate = new Date(currentViewDate);
+    newDate.setMonth(currentViewDate.getMonth() + 1);
+    setCurrentViewDate(newDate);
+  };
+
+  // Функция для получения дней в месяце
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    return new Date(year, month + 1, 0).getDate();
+  };
+
+  // Функция для получения первого дня месяца (0 = воскресенье)
+  const getFirstDayOfMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    return new Date(year, month, 1).getDay();
+  };
+
+  // Получение часов для отображения
+  const getDisplayHours = (hours: number) => {
+    if (hours === 0) return "";
+    if (hours < 1) return `${Math.round(hours * 60)}м`;
+    return `${hours.toFixed(1)}ч`;
+  };
+
+  // Форматирование времени
+  const formatTimeFromSeconds = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) return `${hours}ч ${minutes}м`;
+    return `${minutes}м`;
+  };
   useEffect(() => {
     if (editingDescription && textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -186,9 +390,7 @@ export default function StudyTimerPage() {
     try {
       const response = await api.get("/study-timer/tags");
       setTags(response.data);
-    } catch (error) {
-      console.error("Failed to fetch tags:", error);
-    }
+    } catch (error) {}
   };
 
   const fetchCurrentSession = async () => {
@@ -199,9 +401,7 @@ export default function StudyTimerPage() {
         setElapsed(response.data.elapsed_seconds || 0);
         setTempDescription(response.data.description || "");
       }
-    } catch (error) {
-      console.error("Failed to fetch current session:", error);
-    }
+    } catch (error) {}
   };
 
   const fetchStats = async () => {
@@ -212,9 +412,7 @@ export default function StudyTimerPage() {
       }
       const response = await api.get(url);
       setStats(response.data);
-    } catch (error) {
-      console.error("Failed to fetch stats:", error);
-    }
+    } catch (error) {}
   };
 
   const startTimer = async () => {
@@ -235,7 +433,6 @@ export default function StudyTimerPage() {
       showToast(`Начата сессия: ${selectedTag}`, "success");
       window.dispatchEvent(new Event("timer-updated"));
     } catch (error) {
-      console.error("Failed to start timer:", error);
       showToast("Ошибка при запуске таймера", "error");
     }
   };
@@ -253,7 +450,6 @@ export default function StudyTimerPage() {
         showToast("Сессия успешно завершена", "success");
         window.dispatchEvent(new Event("timer-updated"));
       } catch (error) {
-        console.error("Failed to stop timer:", error);
         showToast("Ошибка при завершении сессии", "error");
       }
     }
@@ -269,7 +465,6 @@ export default function StudyTimerPage() {
       showToast("Описание обновлено", "success");
       window.dispatchEvent(new Event("timer-updated"));
     } catch (error) {
-      console.error("Failed to update description:", error);
       showToast("Ошибка при обновлении описания", "error");
     }
   };
@@ -287,7 +482,6 @@ export default function StudyTimerPage() {
         showToast("Сессия удалена", "success");
         window.dispatchEvent(new Event("timer-updated"));
       } catch (error) {
-        console.error("Failed to delete session:", error);
         showToast("Ошибка при удалении сессии", "error");
       }
     }
@@ -309,7 +503,6 @@ export default function StudyTimerPage() {
       showToast("Сессия обновлена", "success");
       window.dispatchEvent(new Event("timer-updated"));
     } catch (error) {
-      console.error("Failed to update session:", error);
       showToast("Ошибка при обновлении сессии", "error");
     }
   };
@@ -329,7 +522,6 @@ export default function StudyTimerPage() {
       window.dispatchEvent(new Event("timer-updated"));
       showToast(`Тег для цвета сохранен`, "success");
     } catch (error) {
-      console.error("Failed to save color tag:", error);
       showToast("Ошибка при сохранении тега", "error");
     }
   };
@@ -493,7 +685,6 @@ export default function StudyTimerPage() {
           </div>
         </div>
 
-        {/* Управление цветными тегами */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
           <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-2">
@@ -512,8 +703,10 @@ export default function StudyTimerPage() {
                   <div
                     className={`flex items-center gap-2 p-2 rounded-lg ${color.bg}`}
                   >
-                    <div className={`w-4 h-4 rounded-full ${color.base}`} />
-                    <span className="text-sm flex-1 truncate">
+                    <div
+                      className={`min-w-4 min-h-4 rounded-full ${color.base}`}
+                    />
+                    <span className="text-sm max-w-[120px] overflow-x-auto overflow-x-auto flex-1 truncate">
                       {displayName}
                     </span>
                     <button
@@ -531,8 +724,739 @@ export default function StudyTimerPage() {
             })}
           </div>
         </div>
+        <div className=" w-full  flex flex-col items-center p-6 mb-8">
+          <div className="flex justify-between w-full items-center mb-4 ">
+            <h2 className="text-xl font-semibold text-pink-900">
+              Календарь активности
+            </h2>
+            <div className="flex gap-2">
+              <button
+                onClick={prevMonth}
+                className="p-2 bg-pink-200 rounded-lg hover:bg-pink-300 transition"
+              >
+                <ChevronLeft className="w-5 h-5 text-pink-600" />
+              </button>
+              <span className="text-lg font-medium text-gray-700 px-4 py-1">
+                {currentViewDate.toLocaleString("ru-RU", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </span>
+              <button
+                onClick={nextMonth}
+                className="p-2 bg-pink-200 rounded-lg hover:bg-pink-300 transition"
+              >
+                <ChevronRight className="w-5 h-5 text-pink-600" />
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-row w-full justify-between ">
+            <div className="flex flex-col  ">
+              <div className="flex flex-col w-full bg-white p-8 bg-blue-200 rounded-lg shadow-sm  max-w-[500px]">
+                <div className="grid grid-cols-7 gap-2 mb-2">
+                  {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((day) => (
+                    <div
+                      key={day}
+                      className="text-center text-sm font-medium text-gray-600 py-2"
+                    >
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                <div className="grid grid-cols-7 gap-2">
+                  {Array.from({
+                    length:
+                      getFirstDayOfMonth(currentViewDate) === 0
+                        ? 6
+                        : getFirstDayOfMonth(currentViewDate) - 1,
+                  }).map((_, i) => (
+                    <div
+                      key={`empty-${i}`}
+                      className="aspect-square rounded-lg bg-gray-100"
+                    />
+                  ))}
+                  {Array.from({ length: getDaysInMonth(currentViewDate) }).map(
+                    (_, i) => {
+                      const day = i + 1;
+                      const dateStr = `${currentViewDate.getFullYear()}-${String(currentViewDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                      const hours = activityData[dateStr] || 0;
+                      const isToday =
+                        new Date().toDateString() ===
+                        new Date(
+                          currentViewDate.getFullYear(),
+                          currentViewDate.getMonth(),
+                          day,
+                        ).toDateString();
 
-        {/* Модальное окно редактирования тега */}
+                      const isSelectedDay = selectedDate === dateStr;
+
+                      let bgClass = "bg-gray-100 hover:bg-gray-200";
+                      if (hours > 0) {
+                        if (hours >= 4)
+                          bgClass = "bg-green-200 hover:bg-green-300";
+                        else if (hours >= 2)
+                          bgClass = "bg-green-100 hover:bg-green-200";
+                        else bgClass = "bg-green-50 hover:bg-green-100";
+                      }
+
+                      const selectedClass = isSelectedDay
+                        ? "border-2  bg-pink-100 hover:bg-pink-200 ring-pink-200 text-pink-800 border-pink-200 "
+                        : "";
+
+                      return (
+                        <button
+                          key={day}
+                          onClick={() => fetchSessionsByDay(dateStr)}
+                          className={`aspect-square rounded-lg flex flex-col items-center justify-center p-1 transition hover:scale-105 ${bgClass} ${selectedClass} ${isToday ? "ring-2 ring-pink-400" : ""}`}
+                        >
+                          <span
+                            className={`text-sm font-medium ${hours > 0 ? "text-green-800" : "text-gray-700"}`}
+                          >
+                            {day}
+                          </span>
+                          {hours > 0 && (
+                            <span className="text-[10px] text-green-600 mt-0.5">
+                              {getDisplayHours(hours)}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    },
+                  )}
+                </div>
+              </div>
+              {monthlyStats && (
+                <div className="bg-white w-full max-w-[500px] mt-[20px] flex-1 rounded-xl shadow-md p-6 mb-8">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-semibold text-pink-900">
+                      Статистика за{" "}
+                      {currentViewDate.toLocaleString("ru-RU", {
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </h2>
+                    <button
+                      onClick={() => setShowAllTimeStats(!showAllTimeStats)}
+                      className="text-xs text-pink-600 hover:text-pink-700"
+                    >
+                      {showAllTimeStats
+                        ? "Скрыть статистику за всё время"
+                        : "Показать статистику за всё время"}
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className="bg-pink-50 rounded-lg p-3 text-center">
+                      <p className="text-xs text-gray-500">Всего часов</p>
+                      <p className="text-xl font-bold text-pink-600">
+                        {monthlyStats.total_hours} ч
+                      </p>
+                    </div>
+                    <div className="bg-pink-50 rounded-lg p-3 text-center">
+                      <p className="text-xs text-gray-500">Сессий</p>
+                      <p className="text-xl font-bold text-pink-600">
+                        {monthlyStats.total_sessions}
+                      </p>
+                    </div>
+                    <div className="bg-pink-50 rounded-lg p-3 text-center">
+                      <p className="text-xs text-gray-500">Дней с учёбой</p>
+                      <p className="text-xl font-bold text-pink-600">
+                        {monthlyStats.days_with_study}
+                      </p>
+                    </div>
+                    <div className="bg-pink-50 rounded-lg p-3 text-center">
+                      <p className="text-xs text-gray-500">Среднее в день</p>
+                      <p className="text-xl font-bold text-pink-600">
+                        {monthlyStats.days_with_study > 0
+                          ? (
+                              monthlyStats.total_hours /
+                              monthlyStats.days_with_study
+                            ).toFixed(1)
+                          : 0}{" "}
+                        ч
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">Лучший день</p>
+                      <p className="text-md font-semibold text-gray-800">
+                        {monthlyStats.best_day
+                          ? new Date(monthlyStats.best_day).toLocaleDateString(
+                              "ru-RU",
+                            )
+                          : "—"}
+                      </p>
+                      <p className="text-sm text-pink-600">
+                        {monthlyStats.best_day_hours} ч
+                      </p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">
+                        Самая длинная сессия
+                      </p>
+                      <p className="text-md font-semibold text-gray-800">
+                        {monthlyStats.max_duration} ч
+                      </p>
+                    </div>
+                  </div>
+
+                  {monthlyStats.tags && monthlyStats.tags.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-700 mb-2">
+                        По предметам:
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {monthlyStats.tags.map((tag: any) => {
+                          let colorInfo = colors[0];
+                          const matchedColor = colors.find((c) => {
+                            const tagForColor = colorTags[c.name];
+                            return (
+                              tagForColor === tag.tag || c.label === tag.tag
+                            );
+                          });
+                          if (matchedColor) colorInfo = matchedColor;
+
+                          return (
+                            <div
+                              key={tag.tag}
+                              className={`px-3 py-1 rounded-full text-sm ${colorInfo.bg} ${colorInfo.text}`}
+                            >
+                              {tag.tag}: {tag.hours} ч
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {showDaySessions && (
+              <div className="bg-white w-full ml-[30px] flex-1 max-h-[900px] overflow-y-auto rounded-xl shadow-md p-6 mb-8">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-pink-900">
+                    Сессии за{" "}
+                    {new Date(selectedDate).toLocaleDateString("ru-RU")}
+                  </h2>
+                  <button
+                    onClick={() => setShowDaySessions(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="flex mb-2 ">
+                  <div className="w-16 text-xs text-gray-500">Час</div>
+                  <div className="flex-1 grid grid-cols-6 gap-0.1">
+                    {[0, 10, 20, 30, 40, 50].map((min) => (
+                      <div
+                        key={min}
+                        className="text-center text-xs text-gray-400"
+                      >
+                        {min === 0 ? "00" : min}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1 max-h-[600px] overflow-y-auto">
+                  {Array.from({ length: 24 }, (_, hour) => {
+                    const hourNum = hour;
+                    const sessionsAtHour = selectedDaySessions.filter((s) => {
+                      if (!s.start_time) return false;
+                      const startHour = new Date(s.start_time).getHours();
+                      const endHour = s.end_time
+                        ? new Date(s.end_time).getHours()
+                        : startHour + 1;
+                      return hourNum >= startHour && hourNum < endHour;
+                    });
+
+                    return (
+                      <div
+                        key={hour}
+                        className="flex items-center  md-max-w-[400px] lg-max-w-[1200px] lg-max-h-[1200px] md-max-h-[500px] gap-2"
+                      >
+                        <div className="w-14 text-xs font-mono text-gray-500 font-medium">
+                          {hour.toString().padStart(2, "0")}:00
+                        </div>
+                        <div className="flex-1 relative h-4 w-4">
+                          <div className="absolute inset-0 grid grid-cols-6 gap-0.5">
+                            {Array.from({ length: 6 }, (_, i) => {
+                              const minuteStart = i * 10;
+                              let activeSession = null;
+
+                              for (const session of selectedDaySessions) {
+                                const start = new Date(session.start_time);
+                                const end = session.end_time
+                                  ? new Date(session.end_time)
+                                  : new Date(start.getTime() + 3600000);
+
+                                const sessionStartMinutes =
+                                  start.getHours() * 60 + start.getMinutes();
+                                let sessionEndMinutes =
+                                  end.getHours() * 60 + end.getMinutes();
+                                if (sessionEndMinutes < sessionStartMinutes)
+                                  sessionEndMinutes += 24 * 60;
+
+                                const cellStartMinutes =
+                                  hourNum * 60 + minuteStart;
+                                const cellEndMinutes = cellStartMinutes + 10;
+
+                                if (
+                                  cellStartMinutes < sessionEndMinutes &&
+                                  cellEndMinutes > sessionStartMinutes
+                                ) {
+                                  activeSession = session;
+                                  break;
+                                }
+                              }
+
+                              let colorInfo = colors[0];
+                              if (activeSession) {
+                                const matchedColor = colors.find((c) => {
+                                  const tagForColor = colorTags[c.name];
+                                  return (
+                                    tagForColor === activeSession.tag ||
+                                    c.label === activeSession.tag
+                                  );
+                                });
+                                if (matchedColor) colorInfo = matchedColor;
+                              }
+
+                              return (
+                                <div
+                                  key={i}
+                                  className="group relative h-full rounded transition cursor-pointer"
+                                  onClick={() =>
+                                    activeSession &&
+                                    openEditDaySessionModal(activeSession)
+                                  }
+                                >
+                                  <div
+                                    className={`h-full w-full rounded ${activeSession ? colorInfo.bg : "bg-gray-50"} ${activeSession ? "border " + colorInfo.border : ""}`}
+                                  />
+                                  {activeSession && (
+                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition pointer-events-none z-10">
+                                      {activeSession.tag}
+                                      {activeSession.description && (
+                                        <span className="ml-1 text-gray-300">
+                                          ({activeSession.description})
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-6 pt-4 border-t">
+                  <h3 className="text-md font-semibold text-pink-800 mb-3">
+                    Список сессий
+                  </h3>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {selectedDaySessions.map((session) => {
+                      let colorInfo = colors[0];
+                      const matchedColor = colors.find((c) => {
+                        const tagForColor = colorTags[c.name];
+                        return (
+                          tagForColor === session.tag || c.label === session.tag
+                        );
+                      });
+                      if (matchedColor) colorInfo = matchedColor;
+
+                      const getHexColor = (colorName: string) => {
+                        const hexMap: Record<string, string> = {
+                          yellow: "#eab308",
+                          blue: "#3b82f6",
+                          green: "#22c55e",
+                          purple: "#a855f7",
+                          pink: "#ec4899",
+                          "dark-pink": "#db2777",
+                          teal: "#14b8a6",
+                          indigo: "#6366f1",
+                          fuchsia: "#d946ef",
+                          orange: "#f97316",
+                        };
+                        return hexMap[colorName] || "#eab308";
+                      };
+
+                      return (
+                        <div
+                          key={session.id}
+                          className="rounded-lg p-3 transition-all duration-200 hover:shadow-md cursor-pointer"
+                          style={{
+                            backgroundColor: `${getHexColor(colorInfo.name)}15`,
+                            borderLeft: `4px solid ${getHexColor(colorInfo.name)}`,
+                          }}
+                          onClick={() => openEditDaySessionModal(session)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className="w-2 h-2 rounded-full"
+                                  style={{
+                                    backgroundColor: getHexColor(
+                                      colorInfo.name,
+                                    ),
+                                  }}
+                                />
+                                <span className="font-medium text-gray-800">
+                                  {session.tag}
+                                </span>
+                              </div>
+                              {session.description && (
+                                <p className="text-sm text-gray-500 mt-1">
+                                  {session.description}
+                                </p>
+                              )}
+                              <p className="text-xs text-gray-400 mt-1">
+                                {new Date(
+                                  session.start_time,
+                                ).toLocaleTimeString()}{" "}
+                                -{" "}
+                                {session.end_time
+                                  ? new Date(
+                                      session.end_time,
+                                    ).toLocaleTimeString()
+                                  : "сейчас"}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="text-pink-600 font-medium text-sm">
+                                {session.duration_hours} ч
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteDaySession(session.id);
+                                }}
+                                className="transition text-red-500 hover:text-red-700"
+                                title="Удалить сессию"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {selectedDaySessions.length === 0 && (
+                      <p className="text-gray-400 text-center py-4">
+                        Нет сессий в этот день
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Статистика месяца */}
+
+        {showAllTimeStats && allTimeStats && (
+          <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+            <h2 className="text-xl font-semibold text-pink-900 mb-4">
+              Статистика за всё время
+            </h2>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-pink-50 rounded-lg p-3 text-center">
+                <p className="text-xs text-gray-500">Всего часов</p>
+                <p className="text-2xl font-bold text-pink-600">
+                  {allTimeStats.total_hours} ч
+                </p>
+              </div>
+              <div className="bg-pink-50 rounded-lg p-3 text-center">
+                <p className="text-xs text-gray-500">Сессий</p>
+                <p className="text-2xl font-bold text-pink-600">
+                  {allTimeStats.total_sessions}
+                </p>
+              </div>
+              <div className="bg-pink-50 rounded-lg p-3 text-center">
+                <p className="text-xs text-gray-500">Дней с учёбой</p>
+                <p className="text-2xl font-bold text-pink-600">
+                  {allTimeStats.days_with_study}
+                </p>
+              </div>
+              <div className="bg-pink-50 rounded-lg p-3 text-center">
+                <p className="text-xs text-gray-500">Среднее в день</p>
+                <p className="text-2xl font-bold text-pink-600">
+                  {allTimeStats.days_with_study > 0
+                    ? (
+                        allTimeStats.total_hours / allTimeStats.days_with_study
+                      ).toFixed(1)
+                    : 0}{" "}
+                  ч
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500">Лучший день</p>
+                <p className="text-md font-semibold text-gray-800">
+                  {allTimeStats.best_day
+                    ? new Date(allTimeStats.best_day).toLocaleDateString(
+                        "ru-RU",
+                      )
+                    : "—"}
+                </p>
+                <p className="text-sm text-pink-600">
+                  {allTimeStats.best_day_hours} ч
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500">Самая длинная сессия</p>
+                <p className="text-md font-semibold text-gray-800">
+                  {allTimeStats.max_duration} ч
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500">Первая сессия</p>
+                <p className="text-md font-semibold text-gray-800">
+                  {allTimeStats.first_study_day
+                    ? new Date(allTimeStats.first_study_day).toLocaleDateString(
+                        "ru-RU",
+                      )
+                    : "—"}
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500">
+                  Средняя длительность сессии
+                </p>
+                <p className="text-md font-semibold text-gray-800">
+                  {allTimeStats.avg_session_hours} ч
+                </p>
+              </div>
+            </div>
+
+            {allTimeStats.tags && allTimeStats.tags.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">
+                  По предметам:
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {allTimeStats.tags.map((tag: any) => {
+                    let colorInfo = colors[0];
+                    const matchedColor = colors.find((c) => {
+                      const tagForColor = colorTags[c.name];
+                      return tagForColor === tag.tag || c.label === tag.tag;
+                    });
+                    if (matchedColor) colorInfo = matchedColor;
+
+                    return (
+                      <div
+                        key={tag.tag}
+                        className={`px-3 py-1 rounded-full text-sm ${colorInfo.bg} ${colorInfo.text}`}
+                      >
+                        {tag.tag}: {tag.hours} ч
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {showEditDaySessionModal && editingDaySession && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Редактировать сессию
+                </h2>
+                <button
+                  onClick={() => setShowEditDaySessionModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Выберите предмет/тег
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto p-1">
+                    {colors.map((color) => {
+                      const tagName = colorTags[color.name];
+                      const displayName = tagName || color.label;
+                      const isSelected = editSessionTag === displayName;
+                      return (
+                        <button
+                          key={color.name}
+                          onClick={() => setEditSessionTag(displayName)}
+                          className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-200 ${
+                            isSelected
+                              ? `${color.bg} ${color.border}`
+                              : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                          }`}
+                        >
+                          <div
+                            className={`min-w-5 min-h-5 rounded-full ${color.base} shadow-sm`}
+                          />
+                          <span
+                            className={`text-sm max-w-[200px] overflow-x-auto font-medium ${isSelected ? "text-gray-900" : "text-gray-700"}`}
+                          >
+                            {displayName}
+                          </span>
+                          {isSelected && (
+                            <Check className="w-4 h-4 text-green-500 ml-auto" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Описание (необязательно)
+                  </label>
+                  <textarea
+                    value={editSessionDescription}
+                    onChange={(e) => setEditSessionDescription(e.target.value)}
+                    className="w-full p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    rows={3}
+                    placeholder="Что изучали? Например: глава 3, задачи на циклы..."
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={updateDaySession}
+                    disabled={!editSessionTag}
+                    className={`flex-1 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                      editSessionTag
+                        ? "bg-pink-600 text-white shadow-md hover:bg-pink-700"
+                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    <Check className="w-4 h-4" /> Сохранить изменения
+                  </button>
+                  <button
+                    onClick={() => setShowEditDaySessionModal(false)}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {showDayModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-gray-800">
+                  Сессии за день
+                </h3>
+                <button
+                  onClick={() => setShowDayModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              {selectedDaySessions.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">
+                  Нет сессий в этот день
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {selectedDaySessions.map((session: any) => {
+                    let colorInfo = colors[0];
+                    const matchedColor = colors.find((c) => {
+                      const tagForColor = colorTags[c.name];
+                      return (
+                        tagForColor === session.tag || c.label === session.tag
+                      );
+                    });
+                    if (matchedColor) colorInfo = matchedColor;
+
+                    const getHexColor = (colorName: string) => {
+                      const hexMap: Record<string, string> = {
+                        yellow: "#eab308",
+                        blue: "#3b82f6",
+                        green: "#22c55e",
+                        purple: "#a855f7",
+                        pink: "#ec4899",
+                        "dark-pink": "#db2777",
+                        teal: "#14b8a6",
+                        indigo: "#6366f1",
+                        fuchsia: "#d946ef",
+                        orange: "#f97316",
+                      };
+                      return hexMap[colorName] || "#eab308";
+                    };
+
+                    return (
+                      <div
+                        key={session.id}
+                        className="rounded-lg p-3 transition-all duration-200"
+                        style={{
+                          backgroundColor: `${getHexColor(colorInfo.name)}15`,
+                          borderLeft: `4px solid ${getHexColor(colorInfo.name)}`,
+                        }}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-2 h-2 rounded-full"
+                                style={{
+                                  backgroundColor: getHexColor(colorInfo.name),
+                                }}
+                              />
+                              <span className="font-medium text-gray-800">
+                                {session.tag}
+                              </span>
+                            </div>
+                            {session.description && (
+                              <p className="text-sm text-gray-500 mt-1">
+                                {session.description}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-400 mt-1">
+                              {new Date(
+                                session.start_time,
+                              ).toLocaleTimeString()}{" "}
+                              -{" "}
+                              {session.end_time
+                                ? new Date(
+                                    session.end_time,
+                                  ).toLocaleTimeString()
+                                : "сейчас"}
+                            </p>
+                          </div>
+                          <span className="text-pink-600 font-medium text-sm">
+                            {session.duration_hours} ч
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         {editingColorTag && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl p-6 max-w-md w-full">
@@ -582,7 +1506,6 @@ export default function StudyTimerPage() {
           </div>
         )}
 
-        {/* Статистика */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <h2 className="text-xl font-semibold text-pink-800 mb-4">
             Статистика
@@ -710,15 +1633,40 @@ export default function StudyTimerPage() {
             </h2>
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {stats.sessions.map((session: any) => {
-                const colorInfo = getColorForTag(session.tag);
+                let colorInfo = colors[0]; // yellow по умолчанию
+
+                const matchedColor = colors.find((c) => {
+                  const tagForColor = colorTags[c.name];
+                  return tagForColor === session.tag || c.label === session.tag;
+                });
+
+                if (matchedColor) {
+                  colorInfo = matchedColor;
+                }
+
+                const getHexColor = (colorName: string) => {
+                  const hexMap: Record<string, string> = {
+                    yellow: "#eab308",
+                    blue: "#3b82f6",
+                    green: "#22c55e",
+                    purple: "#a855f7",
+                    pink: "#ec4899",
+                    "dark-pink": "#db2777",
+                    teal: "#14b8a6",
+                    indigo: "#6366f1",
+                    fuchsia: "#d946ef",
+                    orange: "#f97316",
+                  };
+                  return hexMap[colorName] || "#eab308";
+                };
 
                 return (
                   <div
                     key={session.id}
                     className="rounded-lg p-3 mb-2 transition-all duration-200 hover:shadow-md cursor-pointer"
                     style={{
-                      backgroundColor: `${colorInfo.hex}15`,
-                      borderLeft: `4px solid ${colorInfo.hex}`,
+                      backgroundColor: `${getHexColor(colorInfo.name)}15`,
+                      borderLeft: `4px solid ${getHexColor(colorInfo.name)}`,
                     }}
                     onClick={() => openEditModal(session)}
                   >
@@ -727,7 +1675,9 @@ export default function StudyTimerPage() {
                         <div className="flex items-center gap-2">
                           <div
                             className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: colorInfo.hex }}
+                            style={{
+                              backgroundColor: getHexColor(colorInfo.name),
+                            }}
                           />
                           <span className="font-medium text-gray-800">
                             {session.tag}
@@ -768,8 +1718,6 @@ export default function StudyTimerPage() {
           </div>
         )}
       </div>
-
-      {/* Модальное окно для редактирования сессии */}
       {showEditModal && editingSession && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
@@ -794,25 +1742,26 @@ export default function StudyTimerPage() {
                   {colors.map((color) => {
                     const tagName = colorTags[color.name];
                     const displayName = tagName || color.label;
+                    const isSelected = selectedTag === displayName;
                     return (
                       <button
                         key={color.name}
                         onClick={() => setSelectedTag(displayName)}
                         className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-200 ${
-                          selectedTag === displayName
-                            ? `${color.bg} border-${color.name}-500 ring-2 ring-${color.name}-300`
+                          isSelected
+                            ? `${color.bg} ${color.border}`
                             : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
                         }`}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full ${color.base} shadow-sm`}
+                          className={`min-w-5 min-h-5 rounded-full ${color.base} shadow-sm`}
                         />
                         <span
-                          className={`text-sm font-medium ${selectedTag === displayName ? "text-gray-900" : "text-gray-700"}`}
+                          className={`text-sm max-w-[200px] overflow-x-auto font-medium ${isSelected ? "text-gray-900" : "text-gray-700"}`}
                         >
                           {displayName}
                         </span>
-                        {selectedTag === displayName && (
+                        {isSelected && (
                           <Check className="w-4 h-4 text-green-500 ml-auto" />
                         )}
                       </button>
@@ -834,10 +1783,6 @@ export default function StudyTimerPage() {
                   className="w-full max-w-[600px] p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition break-words whitespace-pre-wrap"
                   rows={3}
                   placeholder="Что изучали? Например: глава 3, задачи на циклы..."
-                  style={{
-                    wordBreak: "break-word",
-                    overflowWrap: "break-word",
-                  }}
                 />
               </div>
 
@@ -845,7 +1790,11 @@ export default function StudyTimerPage() {
                 <button
                   onClick={updateSession}
                   disabled={!selectedTag}
-                  className={`flex-1 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${selectedTag ? "bg-pink-600 text-white shadow-md hover:bg-pink-700" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+                  className={`flex-1 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                    selectedTag
+                      ? "bg-pink-600 text-white shadow-md hover:bg-pink-700"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  }`}
                 >
                   <Check className="w-4 h-4" /> Сохранить изменения
                 </button>
@@ -860,8 +1809,6 @@ export default function StudyTimerPage() {
           </div>
         </div>
       )}
-
-      {/* Модальное окно выбора тега для новой сессии */}
       {showTagModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
@@ -892,15 +1839,15 @@ export default function StudyTimerPage() {
                         onClick={() => setSelectedTag(displayName)}
                         className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-200 ${
                           selectedTag === displayName
-                            ? `${color.bg} border-${color.name}-500 ring-2 ring-${color.name}-300`
+                            ? `${color.bg} ${color.border}`
                             : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
                         }`}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full ${color.base} shadow-sm`}
+                          className={`min-w-5 min-h-5 rounded-full ${color.base} shadow-sm`}
                         />
                         <span
-                          className={`text-sm font-medium ${selectedTag === displayName ? "text-gray-900" : "text-gray-700"}`}
+                          className={`text-sm max-w-[200px] overflow-x-auto font-medium ${selectedTag === displayName ? "text-gray-900" : "text-gray-700"}`}
                         >
                           {displayName}
                         </span>
@@ -924,12 +1871,6 @@ export default function StudyTimerPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full max-w-[600px] p-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition break-words whitespace-pre-wrap"
-                  rows={3}
-                  placeholder="Что будешь изучать? Например: глава 3, задачи на циклы..."
-                  style={{
-                    wordBreak: "break-word",
-                    overflowWrap: "break-word",
-                  }}
                 />
               </div>
 
@@ -937,7 +1878,11 @@ export default function StudyTimerPage() {
                 <button
                   onClick={startTimer}
                   disabled={!selectedTag}
-                  className={`flex-1 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${selectedTag ? "bg-pink-600 text-white shadow-md hover:bg-pink-700" : "bg-gray-100 text-gray-400 cursor-not-allowed"}`}
+                  className={`flex-1 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                    selectedTag
+                      ? "bg-pink-600 text-white shadow-md hover:bg-pink-700"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  }`}
                 >
                   <Play className="w-4 h-4" /> Начать сессию
                 </button>

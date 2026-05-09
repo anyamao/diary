@@ -101,7 +101,6 @@ export default function ConfirmDialog({
   );
 }
 
-// Глобальный компонент для диалога
 let confirmResolver: ((value: boolean) => void) | null = null;
 
 export const showConfirm = (

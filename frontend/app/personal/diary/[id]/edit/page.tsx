@@ -67,7 +67,6 @@ export default function EditEntryPage({ params }: PageProps) {
       const response = await api.get(`/diary/entries/${entryId}`);
       setFormData(response.data);
     } catch (error) {
-      console.error("Failed to fetch entry:", error);
       showToast("Не удалось загрузить запись", "error");
       router.push("/personal/diary");
     } finally {
@@ -85,7 +84,6 @@ export default function EditEntryPage({ params }: PageProps) {
       showToast("Запись успешно обновлена!", "success");
       router.push("/personal/diary");
     } catch (error) {
-      console.error("Failed to update entry:", error);
       showToast("Не удалось обновить запись", "error");
     } finally {
       setSaving(false);

@@ -54,7 +54,6 @@ export default function EditBusinessNotePage() {
       const response = await api.get(`/business-notes/${params.id}`);
       setFormData(response.data);
     } catch (error) {
-      console.error("Failed to fetch note:", error);
       showToast("Не удалось загрузить заметку", "error");
       router.push("/business/notes");
     } finally {
@@ -79,7 +78,6 @@ export default function EditBusinessNotePage() {
       showToast("Заметка успешно обновлена!", "success");
       router.push("/business/notes");
     } catch (error: any) {
-      console.error("Failed to update note:", error);
       const errorMsg =
         error.response?.data?.detail?.[0]?.msg ||
         error.response?.data?.detail ||
@@ -117,7 +115,6 @@ export default function EditBusinessNotePage() {
         showToast("Заметка удалена", "success");
         router.push("/business/notes");
       } catch (error) {
-        console.error("Failed to delete note:", error);
         showToast("Не удалось удалить заметку", "error");
       }
     }
@@ -213,7 +210,6 @@ export default function EditBusinessNotePage() {
         </div>
       </div>
 
-      {/* Информационное модальное окно */}
       {showInfo && (
         <EntryInfoModal
           createdAt={formData.created_at}

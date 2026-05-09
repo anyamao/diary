@@ -1,7 +1,7 @@
 "use client";
 import Loading from "@/components/Loading";
 import { CalendarDays } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/axios";
 import { useRouter } from "next/navigation";
@@ -99,6 +99,44 @@ const colors = [
     base: "bg-pink-500",
   },
   {
+    name: "dark-pink",
+    label: "Темно-розовый",
+    bg: "bg-pink-200",
+    border: "border-pink-400",
+    text: "text-pink-800",
+    tagBg: "bg-pink-300",
+    base: "bg-pink-600",
+  },
+
+  {
+    name: "teal",
+    label: "Бирюзовый",
+    bg: "bg-teal-100",
+    border: "border-teal-400",
+    text: "text-teal-800",
+    tagBg: "bg-teal-200",
+    base: "bg-teal-500",
+  },
+  {
+    name: "indigo",
+    label: "Индиго",
+    bg: "bg-indigo-200",
+    border: "border-indigo-400",
+    text: "text-indigo-800",
+    tagBg: "bg-indigo-200",
+    base: "bg-indigo-600",
+  },
+  {
+    name: "fuchsia",
+    label: "Фукция",
+    bg: "bg-fuchsia-200",
+    border: "border-fuchsia-400",
+    text: "text-fuchsia-800",
+    tagBg: "bg-fuchsia-200",
+    base: "bg-fuchsia-600",
+  },
+
+  {
     name: "orange",
     label: "Оранжевый",
     bg: "bg-orange-100",
@@ -106,15 +144,6 @@ const colors = [
     text: "text-orange-800",
     tagBg: "bg-orange-200",
     base: "bg-orange-500",
-  },
-  {
-    name: "dark-purple",
-    label: "Темно-фиолетовый",
-    bg: "bg-purple-200",
-    border: "border-purple-500",
-    text: "text-purple-800",
-    tagBg: "bg-purple-300",
-    base: "bg-purple-700",
   },
 ];
 
@@ -156,8 +185,11 @@ export default function PlannerPage() {
   const [editingWeeklyNote, setEditingWeeklyNote] = useState<number | null>(
     null,
   );
+  const calendarDateRef = useRef(new Date());
+  const [loadingMonths, setLoadingMonths] = useState(false);
   const { isAuthenticated, isLoading } = useAuthStore();
   const router = useRouter();
+  const [calendarDate, setCalendarDate] = useState(new Date()); // Только для календаря
   // Функция для получения правильного диапазона недели (с учетом компенсации)
   const getCorrectWeekRange = (startDate: Date) => {
     const start = new Date(startDate);
@@ -187,13 +219,49 @@ export default function PlannerPage() {
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   }
-  const loadMonths = async () => {
-    setLoading(true);
-    const monthsData = [];
-    const startMonth = new Date(currentDate);
-    startMonth.setMonth(currentDate.getMonth() - 1);
 
-    // Загружаем данные для всех трех месяцев
+  const addTaskLocally = (dayDate: string, newTask: any) => {
+    setWeekPlan((prevWeekPlan) => {
+      const newWeekPlan = [...prevWeekPlan];
+      for (let week of newWeekPlan) {
+        const dayIndex = week.days.findIndex((d: any) => d.date === dayDate);
+        if (dayIndex !== -1) {
+          // Проверяем, нет ли уже такой задачи
+          const taskExists = week.days[dayIndex].tasks.some(
+            (t: any) =>
+              t.title === newTask.title &&
+              t.start_time === newTask.start_time &&
+              t.end_time === newTask.end_time,
+          );
+
+          if (!taskExists) {
+            week.days[dayIndex].tasks = [...week.days[dayIndex].tasks, newTask];
+          }
+          break;
+        }
+      }
+      return newWeekPlan;
+    });
+
+    // Обновляем месяцы
+    setMonths((prevMonths) => {
+      const newMonths = [...prevMonths];
+      for (let month of newMonths) {
+        const dayIndex = month.days.findIndex((d: any) => d.date === dayDate);
+        if (dayIndex !== -1) {
+          month.days[dayIndex].has_tasks = true;
+          break;
+        }
+      }
+      return newMonths;
+    });
+  };
+  const loadMonthsOnly = useCallback(async () => {
+    setLoadingMonths(true);
+    const monthsData = [];
+    const startMonth = new Date(calendarDateRef.current);
+    startMonth.setMonth(calendarDateRef.current.getMonth() - 1);
+
     for (let i = 0; i < 3; i++) {
       const month = new Date(startMonth);
       month.setMonth(startMonth.getMonth() + i);
@@ -201,29 +269,21 @@ export default function PlannerPage() {
       const monthNum = month.getMonth() + 1;
 
       try {
-        // Загружаем данные месяца
         const response = await api.get(`/planner/months/${year}/${monthNum}`);
 
-        // Получаем все даты месяца для批量 запроса
-        const dates = response.data.map((day: any) => day.date);
-
-        // Загружаем важность для всех дней месяца одним запросом (если есть эндпоинт)
-        // Или используем кэш из weekPlan
-        const daysWithImportance = response.data.map((day: any) => {
-          // Ищем важность в weekPlan
-          let isImportant = false;
-          for (const week of weekPlan) {
-            const foundDay = week.days.find((d: any) => d.date === day.date);
-            if (foundDay && foundDay.isImportant) {
-              isImportant = true;
-              break;
+        const daysWithImportance = await Promise.all(
+          response.data.map(async (day: any) => {
+            try {
+              const dayData = await api.get(`/planner/days/${day.date}`);
+              return {
+                ...day,
+                is_important: dayData.data?.is_important || false,
+              };
+            } catch {
+              return { ...day, is_important: false };
             }
-          }
-          return {
-            ...day,
-            is_important: isImportant,
-          };
-        });
+          }),
+        );
 
         monthsData.push({
           year,
@@ -231,12 +291,56 @@ export default function PlannerPage() {
           name: monthNames[monthNum - 1],
           days: daysWithImportance,
         });
-      } catch (error) {
-        console.error("Failed to load month:", error);
-      }
+      } catch (error) {}
     }
     setMonths(monthsData);
-    setLoading(false);
+    setLoadingMonths(false);
+  }, []); // Пустой массив зависимостей, так как используем ref
+  const loadWeekPlanOnly = async () => {
+    try {
+      const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
+      const startOfWeek = getWeekStart(firstDayOfMonth);
+
+      const weeksData = [];
+      for (let week = 0; week < 4; week++) {
+        const weekStart = new Date(startOfWeek);
+        weekStart.setDate(startOfWeek.getDate() + week * 7);
+
+        const weekDaysPromises = [];
+        for (let i = 0; i < 7; i++) {
+          const day = new Date(weekStart);
+          day.setDate(weekStart.getDate() + i);
+          const dateStr = formatDate(day);
+          weekDaysPromises.push(
+            api.get(`/planner/days/${dateStr}`).catch(() => ({ data: null })),
+          );
+        }
+
+        const responses = await Promise.all(weekDaysPromises);
+        const weekDaysData = responses.map((res, index) => {
+          const day = new Date(weekStart);
+          day.setDate(weekStart.getDate() + index);
+          const data = res?.data;
+          return {
+            date: formatDate(day),
+            dayOfWeek: weekDays[index],
+            dayNumber: day.getDate(),
+            isImportant: data?.is_important || false,
+            notes: data?.notes || "",
+            tasks: data?.tasks || [],
+          };
+        });
+
+        weeksData.push({
+          weekNumber: week + 1,
+          days: weekDaysData,
+          startDate: formatDate(weekStart),
+        });
+      }
+      setWeekPlan(weeksData);
+
+      await loadMonthsOnly();
+    } catch (error) {}
   };
 
   const getWeekRange = (startDate: Date) => {
@@ -305,6 +409,23 @@ export default function PlannerPage() {
       return newMonths;
     });
   };
+
+  useEffect(() => {
+    if (isAuthenticated && months.length === 0) {
+      loadMonthsOnly();
+      loadWeekPlanOnly();
+      loadGoalsAndNotes();
+    }
+  }, [isAuthenticated]);
+  useEffect(() => {
+    if (
+      isAuthenticated &&
+      (selectedMonth !== undefined || selectedYear !== undefined)
+    ) {
+      loadWeekPlanOnly();
+      loadGoalsAndNotes();
+    }
+  }, [selectedMonth, selectedYear]);
   // Добавьте этот useEffect в компонент PlannerPage
   useEffect(() => {
     const handleTagsUpdate = () => {
@@ -315,60 +436,36 @@ export default function PlannerPage() {
       window.removeEventListener("color-tags-updated", handleTagsUpdate);
   }, [loadTagNames]);
 
-  const loadWeekPlan = async () => {
-    try {
-      const firstDayOfMonth = new Date(selectedYear, selectedMonth, 1);
-      const startOfWeek = getWeekStart(firstDayOfMonth);
-
-      const weeksData = [];
-      for (let week = 0; week < 4; week++) {
-        const weekStart = new Date(startOfWeek);
-        weekStart.setDate(startOfWeek.getDate() + week * 7);
-
-        const weekDaysPromises = [];
-        for (let i = 0; i < 7; i++) {
-          const day = new Date(weekStart);
-          day.setDate(weekStart.getDate() + i);
-          // Используем локальную дату без сдвига
-          const year = day.getFullYear();
-          const month = String(day.getMonth() + 1).padStart(2, "0");
-          const dayNum = String(day.getDate()).padStart(2, "0");
-          const dateStr = `${year}-${month}-${dayNum}`;
-          weekDaysPromises.push(
-            api.get(`/planner/days/${dateStr}`).catch(() => ({ data: null })),
-          );
+  // Добавьте эту функцию после других локальных функций обновления
+  const toggleDayImportanceLocally = (date: string, newStatus: boolean) => {
+    // Обновляем weekPlan
+    setWeekPlan((prevWeekPlan) => {
+      const newWeekPlan = [...prevWeekPlan];
+      for (let week of newWeekPlan) {
+        const dayIndex = week.days.findIndex((d: any) => d.date === date);
+        if (dayIndex !== -1) {
+          week.days[dayIndex].isImportant = newStatus;
+          break;
         }
-
-        const responses = await Promise.all(weekDaysPromises);
-        const weekDaysData = responses.map((res, index) => {
-          const day = new Date(weekStart);
-          day.setDate(weekStart.getDate() + index);
-          const year = day.getFullYear();
-          const month = String(day.getMonth() + 1).padStart(2, "0");
-          const dayNum = String(day.getDate()).padStart(2, "0");
-          const dateStr = `${year}-${month}-${dayNum}`;
-          const data = res?.data;
-          return {
-            date: dateStr,
-            dayOfWeek: weekDays[index],
-            dayNumber: day.getDate(),
-            isImportant: data?.is_important || false,
-            notes: data?.notes || "",
-            tasks: data?.tasks || [],
-          };
-        });
-
-        weeksData.push({
-          weekNumber: week + 1,
-          days: weekDaysData,
-          startDate: formatDate(weekStart),
-        });
       }
-      setWeekPlan(weeksData);
-    } catch (error) {
-      console.error("Failed to load week plan:", error);
-    }
+      return newWeekPlan;
+    });
+
+    // Обновляем months
+    setMonths((prevMonths) => {
+      const newMonths = [...prevMonths];
+      for (let month of newMonths) {
+        const dayIndex = month.days.findIndex((d: any) => d.date === date);
+        if (dayIndex !== -1) {
+          month.days[dayIndex].is_important = newStatus;
+          break;
+        }
+      }
+      return newMonths;
+    });
   };
+
+  // Замените существующую функцию toggleDayImportance на эту:
   const toggleDayImportance = async (date: string, currentStatus: boolean) => {
     try {
       const dayResponse = await api.get(`/planner/days/${date}`);
@@ -383,31 +480,17 @@ export default function PlannerPage() {
         is_important: !currentStatus,
       });
 
-      // Обновляем недельный план
-      await loadWeekPlan();
-
-      // Обновляем все три месяца
-      await updateMonths();
+      // Локально обновляем состояние без перезагрузки
+      toggleDayImportanceLocally(date, !currentStatus);
 
       showToast(
         !currentStatus ? "День отмечен как важный" : "Важность дня снята",
         "success",
       );
     } catch (error) {
-      console.error("Failed to toggle importance:", error);
       showToast("Ошибка", "error");
     }
   };
-  // Загружаем данные при изменении currentDate или выбранного месяца внизу
-  useEffect(() => {
-    if (isAuthenticated) {
-      loadMonths();
-      loadWeekPlan();
-      loadGoalsAndNotes();
-    }
-  }, [currentDate, selectedMonth, selectedYear, isAuthenticated]);
-  // Функция для обновления только месяцев (без полной перезагрузки)
-  // Синхронизируем данные между недельным планом и месяцами
   const loadGoalsAndNotes = async () => {
     try {
       const response = await api.get(
@@ -418,9 +501,7 @@ export default function PlannerPage() {
         setWeeklyGoals(response.data.weekly_goals || {});
         setWeeklyNotes(response.data.weekly_notes || {});
       }
-    } catch (error) {
-      console.error("Failed to load goals:", error);
-    }
+    } catch (error) {}
   };
 
   const saveMonthlyGoal = async () => {
@@ -433,7 +514,6 @@ export default function PlannerPage() {
       setEditingMonthlyGoal(false);
       showToast("Цель на месяц сохранена", "success");
     } catch (error) {
-      console.error("Failed to save monthly goal:", error);
       showToast("Ошибка сохранения", "error");
     }
   };
@@ -448,7 +528,6 @@ export default function PlannerPage() {
       setEditingWeeklyGoal(null);
       showToast("Цель на неделю сохранена", "success");
     } catch (error) {
-      console.error("Failed to save weekly goal:", error);
       showToast("Ошибка сохранения", "error");
     }
   };
@@ -463,23 +542,38 @@ export default function PlannerPage() {
       setEditingWeeklyNote(null);
       showToast("Заметка сохранена", "success");
     } catch (error) {
-      console.error("Failed to save weekly note:", error);
       showToast("Ошибка сохранения", "error");
     }
+  };
+
+  const toggleTaskLocally = (taskId: string) => {
+    setWeekPlan((prevWeekPlan) => {
+      const newWeekPlan = [...prevWeekPlan];
+      for (let week of newWeekPlan) {
+        for (let day of week.days) {
+          const taskIndex = day.tasks.findIndex((t: any) => t.id === taskId);
+          if (taskIndex !== -1) {
+            day.tasks[taskIndex].is_completed =
+              !day.tasks[taskIndex].is_completed;
+            break;
+          }
+        }
+      }
+      return newWeekPlan;
+    });
   };
 
   const toggleTaskCompletion = async (taskId: string) => {
     try {
       await api.patch(`/planner/tasks/${taskId}/toggle`);
-      await loadWeekPlan();
+
+      toggleTaskLocally(taskId);
+
       showToast("Задача обновлена", "success");
     } catch (error) {
-      console.error("Failed to toggle task:", error);
       showToast("Ошибка", "error");
     }
   };
-
-  // Замените существующую функцию addQuickTask на эту:
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [tempTaskDay, setTempTaskDay] = useState("");
   const [tempTaskTitle, setTempTaskTitle] = useState("");
@@ -495,9 +589,14 @@ export default function PlannerPage() {
     setTempTaskEnd("10:00");
     setShowAddTaskModal(true);
   };
-
   const addTaskFromModal = async () => {
     if (!tempTaskTitle.trim() || !tempTaskDay) return;
+
+    // Блокируем кнопку, чтобы избежать повторных кликов
+    const saveButton = document.querySelector(
+      ".save-task-button",
+    ) as HTMLButtonElement;
+    if (saveButton) saveButton.disabled = true;
 
     try {
       const dayResponse = await api.get(`/planner/days/${tempTaskDay}`);
@@ -511,27 +610,76 @@ export default function PlannerPage() {
         plannerDayId = createResponse.data?.id;
       }
 
-      await api.post("/planner/tasks", {
+      const response = await api.post("/planner/tasks", {
         title: tempTaskTitle,
         description: "",
         start_time: tempTaskStart,
         end_time: tempTaskEnd,
-        color: tempTaskColor, // Убедитесь что используется tempTaskColor
+        color: tempTaskColor,
         planner_day_id: plannerDayId,
         position: 0,
       });
+
+      // Проверяем, не существует ли уже такая задача (по заголовку и времени)
+      let taskExists = false;
+      for (const week of weekPlan) {
+        for (const day of week.days) {
+          if (day.date === tempTaskDay) {
+            taskExists = day.tasks.some(
+              (t: any) =>
+                t.title === tempTaskTitle &&
+                t.start_time === tempTaskStart &&
+                t.end_time === tempTaskEnd,
+            );
+            break;
+          }
+        }
+      }
+
+      if (!taskExists) {
+        const newTask = {
+          id: response.data.id,
+          title: tempTaskTitle,
+          description: "",
+          start_time: tempTaskStart,
+          end_time: tempTaskEnd,
+          color: tempTaskColor,
+          is_completed: false,
+          position: 0,
+        };
+
+        addTaskLocally(tempTaskDay, newTask);
+        showToast("Задача добавлена", "success");
+      } else {
+        showToast("Такая задача уже существует", "warning");
+      }
 
       setShowAddTaskModal(false);
       setTempTaskTitle("");
       setTempTaskColor("yellow");
       setTempTaskDay("");
-      await loadWeekPlan();
-      showToast("Задача добавлена", "success");
     } catch (error) {
-      console.error("Failed to add task:", error);
       showToast("Ошибка добавления", "error");
+    } finally {
+      if (saveButton) saveButton.disabled = false;
     }
   };
+  const updateTaskLocally = (taskId: string, updatedTask: any) => {
+    setWeekPlan((prevWeekPlan) => {
+      const newWeekPlan = [...prevWeekPlan];
+      for (let week of newWeekPlan) {
+        for (let day of week.days) {
+          const taskIndex = day.tasks.findIndex((t: any) => t.id === taskId);
+          if (taskIndex !== -1) {
+            day.tasks[taskIndex] = { ...day.tasks[taskIndex], ...updatedTask };
+            break;
+          }
+        }
+      }
+      return newWeekPlan;
+    });
+  };
+
   const updateTask = async () => {
     if (!editTaskTitle.trim() || !editingTask) return;
 
@@ -543,16 +691,40 @@ export default function PlannerPage() {
         end_time: editTaskEnd,
         color: editTaskColor,
       });
+
+      // Локально обновляем задачу
+      updateTaskLocally(editingTask.id, {
+        title: editTaskTitle,
+        start_time: editTaskStart,
+        end_time: editTaskEnd,
+        color: editTaskColor,
+      });
+
       setShowEditModal(false);
       setEditingTask(null);
-      await loadWeekPlan();
       showToast("Задача обновлена", "success");
     } catch (error) {
-      console.error("Failed to update task:", error);
       showToast("Ошибка обновления", "error");
     }
   };
 
+  // Функция для локального удаления задачи
+  const deleteTaskLocally = (taskId: string, dayDate: string) => {
+    setWeekPlan((prevWeekPlan) => {
+      const newWeekPlan = [...prevWeekPlan];
+      for (let week of newWeekPlan) {
+        for (let day of week.days) {
+          if (day.date === dayDate) {
+            day.tasks = day.tasks.filter((t: any) => t.id !== taskId);
+            break;
+          }
+        }
+      }
+      return newWeekPlan;
+    });
+  };
+
+  // Обновите deleteTask
   const deleteTask = async (taskId: string) => {
     const confirmed = await showConfirm(
       "Удалить задачу?",
@@ -561,16 +733,28 @@ export default function PlannerPage() {
     );
     if (confirmed) {
       try {
+        // Находим день, в котором находится задача
+        let taskDay = "";
+        for (const week of weekPlan) {
+          for (const day of week.days) {
+            if (day.tasks.some((t: any) => t.id === taskId)) {
+              taskDay = day.date;
+              break;
+            }
+          }
+        }
+
         await api.delete(`/planner/tasks/${taskId}`);
-        await loadWeekPlan();
+
+        // Локально удаляем задачу
+        deleteTaskLocally(taskId, taskDay);
+
         showToast("Задача удалена", "success");
       } catch (error) {
-        console.error("Failed to delete task:", error);
         showToast("Ошибка удаления", "error");
       }
     }
   };
-
   const openEditTaskModal = (task: any) => {
     setEditingTask(task);
     setEditTaskTitle(task.title);
@@ -596,19 +780,20 @@ export default function PlannerPage() {
     d.setHours(0, 0, 0, 0);
     return d;
   }
-  const prevMonthPeriod = () => {
-    const newDate = new Date(currentDate);
-    newDate.setMonth(currentDate.getMonth() - 3);
-    setCurrentDate(newDate);
-    // useEffect сработает автоматически
-  };
 
-  const nextMonthPeriod = () => {
-    const newDate = new Date(currentDate);
-    newDate.setMonth(currentDate.getMonth() + 3);
-    setCurrentDate(newDate);
-    // useEffect сработает автоматически
-  };
+  const prevMonthPeriod = useCallback(() => {
+    const newDate = new Date(calendarDateRef.current);
+    newDate.setMonth(calendarDateRef.current.getMonth() - 3);
+    calendarDateRef.current = newDate;
+    loadMonthsOnly();
+  }, [loadMonthsOnly]);
+
+  const nextMonthPeriod = useCallback(() => {
+    const newDate = new Date(calendarDateRef.current);
+    newDate.setMonth(calendarDateRef.current.getMonth() + 3);
+    calendarDateRef.current = newDate;
+    loadMonthsOnly();
+  }, [loadMonthsOnly]);
   const prevMonthForWeek = () => {
     if (selectedMonth === 0) {
       setSelectedMonth(11);
@@ -616,6 +801,7 @@ export default function PlannerPage() {
     } else {
       setSelectedMonth(selectedMonth - 1);
     }
+    loadWeekPlanOnly();
   };
 
   const nextMonthForWeek = () => {
@@ -625,8 +811,10 @@ export default function PlannerPage() {
     } else {
       setSelectedMonth(selectedMonth + 1);
     }
+    loadWeekPlanOnly();
   };
 
+  const isLoadingMonths = loadingMonths || loading;
   const getFirstDayOfMonth = (year: number, month: number) => {
     return new Date(year, month - 1, 1).getDay();
   };
@@ -639,7 +827,7 @@ export default function PlannerPage() {
     );
   };
 
-  if (isLoading || loading) {
+  if (isLoading || loadingMonths) {
     return <Loading></Loading>;
   }
 
@@ -666,7 +854,6 @@ export default function PlannerPage() {
           </button>
         </div>
 
-        {/* Календарь месяцев */}
         <div className="mb-12">
           <div className="flex justify-end mb-6 gap-3">
             <button
@@ -759,7 +946,6 @@ export default function PlannerPage() {
           </div>
         </div>
 
-        {/* Панель настройки тегов */}
         <div className=" rounded-xl p-4 mb-6">
           <div className="flex items-center gap-2 mb-3">
             <Tag className="w-5 h-5 text-pink-800" />
@@ -773,8 +959,10 @@ export default function PlannerPage() {
                 <div
                   className={`flex items-center gap-2 p-2 rounded-lg ${color.bg}`}
                 >
-                  <div className={`w-4 h-4 rounded-full ${color.base}`} />
-                  <span className="text-sm font-medium">
+                  <div
+                    className={`min-w-4 min-h-4 rounded-full ${color.base}`}
+                  />
+                  <span className="text-sm font-medium max-w-[190px] overflow-x-auto">
                     {tagNames[color.name] ? tagNames[color.name] : color.label}
                   </span>
                   <button
@@ -792,7 +980,6 @@ export default function PlannerPage() {
           </div>
         </div>
 
-        {/* Модальное окно редактирования тега */}
         {editingTag && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl p-6 max-w-md w-full">
@@ -844,7 +1031,6 @@ export default function PlannerPage() {
             </div>
           </div>
         )}
-        {/* Недельный план */}
         <div className="mt-12 pt-8 border-t-[1px] border-pink-200">
           <button
             onClick={() => setIsWeekVisible(!isWeekVisible)}
@@ -1214,7 +1400,7 @@ export default function PlannerPage() {
                                       />
                                       <div className="flex gap-2">
                                         <div className="flex-1 flex gap-1">
-                                          {colors.slice(0, 6).map((color) => (
+                                          {colors.slice(0, 12).map((color) => (
                                             <button
                                               key={color.name}
                                               onClick={() =>
@@ -1336,7 +1522,7 @@ export default function PlannerPage() {
               <div>
                 <label className="block text-sm text-gray-600 mb-2">Цвет</label>
                 <div className="flex gap-2">
-                  {colors.slice(0, 6).map((color) => (
+                  {colors.slice(0, 12).map((color) => (
                     <button
                       key={color.name}
                       onClick={() => setTempTaskColor(color.name)} // ИСПРАВЛЕНО: было setEditTaskColor
@@ -1423,7 +1609,7 @@ export default function PlannerPage() {
               <div>
                 <label className="block text-sm text-gray-600 mb-2">Цвет</label>
                 <div className="flex gap-2">
-                  {colors.slice(0, 6).map((color) => (
+                  {colors.slice(0, 12).map((color) => (
                     <button
                       key={color.name}
                       onClick={() => setEditTaskColor(color.name)}

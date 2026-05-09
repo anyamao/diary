@@ -24,7 +24,6 @@ const phq9Questions = [
   "Мысли о том, что лучше умереть, или о самоповреждении",
 ];
 
-// ТАКИЕ ЖЕ кружочки как в тесте личности (7 вариантов, но используем 4)
 const options = [
   {
     value: 0,
@@ -97,7 +96,6 @@ export default function DepressionTest() {
         setTestStarted(false);
       }
     } catch (error) {
-      console.error("Failed to load existing result:", error);
     } finally {
       setLoading(false);
     }
@@ -174,7 +172,6 @@ ${recommendation}
       setTestStarted(false);
       showToast("Результат сохранён", "success");
     } catch (error) {
-      console.error("Failed to save result:", error);
       showToast("Ошибка сохранения результата", "error");
     } finally {
       setSavingResult(false);
@@ -213,7 +210,6 @@ ${recommendation}
     return <div className="text-center py-8">Загрузка...</div>;
   }
 
-  // Показываем результат, если он есть и тест не был начат заново
   if (hasExistingResult && result && !testStarted) {
     const getPercentage = () => {
       if (totalScore === null) return 0;

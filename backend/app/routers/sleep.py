@@ -19,10 +19,16 @@ async def update_sleep_record(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Обновить запись о сне за конкретный день"""
+    print(f"=== UPDATE SLEEP RECORD ===")
+    print(f"day_date: {day_date}")
+    print(f"user_id: {current_user.id}")
+    print(f"data: {data}")
+
     try:
         record_date = date.fromisoformat(day_date)
         segments = data.get("segments", [])
+        notes = data.get("notes", "")
+        print(f"Notes to save: '{notes}'")
 
         # Проверяем существует ли запись
         check_query = text("""
@@ -33,12 +39,13 @@ async def update_sleep_record(
             check_query, {"user_id": current_user.id, "date": record_date}
         )
         row = result.fetchone()
+        print(f"Existing record found: {row is not None}")
 
         if row:
             # Обновляем существующую
             update_query = text("""
                 UPDATE sleep_records
-                SET segments = :segments, updated_at = NOW()
+                SET segments = :segments, notes = :notes, updated_at = NOW()
                 WHERE user_id = :user_id AND date = :date
             """)
             await db.execute(
@@ -47,13 +54,15 @@ async def update_sleep_record(
                     "user_id": current_user.id,
                     "date": record_date,
                     "segments": json.dumps(segments),
+                    "notes": notes,
                 },
             )
+            print("Record updated")
         else:
-            # Создаем новую
+            # Создаем новую (хотя по логике не должно сюда попасть)
             insert_query = text("""
-                INSERT INTO sleep_records (id, user_id, date, segments)
-                VALUES (gen_random_uuid(), :user_id, :date, :segments)
+                INSERT INTO sleep_records (id, user_id, date, segments, notes)
+                VALUES (gen_random_uuid(), :user_id, :date, :segments, :notes)
             """)
             await db.execute(
                 insert_query,
@@ -61,13 +70,19 @@ async def update_sleep_record(
                     "user_id": current_user.id,
                     "date": record_date,
                     "segments": json.dumps(segments),
+                    "notes": notes,
                 },
             )
+            print("Record created")
 
         await db.commit()
+        print("Transaction committed")
         return {"message": "Sleep record saved successfully"}
     except Exception as e:
         print(f"Error saving sleep record: {e}")
+        import traceback
+
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 

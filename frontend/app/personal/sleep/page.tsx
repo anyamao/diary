@@ -53,7 +53,6 @@ const fullWeekDays = [
   "Воскресенье",
 ];
 
-// Типы снов с PNG иконками
 const dreamTypes = {
   noemotions: {
     name: "Без эмоций",
@@ -104,7 +103,6 @@ export default function SleepPage() {
       setRecords(recordsRes.data);
       setAllNotes(notesRes.data);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
       showToast("Ошибка загрузки данных", "error");
     } finally {
       setLoading(false);
@@ -366,7 +364,6 @@ export default function SleepPage() {
         showToast("Запись о сне успешно удалена!", "success");
         await fetchAllData();
       } catch (error) {
-        console.error("Failed to delete record:", error);
         showToast("Ошибка при удалении записи", "error");
       }
     }
@@ -450,7 +447,6 @@ export default function SleepPage() {
           </div>
         )}
 
-        {/* Статистика */}
         <div className="grid md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow-md p-4 text-center">
             <p className="text-gray-500 text-sm">Записей о сне</p>
@@ -579,7 +575,6 @@ export default function SleepPage() {
             )}
           </div>
         </div>
-        {/* Таблица по дням недели */}
         <div className="bg-white hidden md:block rounded-lg shadow-md mt-[20px] p-6 mb-8">
           <h2 className="text-xl font-semibold text-pink-950 mb-4">
             Статистика по дням недели
@@ -633,8 +628,6 @@ export default function SleepPage() {
           </div>
         </div>
 
-        {/* График динамики сна */}
-
         {trendData.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-3 sm:p-6 text-xs sm:text-sm  mb-8">
             <h2 className="text-xl font-semibold text-pink-800 mb-4">
@@ -673,7 +666,6 @@ export default function SleepPage() {
           </div>
         )}
 
-        {/* Типы снов - круговая диаграмма */}
         {dreamTypeStats.length > 0 && (
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
@@ -726,8 +718,6 @@ export default function SleepPage() {
             </div>
           </div>
         )}
-
-        {/* Список записей */}
       </div>
     </div>
   );

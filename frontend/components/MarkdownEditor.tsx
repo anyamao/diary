@@ -19,7 +19,6 @@ export default function MarkdownEditor({
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Автоматически изменяем высоту при изменении value и при переключении на вкладку write
   useEffect(() => {
     if (activeTab === "write" && textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -29,7 +28,6 @@ export default function MarkdownEditor({
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
-    // Мгновенное изменение высоты при вводе
     e.target.style.height = "auto";
     e.target.style.height = `${e.target.scrollHeight}px`;
   };

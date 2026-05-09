@@ -112,7 +112,6 @@ export default function SleepInDiary({
         setSleepNotes(notesResponse.data);
       }
     } catch (error) {
-      console.error("Failed to fetch sleep record by ID:", error);
       showToast("Ошибка загрузки записи", "error");
     } finally {
       setLoading(false);
@@ -140,7 +139,6 @@ export default function SleepInDiary({
         setGeneralSleepNote("");
       }
     } catch (error) {
-      console.error("Failed to fetch sleep record by date:", error);
     } finally {
       setLoading(false);
     }
@@ -241,26 +239,29 @@ export default function SleepInDiary({
         return response.data.id;
       }
     } catch (err) {
-      console.error("Save error:", err);
       showToast("Ошибка сохранения данных о сне", "error");
       return null;
     }
   };
 
   const saveNote = async (note: SleepNote) => {
-    if (!sleepRecord?.id) {
+    const recordId = sleepRecord?.id;
+
+    if (!recordId) {
       const response = await api.post(`/sleep/records/${currentDate}`, {
         segments,
-        notes: "",
+        notes: generalSleepNote,
       });
+      const newRecordId = response.data.id;
       setSleepRecord(response.data);
+
       return await api.post(`/sleep-notes/`, {
         title: note.title,
         content: note.content,
         dream_type: note.dream_type,
         wake_mood: note.wake_mood,
         tags: note.tags,
-        sleep_record_id: response.data.id,
+        sleep_record_id: newRecordId,
       });
     }
 
@@ -270,10 +271,9 @@ export default function SleepInDiary({
       dream_type: note.dream_type,
       wake_mood: note.wake_mood,
       tags: note.tags,
-      sleep_record_id: sleepRecord.id,
+      sleep_record_id: recordId,
     });
   };
-
   const updateNote = async (noteId: string, note: SleepNote) => {
     await api.put(`/sleep-notes/${noteId}`, {
       title: note.title,
@@ -312,7 +312,6 @@ export default function SleepInDiary({
       setIsEditingGeneralNote(false);
       if (onSleepSaved) onSleepSaved();
     } catch (err) {
-      console.error("Error deleting general note:", err);
       showToast("Ошибка удаления заметки", "error");
     } finally {
       setSaving(false);
@@ -334,18 +333,18 @@ export default function SleepInDiary({
         return;
       }
 
-      await api.put(`/sleep/records/${currentDate}`, {
+      const response = await api.put(`/sleep/records/${currentDate}`, {
         segments,
         notes: generalSleepNote,
       });
+
       setSleepRecord((prev) =>
         prev ? { ...prev, notes: generalSleepNote } : prev,
       );
       showToast("Общая заметка о сне сохранена", "success");
       setIsEditingGeneralNote(false);
       if (onSleepSaved) onSleepSaved();
-    } catch (err) {
-      console.error("Error saving general note:", err);
+    } catch (err: any) {
       showToast("Ошибка сохранения заметки", "error");
     } finally {
       setSaving(false);
@@ -362,22 +361,32 @@ export default function SleepInDiary({
 
     setSaving(true);
     try {
-      const recordId = await saveSleepData();
-      if (!recordId && !sleepRecord?.id) {
-        showToast("Ошибка сохранения данных о сне", "error");
-        return;
+      let recordId = sleepRecord?.id;
+
+      if (!recordId) {
+        const response = await api.post(`/sleep/records/${currentDate}`, {
+          segments,
+          notes: generalSleepNote,
+        });
+        recordId = response.data.id;
+        setSleepRecord(response.data);
       }
-      const newNote: SleepNote = {
-        id: `temp_${Date.now()}`,
+
+      // Создаём заметку
+      const noteData = {
         title: noteForm.title,
         content: noteForm.content,
         dream_type: noteForm.dream_type || "noemotions",
         wake_mood: noteForm.wake_mood || null,
         tags: noteForm.tags,
+        sleep_record_id: recordId,
       };
 
-      await saveNote(newNote);
-      await fetchSleepRecordByDate(currentDate);
+      const noteResponse = await api.post("/sleep-notes/", noteData);
+
+      const notesResponse = await api.get(`/sleep-notes/record/${recordId}`);
+      setSleepNotes(notesResponse.data);
+
       setAddingNote(false);
       setNoteForm({
         title: "",
@@ -389,14 +398,15 @@ export default function SleepInDiary({
       });
       showToast("Заметка о сне добавлена", "success");
       if (onSleepSaved) onSleepSaved();
-    } catch (err) {
-      console.error("Error adding note:", err);
-      showToast("Ошибка добавления заметки", "error");
+    } catch (err: any) {
+      showToast(
+        err.response?.data?.detail || "Ошибка добавления заметки",
+        "error",
+      );
     } finally {
       setSaving(false);
     }
   };
-
   const handleUpdateNote = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -429,7 +439,6 @@ export default function SleepInDiary({
       showToast("Заметка обновлена", "success");
       if (onSleepSaved) onSleepSaved();
     } catch (err) {
-      console.error("Error updating note:", err);
       showToast("Ошибка обновления заметки", "error");
     } finally {
       setSaving(false);
@@ -454,7 +463,6 @@ export default function SleepInDiary({
         showToast("Заметка удалена", "success");
         if (onSleepSaved) onSleepSaved();
       } catch (err) {
-        console.error("Error deleting note:", err);
         showToast("Ошибка удаления заметки", "error");
       } finally {
         setSaving(false);
@@ -489,7 +497,6 @@ export default function SleepInDiary({
       tagInput: "",
     });
   };
-
   const cancelEdit = () => {
     setEditingNoteId(null);
     setAddingNote(false);
@@ -639,7 +646,6 @@ export default function SleepInDiary({
         )}
       </div>
 
-      {/* Общая заметка о сне */}
       <div className="mt-4 bg-white rounded-lg max-w-[400px] sm:max-w-[1200px] border-[1px] flex-1 w-full border-pink-300 shadow-sm p-4">
         <div className="flex justify-between items-center mb-2">
           <label className="text-sm font-semibold text-pink-800">

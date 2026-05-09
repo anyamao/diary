@@ -13,13 +13,11 @@ import SleepInDiary from "@/components/SleepInDiary";
 import { eventBus } from "@/lib/eventBus";
 import { showToast } from "@/components/Toast";
 
-// Функция для получения даты в UTC без смещения
 const getUTCDate = () => {
   const now = new Date();
   return new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 };
 
-// Форматирование даты для отображения
 const formatDisplayDate = (dateString: string) => {
   const date = new Date(dateString);
   return {
@@ -68,13 +66,11 @@ export default function NewEntryPage() {
         created_at: formData.created_at,
       };
 
-      console.log("Sending entry:", entryData);
       await api.post("/diary/entries", entryData);
       eventBus.emit("diary-entry-created");
       showToast("Запись успешно создана!", "success");
       router.push("/personal/diary");
     } catch (error: any) {
-      console.error("Failed to save entry:", error);
       const errorMsg =
         error.response?.data?.detail?.[0]?.msg ||
         error.response?.data?.detail ||

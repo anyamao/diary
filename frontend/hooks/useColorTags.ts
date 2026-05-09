@@ -19,7 +19,6 @@ export const useColorTags = () => {
       setTags(tagsMap);
       setLoading(false);
     } catch (error) {
-      console.error("Failed to load color tags:", error);
       setLoading(false);
     }
   }, []);
@@ -30,13 +29,10 @@ export const useColorTags = () => {
         color: color,
         tag_name: tagName,
       });
-      // Обновляем локальное состояние
       setTags((prev) => ({ ...prev, [color]: tagName }));
-      // Триггерим событие для синхронизации
       window.dispatchEvent(new Event("color-tags-updated"));
       return true;
     } catch (error) {
-      console.error("Failed to save color tag:", error);
       return false;
     }
   }, []);
@@ -44,7 +40,6 @@ export const useColorTags = () => {
   const deleteTag = useCallback(async (color: string) => {
     try {
       await api.delete(`/planner/tags/${color}`);
-      // Обновляем локальное состояние
       setTags((prev) => {
         const newTags = { ...prev };
         delete newTags[color];
@@ -53,7 +48,6 @@ export const useColorTags = () => {
       window.dispatchEvent(new Event("color-tags-updated"));
       return true;
     } catch (error) {
-      console.error("Failed to delete color tag:", error);
       return false;
     }
   }, []);
@@ -62,7 +56,6 @@ export const useColorTags = () => {
     loadTags();
   }, [loadTags]);
 
-  // Слушаем события обновления
   useEffect(() => {
     const handleUpdate = () => {
       loadTags();

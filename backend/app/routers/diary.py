@@ -8,6 +8,8 @@ from app.dependencies import get_current_user
 from app.models import User
 from app.notification_service import NotificationService
 import logging
+from datetime import datetime, date
+from typing import Optional, List
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -103,3 +105,72 @@ async def delete_entry(
     deleted = await crud.delete_diary_entry(db, entry_id, current_user.id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Entry not found")
+
+
+@router.get("/entries/filtered", response_model=List[schemas.DiaryEntryResponse])
+async def get_filtered_entries(
+    search: Optional[str] = None,
+    mood: Optional[str] = None,
+    is_favorite: Optional[bool] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
+    skip: int = 0,
+    limit: int = 100,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Получение записей дневника с фильтрацией на бэкенде
+    """
+    print(
+        f"Received params: search={search}, mood={mood}, is_favorite={is_favorite}, date_from={date_from}, date_to={date_to}, sort_by={sort_by}, sort_order={sort_order}"
+    )
+    # Преобразуем пустые строки в None
+    search = search if search and search.strip() else None
+    mood = mood if mood and mood.strip() else None
+    date_from = date_from if date_from and date_from.strip() else None
+    date_to = date_to if date_to and date_to.strip() else None
+
+    return await crud.get_filtered_diary_entries(
+        db,
+        current_user.id,
+        search,
+        mood,
+        is_favorite,
+        date_from,
+        date_to,
+        sort_by,
+        sort_order,
+        skip,
+        limit,
+    )
+
+
+@router.get("/entries/stats")
+async def get_entries_stats(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Получение статистики записей (для фильтров)"""
+    from sqlalchemy import text
+
+    query = """
+        SELECT 
+            COUNT(*) as total,
+            COUNT(CASE WHEN is_favorite = true THEN 1 END) as favorite_count,
+            MIN(DATE(created_at)) as first_entry_date,
+            MAX(DATE(created_at)) as last_entry_date
+        FROM diary_entries
+        WHERE user_id = :user_id
+    """
+    result = await db.execute(text(query), {"user_id": current_user.id})
+    row = result.fetchone()
+
+    return {
+        "total": row[0],
+        "favorite_count": row[1],
+        "first_entry_date": row[2],
+        "last_entry_date": row[3],
+    }

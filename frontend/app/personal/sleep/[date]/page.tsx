@@ -28,7 +28,6 @@ export default function EditSleepPage() {
     if (!isSaved) {
       setIsSaved(true);
       showToast("Запись о сне успешно обновлена!", "success");
-      // Не делаем автоматический редирект
     }
   };
 

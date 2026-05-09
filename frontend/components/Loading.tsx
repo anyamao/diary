@@ -3,9 +3,7 @@ import React, { useState, useEffect } from "react";
 function Loading() {
   return (
     <div className="flex w-[105%] ml-[-10px] justify-center fixed z-40 bg-pink-50 min-h-[1200px]">
-      {/* Круговой контейнер */}
       <div className="relative w-[220px] mt-[200px] ml-[-20px] h-[220px]">
-        {/* Линия 1 - верхняя граница, вращается ПО часовой */}
         <div
           className="absolute inset-[5px] rounded-full border-4 border-transparent border-t-pink-300"
           style={{
@@ -30,7 +28,6 @@ function Loading() {
           }}
         />
 
-        {/* Линия 3 - нижняя граница, вращается ПО часовой (медленно) */}
         <div
           className="absolute inset-[25px] rounded-full border-4 border-transparent border-b-pink-300"
           style={{
@@ -46,9 +43,6 @@ function Loading() {
           }}
         />
 
-        {/* Линия 4 - левая граница, вращается ПРОТИВ часовой (быстро) */}
-
-        {/* Центральное изображение */}
         <div className="flex flex-col items-center justify-center h-full">
           <img
             src="/diary_like.png"
@@ -62,7 +56,6 @@ function Loading() {
   );
 }
 
-// Компонент для печатающегося текста
 const TypingText = () => {
   const [displayedText, setDisplayedText] = React.useState("");
   const [messageIndex, setMessageIndex] = React.useState(0);

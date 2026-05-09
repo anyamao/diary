@@ -82,7 +82,6 @@ export default function ToastContainer() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   useEffect(() => {
-    // Подписываемся на глобальные события
     const handleShowToast = (event: CustomEvent<Omit<ToastMessage, "id">>) => {
       const newToast: ToastMessage = {
         id: Date.now().toString(),
@@ -116,7 +115,6 @@ export default function ToastContainer() {
   );
 }
 
-// Вспомогательные функции для показа уведомлений
 export const showToast = (
   message: string,
   type: ToastType = "info",

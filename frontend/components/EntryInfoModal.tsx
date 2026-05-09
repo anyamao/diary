@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { X, Calendar, Clock, FileText, Edit, Star } from 'lucide-react';
+import { X, Calendar, Clock, FileText, Edit, Star } from "lucide-react";
 
 interface EntryInfoModalProps {
   createdAt: string;
@@ -11,22 +11,22 @@ interface EntryInfoModalProps {
   onClose: () => void;
 }
 
-export default function EntryInfoModal({ 
-  createdAt, 
-  updatedAt, 
-  contentLength, 
+export default function EntryInfoModal({
+  createdAt,
+  updatedAt,
+  contentLength,
   titleLength,
   isFavorite,
-  onClose 
+  onClose,
 }: EntryInfoModalProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return date.toLocaleString("ru-RU", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -36,7 +36,9 @@ export default function EntryInfoModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
       <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-gray-800">Информация о записи</h3>
+          <h3 className="text-lg font-semibold text-gray-800">
+            Информация о записи
+          </h3>
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded-full transition"
@@ -58,7 +60,9 @@ export default function EntryInfoModal({
             <div className="flex items-start gap-3">
               <Edit className="w-5 h-5 text-pink-500 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-gray-700">Последнее редактирование</p>
+                <p className="text-sm font-medium text-gray-700">
+                  Последнее редактирование
+                </p>
                 <p className="text-sm text-gray-600">{formatDate(updatedAt)}</p>
               </div>
             </div>
@@ -85,7 +89,9 @@ export default function EntryInfoModal({
               <Star className="w-5 h-5 text-yellow-500 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-gray-700">Избранное</p>
-                <p className="text-sm text-gray-600">Эта запись отмечена как избранная</p>
+                <p className="text-sm text-gray-600">
+                  Эта запись отмечена как избранная
+                </p>
               </div>
             </div>
           )}

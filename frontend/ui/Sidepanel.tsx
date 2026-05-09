@@ -40,7 +40,6 @@ export default function Sidepanel({
       const response = await api.get("/diary/entries");
       setEntries(response.data);
     } catch (error) {
-      console.error("Failed to fetch entries:", error);
     } finally {
       setLoading(false);
     }
@@ -56,9 +55,7 @@ export default function Sidepanel({
         if (pathname === `/personal/diary/${id}/edit`) {
           router.push("/personal/diary");
         }
-      } catch (error) {
-        console.error("Failed to delete:", error);
-      }
+      } catch (error) {}
     }
   };
 

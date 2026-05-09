@@ -73,6 +73,7 @@ export default function ProfileModal({
       useAuthStore.getState().setUser(updatedUser);
 
       setUsername(newUsername);
+      window.dispatchEvent(new Event("user-updated"));
       setIsEditing(false);
     } catch (error: any) {
       console.error("Failed to update username:", error);
@@ -151,7 +152,6 @@ export default function ProfileModal({
           </div>
         </div>
 
-        {/* Content */}
         <div className="p-6 space-y-6">
           {/* Avatar selection */}
           <div className="">
@@ -182,7 +182,7 @@ export default function ProfileModal({
                   <img
                     src={avatar.src}
                     alt={avatar.name}
-                    className="w-16 h-16 rounded-full mx-auto border-2 border-pink-200 object-cover"
+                    className="min-w-11 min-h-11 rounded-full mx-auto border-2 border-pink-200 object-cover"
                   />
                   {currentAvatar === avatar.id && (
                     <div className="absolute top-1 right-1 bg-pink-500 rounded-full p-1">
@@ -194,7 +194,6 @@ export default function ProfileModal({
             </div>
           </div>
 
-          {/* Email (неизменяемый) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Email
@@ -205,7 +204,6 @@ export default function ProfileModal({
             <p className="text-xs text-gray-500 mt-1">Email нельзя изменить</p>
           </div>
 
-          {/* Username */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Имя пользователя
@@ -225,7 +223,6 @@ export default function ProfileModal({
                   disabled={isLoading}
                   className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 disabled:opacity-50 flex items-center gap-2"
                 >
-                  <Save className="w-4 h-4" />
                   Сохранить
                 </button>
                 <button
@@ -253,7 +250,6 @@ export default function ProfileModal({
             )}
           </div>
 
-          {/* Additional info */}
           <div className="border-t border-gray-200 pt-4">
             <h3 className="font-semibold text-gray-800 mb-2">О аккаунте</h3>
             <p className="text-sm text-gray-600">
@@ -264,7 +260,6 @@ export default function ProfileModal({
             </p>
           </div>
 
-          {/* Dangerous zone */}
           <div className="border-t-2 border-red-200 pt-4 mt-4">
             <h3 className="text-lg font-semibold text-red-600 mb-3">
               Опасная зона

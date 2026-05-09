@@ -22,7 +22,6 @@ export default function AddSleepPage() {
     if (!isSaved) {
       setIsSaved(true);
       showToast("Запись о сне успешно сохранена!", "success");
-      // Не делаем автоматический редирект, пользователь сам решит когда уйти
     }
   };
 

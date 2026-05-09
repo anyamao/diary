@@ -47,11 +47,8 @@ export default function MiniTimer() {
     }
   }, [isAuthenticated]);
 
-  // Подписываемся на события
   useEffect(() => {
     const handleTimerUpdate = () => {
-      console.log("🔄 MiniTimer: получил событие timer-updated");
-      // Принудительно обновляем данные
       fetchCurrentSession();
       fetchTags();
       loadColorTags();
@@ -59,7 +56,6 @@ export default function MiniTimer() {
 
     window.addEventListener("timer-updated", handleTimerUpdate);
 
-    // Также обновляем данные каждые 5 секунд для надежности
     const interval = setInterval(() => {
       if (isAuthenticated) {
         fetchCurrentSession();
@@ -95,12 +91,7 @@ export default function MiniTimer() {
   const fetchCurrentSession = async () => {
     if (!isAuthenticated) return;
     try {
-      console.log("📡 MiniTimer: запрос текущей сессии...");
       const response = await api.get("/study-timer/current");
-      console.log(
-        "📡 MiniTimer: ответ сервера:",
-        JSON.stringify(response.data, null, 2),
-      );
 
       const wasActive = session?.is_active;
       const isNowActive = response.data.is_active;
@@ -113,15 +104,10 @@ export default function MiniTimer() {
       }
 
       if (wasActive !== isNowActive) {
-        console.log(
-          `🔄 MiniTimer: статус изменился с ${wasActive} на ${isNowActive}`,
-        );
         if (isNowActive) {
         }
       }
-    } catch (error) {
-      console.error("Failed to fetch current session:", error);
-    }
+    } catch (error) {}
   };
 
   const fetchTags = async () => {
@@ -129,9 +115,7 @@ export default function MiniTimer() {
     try {
       const response = await api.get("/study-timer/tags");
       setTags(response.data);
-    } catch (error) {
-      console.error("Failed to fetch tags:", error);
-    }
+    } catch (error) {}
   };
 
   const startTimer = async () => {
@@ -141,7 +125,6 @@ export default function MiniTimer() {
     }
 
     try {
-      console.log("📡 MiniTimer: отправка запроса на старт...");
       await api.post("/study-timer/start", {
         tag: selectedTag,
         description: description || null,
@@ -153,7 +136,6 @@ export default function MiniTimer() {
       setDescription("");
       showToast(`Начата сессия: ${selectedTag}`, "success");
     } catch (error) {
-      console.error("Failed to start timer:", error);
       showToast("Ошибка при запуске таймера", "error");
     }
   };
@@ -166,13 +148,11 @@ export default function MiniTimer() {
     );
     if (confirmed) {
       try {
-        console.log("📡 MiniTimer: отправка запроса на остановку...");
         await api.post("/study-timer/stop");
         await fetchCurrentSession();
         window.dispatchEvent(new Event("timer-updated"));
         showToast("Сессия завершена", "success");
       } catch (error) {
-        console.error("Failed to stop timer:", error);
         showToast("Ошибка при завершении сессии", "error");
       }
     }
@@ -188,7 +168,6 @@ export default function MiniTimer() {
       window.dispatchEvent(new Event("timer-updated"));
       showToast("Описание обновлено", "success");
     } catch (error) {
-      console.error("Failed to update description:", error);
       showToast("Ошибка при обновлении описания", "error");
     }
   };
@@ -320,7 +299,6 @@ export default function MiniTimer() {
           )}
         </div>
       </div>
-
       {showTagModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl">
@@ -346,29 +324,30 @@ export default function MiniTimer() {
                   {colors.map((color) => {
                     const tagName = colorTags[color.name];
                     const displayName = tagName || color.label;
+                    const isSelected = selectedTag === displayName;
 
                     return (
                       <button
                         key={color.name}
                         onClick={() => setSelectedTag(displayName)}
                         className={`
-                          flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-200
-                          ${
-                            selectedTag === displayName
-                              ? `${color.bg} border-${color.name}-500 ring-2 ring-${color.name}-300`
-                              : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
-                          }
-                        `}
+                    flex items-center gap-3 p-3 rounded-xl border-2 transition-all duration-200
+                    ${
+                      isSelected
+                        ? `${color.bg} ${color.border}`
+                        : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm"
+                    }
+                  `}
                       >
                         <div
-                          className={`w-5 h-5 rounded-full ${color.base} shadow-sm`}
+                          className={`min-w-5 min-h-5 rounded-full ${color.base} shadow-sm`}
                         />
                         <span
-                          className={`text-sm font-medium ${selectedTag === displayName ? "text-gray-900" : "text-gray-700"}`}
+                          className={`text-sm max-w-[200px] overflow-x-auto font-medium ${isSelected ? "text-gray-900" : "text-gray-700"}`}
                         >
                           {displayName}
                         </span>
-                        {selectedTag === displayName && (
+                        {isSelected && (
                           <Check className="w-4 h-4 text-green-500 ml-auto" />
                         )}
                       </button>
@@ -395,13 +374,13 @@ export default function MiniTimer() {
                   onClick={startTimer}
                   disabled={!selectedTag}
                   className={`
-                    flex-1 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2
-                    ${
-                      selectedTag
-                        ? "bg-pink-600 text-white shadow-md hover:bg-pink-700"
-                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    }
-                  `}
+              flex-1 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2
+              ${
+                selectedTag
+                  ? "bg-pink-600 text-white shadow-md hover:bg-pink-700"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              }
+            `}
                 >
                   <Play className="w-4 h-4" />
                   Начать сессию

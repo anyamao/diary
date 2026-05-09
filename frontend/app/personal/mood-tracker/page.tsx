@@ -69,7 +69,6 @@ const monthNames = [
 
 type DateFilter = "all" | "week" | "month";
 
-// Функция для форматирования даты в YYYY-MM-DD (UTC)
 const formatUTCDate = (date: Date) => {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -77,13 +76,11 @@ const formatUTCDate = (date: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-// Получение дня недели из UTC даты
 const getRussianWeekday = (date: Date) => {
   const day = date.getUTCDay();
   return weekDays[day];
 };
 
-// Фильтрация записей по дате
 const filterEntriesByDate = (entries: DiaryEntry[], filter: DateFilter) => {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -260,7 +257,6 @@ export default function MoodTrackerPage() {
     }));
   };
 
-  // Новая функция для статистики настроений по типам
   const getMoodDistributionStats = () => {
     const stats: { [key: string]: number } = {};
     filteredEntries.forEach((entry) => {
@@ -353,7 +349,6 @@ export default function MoodTrackerPage() {
           Отслеживай свои эмоции и анализируй статистику
         </p>
 
-        {/* Фильтр по дате */}
         <div className="flex gap-3 mb-3">
           <button
             onClick={() => setDateFilter("all")}

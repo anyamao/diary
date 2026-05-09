@@ -19,7 +19,6 @@ export default function ImageUploader({ onImageInsert }: ImageUploaderProps) {
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
-          // Уменьшаем размер изображения
           const maxWidth = 600;
           const maxHeight = 600;
           let width = img.width;
@@ -40,7 +39,6 @@ export default function ImageUploader({ onImageInsert }: ImageUploaderProps) {
           const ctx = canvas.getContext("2d");
           ctx?.drawImage(img, 0, 0, width, height);
 
-          // Конвертируем в JPEG с качеством 0.7
           const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
           resolve(dataUrl);
         };

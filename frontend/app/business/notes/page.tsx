@@ -60,7 +60,6 @@ export default function BusinessNotesPage() {
       const response = await api.get("/business-notes");
       setNotes(response.data);
     } catch (error) {
-      console.error("Failed to fetch notes:", error);
       showToast("Не удалось загрузить заметки", "error");
     } finally {
       setLoading(false);
@@ -71,9 +70,7 @@ export default function BusinessNotesPage() {
     try {
       const response = await api.get("/business-notes/tags/all");
       setAllTags(response.data);
-    } catch (error) {
-      console.error("Failed to fetch tags:", error);
-    }
+    } catch (error) {}
   };
 
   const filterNotes = () => {
@@ -125,7 +122,6 @@ export default function BusinessNotesPage() {
         await fetchNotes();
         showToast("Заметка успешно удалена", "success");
       } catch (error) {
-        console.error("Failed to delete note:", error);
         showToast("Не удалось удалить заметку", "error");
       } finally {
         setIsDeleting(false);
@@ -142,7 +138,6 @@ export default function BusinessNotesPage() {
         "success",
       );
     } catch (error) {
-      console.error("Failed to toggle pin:", error);
       showToast("Не удалось изменить статус закрепления", "error");
     }
   };
@@ -191,7 +186,6 @@ export default function BusinessNotesPage() {
           </Link>
         </div>
 
-        {/* Панель поиска и фильтров */}
         <div className="mb-6">
           <div className="flex gap-3">
             <div className="flex-1 relative">
@@ -268,7 +262,6 @@ export default function BusinessNotesPage() {
           </div>
         </div>
 
-        {/* Список заметок */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredNotes.map((note) => (
             <div

@@ -82,9 +82,6 @@ export default function PersonalityPage() {
           </div>
         </div>
 
-        {/* Навигация */}
-
-        {/* Контент */}
         <div className=" mt-[30px]">
           {activeTab === "personality" && <PersonalityTest />}
           {activeTab === "depression" && <DepressionTest />}
