@@ -100,7 +100,54 @@ export const colors = [
     hex: "#f97316",
   },
 ];
+export const chartColors = [
+  { name: "pink", hex: "#ec4899", tailwind: "pink-300" },
+  { name: "blue", hex: "#3b82f6", tailwind: "blue-300" },
+  { name: "green", hex: "#22c55e", tailwind: "green-500" },
+  { name: "yellow", hex: "#eab308", tailwind: "yellow-300" },
+  { name: "purple", hex: "#a855f7", tailwind: "purple-300" },
+  { name: "orange", hex: "#f97316", tailwind: "orange-400" },
+  { name: "teal", hex: "#14b8a6", tailwind: "teal-300" },
+  { name: "rose", hex: "#f43f5e", tailwind: "rose-400" },
+  { name: "red", hex: "#ef4444", tailwind: "red-400" },
+];
+export const moodColorMap: { [key: string]: string } = {
+  Счастлив: chartColors[2].hex, // зеленый
+  Грустный: chartColors[1].hex, // синий
+  "Очень грустный": chartColors[7].hex, // rose
+  Злой: chartColors[6].hex, // teal
+  Напряженный: chartColors[4].hex, // фиолетовый
+  "Очень напряженный": chartColors[5].hex, // оранжевый
+  Спокойный: chartColors[0].hex, // розовый
+  "Без эмоций": "#9ca3af", // серый
+};
+export const getMoodColorByName = (moodName: string): string => {
+  return moodColorMap[moodName] || chartColors[0].hex;
+};
+export const getMoodColor = (moodKey: string): string => {
+  const moodKeyToColor: { [key: string]: string } = {
+    happy: chartColors[0].hex, // pink-200
+    sad: chartColors[1].hex, // blue-200
+    verysad: chartColors[1].hex, // blue-300 (тот же синий)
+    angry: chartColors[8].hex, // red-200 (красный)
+    stressed: chartColors[3].hex, // yellow-200
+    verystressed: chartColors[3].hex, // yellow-300 (тот же желтый)
+    calm: chartColors[0].hex, // pink-100 (тот же розовый)
+    noemotions: "#9ca3af", // серый
+  };
+  return moodKeyToColor[moodKey] || chartColors[0].hex;
+};
+export const getChartColor = (index: number): string => {
+  return chartColors[index % chartColors.length].hex;
+};
 
+export const getBarChartColors = () => {
+  const colorMap: { [key: string]: string } = {};
+  Object.keys(moodNames).forEach((mood, index) => {
+    colorMap[mood] = getChartColor(index);
+  });
+  return colorMap;
+};
 export const getColorByName = (name: string) => {
   return colors.find((c) => c.name === name) || colors[0];
 };

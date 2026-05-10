@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { API_URL } from "@/lib/api-url";
 
 export default function LoginPage() {
@@ -8,6 +9,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const translateError = (detail: string): string => {
     const errorMap: { [key: string]: string } = {
@@ -61,11 +63,11 @@ export default function LoginPage() {
         background: "#fce7f3",
       }}
     >
-      <div className="bg-white shadow-md rounded-lg  w-[400px] py-[40px] px-[40px]">
-        <p className="font-semibold text-xl  text-center text-pink-800 mb-[5px] ">
+      <div className="bg-white shadow-md rounded-lg w-[400px] py-[40px] px-[40px]">
+        <p className="font-semibold text-xl text-center text-pink-800 mb-[5px]">
           Привет! Я по тебе скучал
         </p>
-        <p className="font-normal text-sm  text-center text-gray-500 mb-[20px]">
+        <p className="font-normal text-sm text-center text-gray-500 mb-[20px]">
           Войди в свой аккаунт
         </p>
 
@@ -85,9 +87,9 @@ export default function LoginPage() {
               }}
             />
           </div>
-          <div style={{ marginBottom: "1rem" }}>
+          <div style={{ marginBottom: "1rem", position: "relative" }}>
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="Пароль"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -95,10 +97,31 @@ export default function LoginPage() {
               style={{
                 width: "100%",
                 padding: "8px",
+                paddingRight: "35px",
                 border: "1px solid #f9a8d4",
                 borderRadius: "4px",
               }}
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={{
+                position: "absolute",
+                right: "8px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "#9ca3af",
+              }}
+            >
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
           </div>
           {error && (
             <div style={{ color: "red", marginBottom: "1rem" }}>{error}</div>
@@ -106,7 +129,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="bg-pink-600 w-full rounded-md py-[15px] transition-all hover:bg-pink-700 duration-300  mt-[10px] text-white"
+            className="bg-pink-600 w-full rounded-md py-[15px] transition-all hover:bg-pink-700 duration-300 mt-[10px] text-white"
           >
             {loading ? "Вход..." : "Войти"}
           </button>
@@ -123,7 +146,7 @@ export default function LoginPage() {
       </div>
       <img
         src="/diary_idle.png"
-        className=" hidden md:block w-[400px] ml-[-30px]"
+        className="hidden md:block w-[400px] ml-[-30px]"
       />
     </div>
   );

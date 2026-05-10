@@ -18,7 +18,12 @@ import {
   Cell,
 } from "recharts";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-
+import {
+  chartColors,
+  getMoodColor,
+  getChartColor,
+  getMoodColorByName,
+} from "@/lib/colors";
 interface DiaryEntry {
   id: string;
   title: string;
@@ -271,20 +276,6 @@ export default function MoodTrackerPage() {
     }));
   };
 
-  const getMoodColor = (mood: string) => {
-    const colors: { [key: string]: string } = {
-      happy: "#fbbf24",
-      sad: "#60a5fa",
-      verysad: "#3b82f6",
-      angry: "#ef4444",
-      stressed: "#f97316",
-      verystressed: "#dc2626",
-      calm: "#34d399",
-      noemotions: "#9ca3af",
-    };
-    return colors[mood] || "#9ca3af";
-  };
-
   const getMostCommonMood = () => {
     const stats: { [key: string]: number } = {};
     filteredEntries.forEach((entry) => {
@@ -410,7 +401,7 @@ export default function MoodTrackerPage() {
           </div>
         </div>
 
-        <div className="flex lg:flex-row items-center flex-col ">
+        <div className="flex md:flex-row items-center  flex-col md:mt-[-50px] ">
           <div className="flex flex-col max-w-[500px]">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-gray-800">
@@ -509,137 +500,155 @@ export default function MoodTrackerPage() {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-8 mb-8 lg:ml-[30px] lg:w-full"></div>
-        </div>
 
-        <div className="bg-white rounded-lg w-full text-xs shadow-md my-[30px] p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            Распределение настроений
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={moodStats}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) =>
-                  `${name}: ${(percent * 100).toFixed(0)}%`
-                }
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
+          <div className="flex flex-col mt-[60px] md:ml-[20px] w-full">
+            <div className="bg-white rounded-lg  w-full text-xs shadow-md my-[30px] p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                Распределение настроений
+              </h2>
+              <ResponsiveContainer
+                width="100%"
+                className="my-[-20px]"
+                height={300}
               >
-                {moodStats.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={moodStats}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) =>
+                      `${name}: ${(percent * 100).toFixed(0)}%`
+                    }
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {moodStats.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={getMoodColor(
+                          Object.keys(moodNames).find(
+                            (key) => moodNames[key] === entry.name,
+                          ) || "noemotions",
+                        )}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="bg-white rounded-lg w-full  py-[-100px] max-h-[400px] shadow-md text-xs p-1 sm:p-6 mb-8">
+              <h2 className="text-xl font-semibold text-gray-800 p-6 sm:p-0 mb-4">
+                Статистика настроений
+              </h2>
+              <ResponsiveContainer
+                className="ml-[-40px] w-[120%] mb-[-10px]"
+                height={250}
+              >
+                <BarChart data={moodDistributionStats}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="name"
+                    tick={({ x, y, payload }) => {
+                      const moodKey = Object.keys(moodNames).find(
+                        (key) => moodNames[key] === payload.value,
+                      );
+                      const imageSrc = moodKey
+                        ? getMoodImage(moodKey)
+                        : "/noemotions.png";
+                      return (
+                        <g transform={`translate(${x},${y})`}>
+                          <image
+                            href={imageSrc}
+                            x={-15}
+                            y={0}
+                            width={30}
+                            height={30}
+                            className="object-contain"
+                          />
+                        </g>
+                      );
+                    }}
+                    height={50}
+                    interval={0}
+                  />
+                  <YAxis
+                    domain={[0, "dataMax"]}
+                    tickCount={
+                      Math.max(
+                        ...moodDistributionStats.map((s) => s.count),
+                        1,
+                      ) + 1
+                    }
+                    allowDecimals={false}
+                    tickFormatter={(value) => Math.floor(value).toString()}
+                  />
+                  <Tooltip
+                    formatter={(value) => [Math.floor(value), "записей"]}
+                    labelFormatter={(label) => {
+                      const moodKey = Object.keys(moodNames).find(
+                        (key) => moodNames[key] === label,
+                      );
+                      return moodKey ? moodNames[moodKey] : label;
+                    }}
+                  />
+                  <Bar dataKey="count" fill="#ec4899" name="Количество записей">
+                    {moodDistributionStats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill="#ec4899" />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md text-xs p-1 sm:p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-800 p-6 sm:p-0 mb-4">
-            Статистика настроений по типам
-          </h2>
-          <ResponsiveContainer
-            className="ml-[-40px] w-full w-[110%]"
-            height={400}
-          >
-            <BarChart data={moodDistributionStats}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="name"
-                tick={({ x, y, payload }) => {
-                  const moodKey = Object.keys(moodNames).find(
-                    (key) => moodNames[key] === payload.value,
-                  );
-                  const imageSrc = moodKey
-                    ? getMoodImage(moodKey)
-                    : "/noemotions.png";
-                  return (
-                    <g transform={`translate(${x},${y})`}>
-                      <image
-                        href={imageSrc}
-                        x={-15}
-                        y={0}
-                        width={30}
-                        height={30}
-                        className="object-contain"
-                      />
-                    </g>
-                  );
-                }}
-                height={50}
-                interval={0}
-              />
-              <YAxis
-                domain={[0, "dataMax"]}
-                tickCount={
-                  Math.max(...moodDistributionStats.map((s) => s.count), 1) + 1
-                }
-                allowDecimals={false}
-                tickFormatter={(value) => Math.floor(value).toString()}
-              />
-              <Tooltip
-                formatter={(value) => [Math.floor(value), "записей"]}
-                labelFormatter={(label) => {
-                  const moodKey = Object.keys(moodNames).find(
-                    (key) => moodNames[key] === label,
-                  );
-                  return moodKey ? moodNames[moodKey] : label;
-                }}
-              />
-              <Bar dataKey="count" fill="#ec4899" name="Количество записей">
-                {moodDistributionStats.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="flex flex-col">
-          <div className="bg-white rounded-lg text-xs shadow-md p-6 mb-8">
+        <div className="flex flex-row w-full  items-center justify-between ">
+          <div className="flex flex-col max-h-[400px] mr-[10px] w-full h-full">
+            <div className="bg-white rounded-lg text-xs shadow-md p-6 mb-8">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">
+                Настроение по дням недели
+              </h2>
+              <ResponsiveContainer width="100%" height={308}>
+                <BarChart data={weekdayStats}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  {Object.entries(moodNames).map(([moodKey, moodName]) => (
+                    <Bar
+                      key={moodKey}
+                      dataKey={moodName}
+                      stackId="a"
+                      fill={getMoodColor(moodKey)}
+                    />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg ml-[10px] w-full min-h-[400px] max-h-[400px] h-full text-xs shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">
-              Настроение по дням недели
+              Символы по дням недели
             </h2>
-            <ResponsiveContainer width="100%" height={400}>
-              <BarChart data={weekdayStats}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={charStats}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Legend />
-                {Object.entries(moodNames).map(([moodKey, moodName]) => (
-                  <Bar
-                    key={moodKey}
-                    dataKey={moodName}
-                    stackId="a"
-                    fill={getMoodColor(moodKey)}
-                  />
-                ))}
+                <Bar
+                  dataKey="среднее"
+                  fill="#ec4899"
+                  name="Среднее количество символов"
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
-        <div className="bg-white rounded-lg text-xs shadow-md p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">
-            Активность по дням недели
-          </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={charStats}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar
-                dataKey="среднее"
-                fill="#ec4899"
-                name="Среднее количество символов"
-              />
-            </BarChart>
-          </ResponsiveContainer>
         </div>
       </div>
     </div>
