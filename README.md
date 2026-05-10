@@ -160,7 +160,7 @@ diary/
 │
 ├── docker-compose.yml
 └── README.md
-
+text
 Вклад в проект (^_<)〜☆
 
 Мы приветствуем любой вклад в развитие VibeNote!
@@ -183,5 +183,5 @@ diary/
 📄 Лицензия
 
 Этот проект распространяется под лицензией MIT. Подробности в файле LICENSE.
-
+<img width="200" height="200" alt="diary_armsup" src="https://github.com/user-attachments/assets/37983bf0-1a86-4a50-a4be-0cb73545199e" />
 
