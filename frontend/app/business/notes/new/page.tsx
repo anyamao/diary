@@ -42,7 +42,6 @@ export default function NewBusinessNotePage() {
       console.log("Sending note:", noteData);
       await api.post("/business-notes", noteData);
       showToast("Заметка успешно создана!", "success");
-      router.push("/business/notes");
     } catch (error: any) {
       console.error("Failed to save note:", error);
       const errorMsg =

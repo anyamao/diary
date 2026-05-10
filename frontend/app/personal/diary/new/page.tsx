@@ -47,12 +47,7 @@ export default function NewEntryPage() {
     router.push("/login");
     return null;
   }
-
-  if (isLoading) {
-    return <Loading></Loading>;
-  }
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveEntry = async () => {
     setSaving(true);
     setError("");
 
@@ -69,7 +64,6 @@ export default function NewEntryPage() {
       await api.post("/diary/entries", entryData);
       eventBus.emit("diary-entry-created");
       showToast("Запись успешно создана!", "success");
-      router.push("/personal/diary");
     } catch (error: any) {
       const errorMsg =
         error.response?.data?.detail?.[0]?.msg ||
@@ -82,15 +76,17 @@ export default function NewEntryPage() {
     }
   };
 
-  const handleSave = () => {
-    const form = document.querySelector("form");
-    if (form) {
-      form.dispatchEvent(
-        new Event("submit", { cancelable: true, bubbles: true }),
-      );
-    }
+  if (isLoading) {
+    return <Loading></Loading>;
+  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveEntry();
   };
 
+  const handleSave = () => {
+    saveEntry();
+  };
   const handleDateChange = (newDate: Date) => {
     const utcDate = new Date(
       Date.UTC(newDate.getFullYear(), newDate.getMonth(), newDate.getDate()),
@@ -113,7 +109,7 @@ export default function NewEntryPage() {
 
   return (
     <div className="h-full w-full min-h-screen bg-pink-50 py-8  flex justify-center">
-      <div className="w-full h-full sm:max-w-[1100px] max-w-[380px]  md:ml-[-0px] flex flex-col flex-1 ">
+      <div className="w-full h-full sm:max-w-[1100px] max-w-[400px] ml-[-20px] md:ml-[-0px] flex flex-col flex-1 ">
         <div className="flex flex-row justify-between items-center text-pink-900">
           <Link href="/personal/diary" className="text-pink-900">
             <ArrowLeft className="w-5 h-5 ml-[40px]" />

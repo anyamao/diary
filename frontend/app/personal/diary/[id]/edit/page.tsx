@@ -82,7 +82,6 @@ export default function EditEntryPage({ params }: PageProps) {
       await api.put(`/diary/entries/${entryId}`, formData);
       eventBus.emit("diary-entry-updated");
       showToast("Запись успешно обновлена!", "success");
-      router.push("/personal/diary");
     } catch (error) {
       showToast("Не удалось обновить запись", "error");
     } finally {

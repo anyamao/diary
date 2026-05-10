@@ -55,7 +55,6 @@ export default function EditBusinessNotePage() {
       setFormData(response.data);
     } catch (error) {
       showToast("Не удалось загрузить заметку", "error");
-      router.push("/business/notes");
     } finally {
       setLoading(false);
     }
