@@ -12,7 +12,7 @@ function Loading() {
     const timer = setTimeout(() => {
       console.log("Timer finished, showing login button");
       setShowLoginButton(true);
-    }, 4000);
+    }, 6000);
 
     return () => clearTimeout(timer);
   }, []);
