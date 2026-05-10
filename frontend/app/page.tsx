@@ -131,7 +131,7 @@ export default function HomePage() {
               href="/register"
               className="bg-white text-pink-600 border-2 border-pink-200 px-8 py-3 rounded-xl hover:bg-pink-50 transition flex items-center justify-center gap-2 text-lg"
             >
-              Зарегестрироваться
+              Зарегистрироваться
             </Link>
           </div>
         </div>
