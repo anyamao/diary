@@ -20,7 +20,6 @@ https://github.com/user-attachments/assets/ae6524bb-2c6a-457b-8dbd-4a1046579ed7
 - [Основные возможности](#-основные-возможности)
 - [Архитектура и технологии](#️-архитектура-и-технологии)
 - [Быстрый старт](#-быстрый-старт)
-- [API Эндпоинты](#️-api-эндпоинты)
 - [Вклад в проект](#-вклад-в-проект)
 - [Лицензия](#-лицензия)
 
@@ -63,7 +62,7 @@ VibeNote объединяет всё необходимое в одном при
 - **Управление профилем** — смена имени пользователя, выбор аватара
 - **Удаление аккаунта** с каскадным удалением всех данных
 
-## Архитектура и технологии
+## Архитектура и технологии  	(⌒▽⌒)♡
 ### Frontend 
 Next.js 16.x (App Router) + React 19 + TypeScript
 - ├── UI: Tailwind CSS + Lucide Icons
@@ -78,6 +77,44 @@ FastAPI 0.115+ + SQLAlchemy 2.0 (async) + PostgreSQL
 - ├── Security: httpOnly cookies + CORS
 - ├── Database: asyncpg 
 - ├── Validation: Pydantic V2
+
+### Структура проекта
+
+diary/
+- ├── backend/                     # FastAPI бэкенд
+- │   ├── app/
+- │   │   ├── routers/             # API эндпоинты (по модулям)
+- │   │   ├── models.py            # SQLAlchemy модели
+- │   │   ├── schemas.py           # Pydantic схемы
+- │   │   ├── crud.py              # CRUD операции
+- │   │   ├── dependencies.py      # Зависимости (auth, db)
+- │   │   ├── config.py            # Конфигурация
+- │   │   ├── database.py          # Подключение к БД
+- │   │   └── main.py              # Точка входа
+- │   ├── alembic/                 # Миграции БД
+- │   ├── requirements.txt
+- │   └── .env.example
+- │
+- ├── frontend/                    # Next.js фронтенд
+- │   ├── app/
+- │   │   ├── business/            # Бизнес-секция
+- │   │   ├── personal/            # Личная секция
+- │   │   ├── login/               # Логин
+- │   │   ├── register/            # Регистрация
+- │   │   ├── layout.tsx           # Корневой layout
+- │   │   └── globals.css          # Глобальные стили
+- │   ├── components/              # UI компоненты
+- │   ├── store/                   # Zustand сторы
+- │   ├── lib/                     # Утилиты (axios, eventBus)
+- │   ├── hooks/                   # Кастомные хуки
+- │   ├── public/                  # Статика (аватарки, иконки)
+- │   ├── package.json
+- │   └── next.config.js
+- │
+- ├── screenshots/                 # Скриншоты для README
+- ├── docker-compose.yml
+- └── README.md
+
 
 
 ##  Быстрый старт ☆ﾐ(o*･ω･)ﾉ
