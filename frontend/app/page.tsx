@@ -121,17 +121,17 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
-              href="/personal/diary"
+              href="/login"
               className="bg-pink-600 text-white px-8 py-3 rounded-xl hover:bg-pink-700 transition flex items-center justify-center gap-2 text-lg"
             >
-              Начать вести дневник
+              Войти в аккаунт
               <ArrowRight className="w-5 h-5" />
             </Link>
             <Link
-              href="/business/planner"
+              href="/register"
               className="bg-white text-pink-600 border-2 border-pink-200 px-8 py-3 rounded-xl hover:bg-pink-50 transition flex items-center justify-center gap-2 text-lg"
             >
-              Попробовать планер
+              Зарегестрироваться
             </Link>
           </div>
         </div>
