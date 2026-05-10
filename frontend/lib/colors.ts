@@ -141,13 +141,6 @@ export const getChartColor = (index: number): string => {
   return chartColors[index % chartColors.length].hex;
 };
 
-export const getBarChartColors = () => {
-  const colorMap: { [key: string]: string } = {};
-  Object.keys(moodNames).forEach((mood, index) => {
-    colorMap[mood] = getChartColor(index);
-  });
-  return colorMap;
-};
 export const getColorByName = (name: string) => {
   return colors.find((c) => c.name === name) || colors[0];
 };
