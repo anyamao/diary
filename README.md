@@ -64,21 +64,22 @@ VibeNote объединяет всё необходимое в одном при
 - **Удаление аккаунта** с каскадным удалением всех данных
 
 ## Архитектура и технологии
-
 ### Frontend 
 Next.js 16.x (App Router) + React 19 + TypeScript
-├── UI: Tailwind CSS + Lucide Icons
-├── State: Zustand (клиент) + EventBus (события)
-├── Charts: Recharts (визуализация данных)
-├── Markdown: ReactMarkdown + remark-gfm
-└── HTTP: Axios (интерцепторы для токенов)
+- ├── UI: Tailwind CSS + Lucide Icons
+- ├── State: Zustand (клиент) + EventBus (события)
+- ├── Charts: Recharts (визуализация данных)
+- ├── Markdown: ReactMarkdown + remark-gfm
+- └── HTTP: Axios (интерцепторы для токенов)
 
 ### Backend
 FastAPI 0.115+ + SQLAlchemy 2.0 (async) + PostgreSQL
-├── Auth: python-jose (JWT) + Passlib (bcrypt)
-├── Security: httpOnly cookies + CORS
-├── Database: asyncpg 
-├── Validation: Pydantic V2
+- ├── Auth: python-jose (JWT) + Passlib (bcrypt)
+- ├── Security: httpOnly cookies + CORS
+- ├── Database: asyncpg 
+- ├── Validation: Pydantic V2
+
+
 ##  Быстрый старт ☆ﾐ(o*･ω･)ﾉ
 
 ### Предварительные требования
