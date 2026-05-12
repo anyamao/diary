@@ -748,7 +748,7 @@ export default function SleepInDiary({
               e.stopPropagation();
               startEditNote(note, e);
             }}
-            className="bg-white rounded-lg flex-1 w-full text-sm border-[1px] p-[20px] border-pink-300 shadow-sm hover:shadow-md"
+            className="bg-white rounded-lg my-[10px] flex-1 w-full text-sm border-[1px] p-[20px] border-pink-300 shadow-sm hover:shadow-md"
           >
             {editingNoteId === note.id ? (
               <div className="space-y-2">

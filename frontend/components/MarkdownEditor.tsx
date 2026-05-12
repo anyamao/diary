@@ -66,7 +66,7 @@ export default function MarkdownEditor({
           onChange={handleTextareaChange}
           placeholder={placeholder}
           rows={1}
-          className="w-full px-4 py-3 min-h-[200px] bg-pink-50 outline-none font-mono text-sm resize-none overflow-hidden"
+          className="w-full py-3 min-h-[200px] bg-pink-50 outline-none font-mono text-sm resize-none overflow-hidden"
         />
       ) : (
         <div className="p-4 min-h-[300px] overflow-y-auto">

@@ -177,7 +177,7 @@ export default function EditEntryPage({ params }: PageProps) {
           </div>
         </div>
 
-        <div className="rounded-lg p-8 text-pink-950">
+        <div className="rounded-lg md:p-8 p-2 text-pink-950">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex flex-row items-center justify-between">
               <button
